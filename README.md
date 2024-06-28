@@ -53,10 +53,6 @@ or
 
     make docker_build && make docker_run
 
-## Simulation Server & Dashboard
-
-    git submodule update --init --recursive
-
 ### Setup Simulation Server
 
 See instructions in [server/README.md](https://code.ornl.gov/exadigit/simulationserver)
