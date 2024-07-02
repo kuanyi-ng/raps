@@ -245,6 +245,7 @@ class Scheduler:
         self.fmu_results = None
         self.debug = kwargs.get('debug')
         self.output = kwargs.get('output')
+        self.replay = kwargs.get('replay')
 
         # Time array to plot against FMU history
         self.total_time = np.linspace(0, MAX_TIME, int(MAX_TIME/FMU_UPDATE_FREQ))
@@ -452,7 +453,7 @@ class Scheduler:
                     time_to_next_job = job[7]
             yield self.tick()
             # Stop the simulation if no more jobs running or are in the queue
-            if not self.queue and not self.running: 
+            if not self.queue and not self.running and not self.replay:
                 print("stopping simulation at time", self.current_time)
                 break
             if self.debug:
