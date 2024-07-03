@@ -9,6 +9,7 @@ class ConfigManager:
     def __init__(self, system_name: str):
         self.config: Dict[str, Any] = {}
         self.load_system_config(system_name)
+        self.derive_values()
 
     def load_system_config(self, system_name: str) -> None:
         base_path = CONFIG_PATH / system_name
@@ -22,6 +23,15 @@ class ConfigManager:
     def load_config_file(file_path: Path) -> dict[str, Any]:
         with open(file_path, 'r') as file:
             return json.load(file)
+
+    def derive_values(self) -> None:
+        # Derive SC_SHAPE and TOTAL_NODES
+        num_cdus = self.config.get("NUM_CDUS", 0)
+        racks_per_cdu = self.config.get("RACKS_PER_CDU", 0)
+        nodes_per_rack = self.config.get("NODES_PER_RACK", 0)
+
+        self.config['SC_SHAPE'] = [num_cdus, racks_per_cdu, nodes_per_rack]
+        self.config['TOTAL_NODES'] = num_cdus * racks_per_cdu * nodes_per_rack
 
     def get(self, key: str) -> Any:
         return self.config.get(key)
