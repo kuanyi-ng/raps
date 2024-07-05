@@ -8,7 +8,7 @@ from .utils import summarize_ranges, convert_seconds
 from .constants import ELLIPSES
 from .config import load_config_variables
 
-load_config_variables(['POWER_CDUS', 'POWER_DF_HEADER', 'FMU_COLUMN_MAPPING'], globals())
+load_config_variables(['POWER_CDUS', 'POWER_DF_HEADER', 'FMU_COLUMN_MAPPING', 'RACKS_PER_CDU'], globals())
 
 class LayoutManager:
     def __init__(self, layout_type, debug=False):
@@ -61,12 +61,12 @@ class LayoutManager:
             formatted_row = [func(cell) for func, cell in zip(format_funcs, row)]
             table.add_row(*formatted_row)
 
-    def calculate_totals(self, df, power_column=POWER_DF_HEADER[4], loss_column=POWER_DF_HEADER[-1]): # 'Sum' and 'Loss' columns
+    def calculate_totals(self, df, power_column=POWER_DF_HEADER[RACKS_PER_CDU + 1], loss_column=POWER_DF_HEADER[-1]): # 'Sum' and 'Loss' columns
         total_power_kw = df[power_column].sum() + (POWER_CDUS / 1000.0)
         total_power_mw = total_power_kw / 1000.0
         total_loss_kw = df[loss_column].sum()
         total_loss_mw = total_loss_kw / 1000.0
-        return total_power_mw, total_loss_mw, f"{total_loss_mw / total_power_mw * 100:.2f}%"
+        return total_power_mw, total_loss_mw, f"{total_loss_mw / total_power_mw * 100:.2f}%", total_power_kw, total_loss_kw
 
     def update_scheduled_jobs(self, jobs, show_nodes=False):
         """
@@ -196,7 +196,7 @@ class LayoutManager:
             DataFrame containing temperature and cooling data.
         """
         # Define the specific columns for power
-        power_columns = POWER_DF_HEADER[0:5] + [POWER_DF_HEADER[-1]]  # "CDU", "Rack 1", "Rack 2", "Rack 3", "Sum", "Loss"
+        power_columns = POWER_DF_HEADER[0:RACKS_PER_CDU + 2] + [POWER_DF_HEADER[-1]]  # "CDU", "Rack 1", "Rack 2", "Rack 3", "Sum", "Loss"
         cooling_keys = ["Ts_pri_Out", "Tr_pri_Out", "Ts_sec_Out", "Tr_sec_Out"]
 
         # Create column headers with appropriate styles
@@ -234,7 +234,7 @@ class LayoutManager:
             table.add_row(*(power_values + cooling_values))
 
         # Calculate total power and loss from power_df
-        total_power_mw, total_loss_mw, percent_loss_str = self.calculate_totals(power_df)
+        total_power_mw, total_loss_mw, percent_loss_str, _, _ = self.calculate_totals(power_df)
         total_power_str = f"{total_power_mw:.3f} MW"
         total_loss_str = f"{total_loss_mw:.3f} MW"
 
@@ -275,7 +275,7 @@ class LayoutManager:
             DataFrame containing power and loss data for racks.
         """
         # Define the specific columns to display
-        display_columns = POWER_DF_HEADER[0:5] + [POWER_DF_HEADER[-1]]  # "CDU", "Rack 1", "Rack 2", "Rack 3", "Sum", "Loss"
+        display_columns = POWER_DF_HEADER[0:RACKS_PER_CDU + 2] + [POWER_DF_HEADER[-1]]  # "CDU", "Rack 1", "Rack 2", "Rack 3", "Sum", "Loss"
 
         # Extract only the relevant columns and round the values
         if uncertainties:
@@ -299,12 +299,8 @@ class LayoutManager:
                 for i, value in enumerate(row[display_columns])
             ]
             table.add_row(*row_values)
-
-        # Calculate total power and loss
-        total_power_kw = power_df[display_columns[4]].sum() + (POWER_CDUS / 1000.0)
-        total_power_mw = total_power_kw / 1000.0
-        total_loss_kw = power_df[display_columns[-1]].sum()
-        total_loss_mw = total_loss_kw / 1000.0
+    
+        total_power_mw, total_loss_mw, percent_loss_str, total_power_kw, total_loss_kw = self.calculate_totals(power_df)
 
         # Convert to string with MW units
         total_power_str = f"{total_power_mw:.3f} MW"
