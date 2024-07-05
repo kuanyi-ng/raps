@@ -7,7 +7,15 @@ import random
 import pandas as pd
 import os
 import re
+import sys
 import time
+
+# Check for the required Python version
+required_major, required_minor = 3, 9
+
+if sys.version_info != (required_major, required_minor):
+    sys.stderr.write(f"Error: RAPS requires Python {required_major}.{required_minor}\n")
+    sys.exit(1)
 
 parser = argparse.ArgumentParser(description='Resource Allocator & Power Simulator (RAPS)')
 parser.add_argument('--disable_cooling', action='store_true', help='Disable cooling model')
