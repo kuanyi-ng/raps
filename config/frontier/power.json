@@ -25,16 +25,5 @@
     "SIVOC_EFFICIENCY": 0.98,
     "RECTIFIER_LOSS_CONSTANT": 17,
     "RECTIFIER_EFFICIENCY": 0.96,
-    "POWER_COST": 0.094,
-    "POWER_DF_HEADER": [
-        "CDU",
-        "Rack 1",
-        "Rack 2",
-        "Rack 3",
-        "Sum",
-        "Loss 1",
-        "Loss 2",
-        "Loss 3",
-        "Loss"
-    ]
+    "POWER_COST": 0.094
 }

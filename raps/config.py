@@ -33,6 +33,16 @@ class ConfigManager:
         self.config['SC_SHAPE'] = [num_cdus, racks_per_cdu, nodes_per_rack]
         self.config['TOTAL_NODES'] = num_cdus * racks_per_cdu * nodes_per_rack
 
+        # Generate POWER_DF_HEADER
+        power_df_header = ["CDU"]
+        for i in range(1, racks_per_cdu + 1):
+            power_df_header.append(f"Rack {i}")
+        power_df_header.append("Sum")
+        for i in range(1, racks_per_cdu + 1):
+            power_df_header.append(f"Loss {i}")
+        power_df_header.append("Loss")
+        self.config['POWER_DF_HEADER'] = power_df_header
+
     def get(self, key: str) -> Any:
         return self.config.get(key)
 
