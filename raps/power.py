@@ -48,7 +48,8 @@ load_config_variables([
     'RECTIFIER_LOSS_CONSTANT',
     'RECTIFIER_EFFICIENCY',
     'SWITCHES_PER_CHASSIS',
-    'POWER_DF_HEADER'
+    'POWER_DF_HEADER',
+    'MISSING_RACKS'
 ], globals())
 
 
@@ -235,10 +236,6 @@ class PowerManager:
         if power_func in [compute_node_power_uncertainties, \
                           compute_node_power_validate_uncertainties]:
             self.uncertainties = True
-
-        rack = self.down_nodes[0] // NODES_PER_RACK
-        cdu = (rack - 1) // RACKS_PER_CDU
-        self.down_rack = (cdu, rack % RACKS_PER_CDU)
         self.apply_down_nodes()
 
     def initialize_power_state(self):
@@ -371,8 +368,11 @@ class PowerManager:
 
         # Sum to 75 racks
         summed_power_with_losses = np.sum(power_with_losses/1000, axis=(2, 3))
-        # Zero out power for missing rack
-        summed_power_with_losses[self.down_rack] = 0
+        # Zero out power for missing racks
+        for rack in MISSING_RACKS:
+            cdu = rack // RACKS_PER_CDU
+            rack2d = (cdu, rack % RACKS_PER_CDU)
+            summed_power_with_losses[rack2d] = 0
         summed_rect_losses = np.sum(rect_losses/1000, axis=(2, 3))
 
         # Add CDU numbers to table
