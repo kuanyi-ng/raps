@@ -26,7 +26,7 @@ class LayoutManager:
                 Layout(name="powertemp", ratio=11),
                 Layout(name="totpower", ratio=3),
             )
-            self.layout["right"].split(Layout(name="scheduled", ratio=8), Layout(name="status", ratio=2))
+            self.layout["right"].split(Layout(name="scheduled", ratio=17), Layout(name="status", ratio=3))
         else:
             self.layout.split_row(Layout(name="left", ratio=1), Layout(name="right", ratio=1))
             self.layout["left"].split_column(Layout(name="upper", ratio=8), Layout(name="lower", ratio=2))
@@ -137,7 +137,7 @@ class LayoutManager:
         """
         # Define columns with header styles
         columns = ["Time", "Jobs Running", "Jobs Queued", "Active Nodes", "Free Nodes", "Down Nodes"]
-        table = Table(title="Scheduler Stats", header_style="bold magenta", expand=True)
+        table = Table(header_style="bold magenta", expand=True)
         for col in columns:
             table.add_column(col, justify="center")
 
@@ -153,8 +153,14 @@ class LayoutManager:
         # Add the row with the 'white' style applied to the whole row
         table.add_row(*row, style="white")
 
+        # Set the width of each column to match the "Power Stats" table
+        num_columns = len(table.columns)
+        column_width = int(100 / num_columns)
+        for column in table.columns:
+            column.width = column_width
+
         # Update the layout
-        self.layout["status"].update(Panel(Align(table, align="center")))
+        self.layout["status"].update(Panel(Align(table, align="center"), title="Scheduler Stats"))
 
     def update_pressflow_array(self, cooling_df):
         columns = ["Output", "Average Value"]
