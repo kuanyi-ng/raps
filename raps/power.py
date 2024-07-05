@@ -236,7 +236,7 @@ class PowerManager:
         if power_func in [compute_node_power_uncertainties, \
                           compute_node_power_validate_uncertainties]:
             self.uncertainties = True
-        self.apply_down_nodes()
+        if self.down_nodes: self.apply_down_nodes()
 
     def initialize_power_state(self):
         """Initialize the power state array with idle power consumption values."""
