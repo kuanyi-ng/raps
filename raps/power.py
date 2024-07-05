@@ -266,10 +266,8 @@ class PowerManager:
         """ Apply the down nodes to the power state, setting their power to zero """
         down_indices = linear_to_3d_index(self.down_nodes, self.sc_shape)
         self.power_state[down_indices] = 0
-        DOWN_NODES_CONSUME_POWER = False
-        if DOWN_NODES_CONSUME_POWER is True:
-            self.rectifier_loss[down_indices] = 0
-            self.sivoc_loss[down_indices] = 0
+        self.rectifier_loss[down_indices] = 0
+        self.sivoc_loss[down_indices] = 0
 
     def set_idle(self, node_indices):
         """
