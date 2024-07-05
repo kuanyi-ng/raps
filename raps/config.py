@@ -29,6 +29,8 @@ class ConfigManager:
         num_cdus = self.config.get("NUM_CDUS", 0)
         racks_per_cdu = self.config.get("RACKS_PER_CDU", 0)
         nodes_per_rack = self.config.get("NODES_PER_RACK", 0)
+        down_nodes = self.config.get("DOWN_NODES", 0)
+        missing_racks = self.config.get("MISSING_RACKS", 0)
 
         self.config['SC_SHAPE'] = [num_cdus, racks_per_cdu, nodes_per_rack]
         self.config['TOTAL_NODES'] = num_cdus * racks_per_cdu * nodes_per_rack
@@ -42,6 +44,13 @@ class ConfigManager:
             power_df_header.append(f"Loss {i}")
         power_df_header.append("Loss")
         self.config['POWER_DF_HEADER'] = power_df_header
+
+        # Convert MISSING_RACKS into list of DOWN_NODES
+        for rack in missing_racks:
+            start_node_id = rack * nodes_per_rack
+            end_node_id = start_node_id + nodes_per_rack
+            down_nodes.extend(range(start_node_id, end_node_id))
+        self.config['DOWN_NODES'] = down_nodes
 
     def get(self, key: str) -> Any:
         return self.config.get(key)
