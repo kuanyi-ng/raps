@@ -51,6 +51,7 @@ initialize_config(args.system)
 from raps.constants import OUTPUT_PATH
 from raps.cooling import ThermoFluidsModel
 from raps.ui import LayoutManager
+from raps.flops import FLOPSManager
 from raps.plotting import Plotter
 from raps.power import PowerManager, compute_node_power, compute_node_power_validate
 from raps.power import compute_node_power_uncertainties, compute_node_power_validate_uncertainties
@@ -93,9 +94,9 @@ else:
     else:
         power_manager = PowerManager(SC_SHAPE, DOWN_NODES, power_func=compute_node_power)
 
-
+flops_manager = FLOPSManager(SC_SHAPE)
 layout_manager = LayoutManager(args.layout, args.debug)
-sc = Scheduler(TOTAL_NODES, DOWN_NODES, power_manager, layout_manager,
+sc = Scheduler(TOTAL_NODES, DOWN_NODES, power_manager, flops_manager, layout_manager,
                cooling_model, **args_dict)
 if args.replay:
     print(args.replay)
