@@ -199,8 +199,8 @@ class TickData:
 
 class Scheduler:
     """Job scheduler and simulation manager."""
-    def __init__(self, total_nodes, down_nodes, power_manager, layout_manager, \
-                 cooling_model=None, **kwargs):
+    def __init__(self, total_nodes, down_nodes, power_manager, flops_manager, \
+                 layout_manager, cooling_model=None, **kwargs):
         """Initialize the scheduler.
 
         Args:
@@ -242,6 +242,7 @@ class Scheduler:
         self.cooling_model = cooling_model
         self.layout_manager = layout_manager
         self.power_manager = power_manager
+        self.flops_manager = flops_manager
         self.fmu_results = None
         self.debug = kwargs.get('debug')
         self.output = kwargs.get('output')
@@ -336,6 +337,7 @@ class Scheduler:
                 cpu_util = job.cpu_trace[time_quanta_index]
                 gpu_util = job.gpu_trace[time_quanta_index]
 
+                self.flops_manager.update_flop_state(job.scheduled_nodes, cpu_util, gpu_util)
                 job.power = self.power_manager.update_power_state(job.scheduled_nodes,
                                                                   cpu_util, gpu_util)
 
@@ -396,7 +398,8 @@ class Scheduler:
             if self.cooling_model:
                 runtime_values = self.cooling_model.generate_runtime_values(cdu_power)
                 # FMU inputs are N powers and the wetbulb temp
-                fmu_inputs = self.cooling_model.generate_fmu_inputs(runtime_values, uncertainties=self.power_manager.uncertainties)
+                fmu_inputs = self.cooling_model.generate_fmu_inputs(runtime_values, \
+                             uncertainties=self.power_manager.uncertainties)
                 self.fmu_results = self.cooling_model.step(self.current_time,
                                                            fmu_inputs, FMU_UPDATE_FREQ)
 
@@ -412,7 +415,8 @@ class Scheduler:
 
             if self.cooling_model:
                 if self.layout_manager:
-                    self.layout_manager.update_powertemp_array(power_df, cooling_df, uncertainties=self.power_manager.uncertainties)
+                    self.layout_manager.update_powertemp_array(power_df, cooling_df,\
+                                uncertainties=self.power_manager.uncertainties)
                     self.layout_manager.update_pressflow_array(cooling_df)
 
         if self.current_time % UI_UPDATE_FREQ == 0:
@@ -424,10 +428,15 @@ class Scheduler:
                 self.num_active_nodes = TOTAL_NODES - self.num_free_nodes - \
                         len(expand_ranges(self.down_nodes))
 
+                pflops = int(self.flops_manager.get_system_performance() / 1E15)
+                gflop_per_watt = pflops * 1E6 / (total_power_kw * 1000)
+                
                 self.layout_manager.update_status(self.current_time, len(self.running),
                                               len(self.queue), self.num_active_nodes,
-                                              self.num_free_nodes, self.down_nodes[1:])
-                self.layout_manager.update_power_array(power_df, uncertainties=self.power_manager.uncertainties)
+                                              self.num_free_nodes, self.down_nodes[1:],
+                                              pflops, gflop_per_watt)
+                self.layout_manager.update_power_array(power_df, \
+                                    uncertainties=self.power_manager.uncertainties)
                 self.layout_manager.render()
 
         tick_data = TickData(
