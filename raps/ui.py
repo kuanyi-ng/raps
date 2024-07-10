@@ -116,7 +116,7 @@ class LayoutManager:
         # Update the layout
         self.layout["scheduled"].update(Panel(Align(table, align="center")))
 
-    def update_status(self, time, nrun, nqueue, active_nodes, free_nodes, down_nodes, pflops, gflop_per_watt):
+    def update_status(self, time, nrun, nqueue, active_nodes, free_nodes, down_nodes):
         """
         Updates the status information table with the provided system status data.
 
@@ -136,7 +136,7 @@ class LayoutManager:
             List of nodes that are down.
         """
         # Define columns with header styles
-        columns = ["Time", "Jobs Running", "Jobs Queued", "Active Nodes", "Free Nodes", "Down Nodes", "PFLOPS", "GFLOPS/W"]
+        columns = ["Time", "Jobs Running", "Jobs Queued", "Active Nodes", "Free Nodes", "Down Nodes"]
         table = Table(header_style="bold magenta", expand=True)
         for col in columns:
             table.add_column(col, justify="center")
@@ -148,9 +148,7 @@ class LayoutManager:
             str(nqueue),
             str(active_nodes),
             str(free_nodes),
-            str(len(down_nodes)),
-            str(pflops),
-            f"{gflop_per_watt:.1f}"
+            str(len(down_nodes))
         ]
         # Add the row with the 'white' style applied to the whole row
         table.add_row(*row, style="white")
@@ -186,7 +184,7 @@ class LayoutManager:
         self.add_table_rows(table, data)
         self.layout["pressflow"].update(Panel(table))
 
-    def update_powertemp_array(self, power_df, cooling_df, uncertainties=False):
+    def update_powertemp_array(self, power_df, cooling_df, pflops, gflop_per_watt, uncertainties=False):
         """
         Updates the displayed power and temperature table with the provided data.
 
@@ -245,6 +243,8 @@ class LayoutManager:
         # Create Total Power table with green headers and white data
         total_table = Table(show_header=True, header_style="bold green")
         total_table.add_column("Total Power", justify="center", style="green")
+        total_table.add_column("PFLOPS", justify="center", style="green")
+        total_table.add_column("GFLOPS/W", justify="center", style="green")
         total_table.add_column("Total Loss", justify="center", style="green")
         total_table.add_column("Percent Loss", justify="center", style="green")
         total_table.add_column("PUE", justify="center", style="green")
@@ -252,6 +252,8 @@ class LayoutManager:
         # Add row with white data values using the style parameter
         total_table.add_row(
             total_power_str,
+            str(pflops),
+            f"{gflop_per_watt:.1f}",
             total_loss_str,
             percent_loss_str,
             f"{cooling_df.iloc[0]['PUE_Out']:.2f}",  # Assuming PUE_Out is present in cooling_df
@@ -265,9 +267,9 @@ class LayoutManager:
         for column in total_table.columns:
             column.width = column_width
 
-        self.layout["totpower"].update(Panel(Align(total_table, align="center"), title="Power Stats"))
+        self.layout["totpower"].update(Panel(Align(total_table, align="center"), title="Power and Performance"))
 
-    def update_power_array(self, power_df, uncertainties=False):
+    def update_power_array(self, power_df, pflops, gflop_per_watt, uncertainties=False):
         """
         Updates the displayed power array table with the provided data from df.
 
@@ -315,12 +317,16 @@ class LayoutManager:
             # Create Total Power table with green headers and white data
             total_table = Table(show_header=True, header_style="bold green")
             total_table.add_column("Total Power", justify="center", style="green")
+            total_table.add_column("PFLOPS", justify="center", style="green")
+            total_table.add_column("GFLOPS/W", justify="center", style="green")
             total_table.add_column("Total Loss", justify="center", style="green")
             total_table.add_column("Percent Loss", justify="center", style="green")
 
             # Add row with white data values
             total_table.add_row(
                 total_power_str,
+                str(pflops),
+                f"{gflop_per_watt:.1f}",
                 total_loss_str,
                 percent_loss_str,
                 style="white"  # Apply 'white' style to the entire row
@@ -333,7 +339,7 @@ class LayoutManager:
             for column in total_table.columns:
                 column.width = column_width
 
-            self.layout["lower"].update(Panel(Align(total_table, align="center"), title="Power Stats"))
+            self.layout["lower"].update(Panel(Align(total_table, align="center"), title="Power and Performance"))
 
     def render(self):
         if not self.debug:

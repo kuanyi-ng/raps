@@ -413,9 +413,12 @@ class Scheduler:
             else:
                 output_df = power_df
 
+            pflops = int(self.flops_manager.get_system_performance() / 1E15)
+            gflop_per_watt = pflops * 1E6 / (total_power_kw * 1000)
+
             if self.cooling_model:
                 if self.layout_manager:
-                    self.layout_manager.update_powertemp_array(power_df, cooling_df,\
+                    self.layout_manager.update_powertemp_array(power_df, cooling_df, pflops, gflop_per_watt,\
                                 uncertainties=self.power_manager.uncertainties)
                     self.layout_manager.update_pressflow_array(cooling_df)
 
@@ -427,15 +430,11 @@ class Scheduler:
                 self.num_free_nodes = len(self.available_nodes)
                 self.num_active_nodes = TOTAL_NODES - self.num_free_nodes - \
                         len(expand_ranges(self.down_nodes))
-
-                pflops = int(self.flops_manager.get_system_performance() / 1E15)
-                gflop_per_watt = pflops * 1E6 / (total_power_kw * 1000)
                 
                 self.layout_manager.update_status(self.current_time, len(self.running),
                                               len(self.queue), self.num_active_nodes,
-                                              self.num_free_nodes, self.down_nodes[1:],
-                                              pflops, gflop_per_watt)
-                self.layout_manager.update_power_array(power_df, \
+                                              self.num_free_nodes, self.down_nodes[1:])
+                self.layout_manager.update_power_array(power_df, pflops, gflop_per_watt, \
                                     uncertainties=self.power_manager.uncertainties)
                 self.layout_manager.render()
 
