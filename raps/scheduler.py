@@ -195,6 +195,8 @@ class TickData:
     jobs: list[Job]
     down_nodes: list[int]
     cooling_df: Optional[pd.DataFrame]
+    p_flops = int
+    g_flops_w = float
 
 
 class Scheduler:
