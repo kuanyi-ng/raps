@@ -195,8 +195,8 @@ class TickData:
     jobs: list[Job]
     down_nodes: list[int]
     cooling_df: Optional[pd.DataFrame]
-    p_flops = int
-    g_flops_w = float
+    p_flops: int
+    g_flops_w: float
 
 
 class Scheduler:
@@ -393,6 +393,8 @@ class Scheduler:
 
         # Render the updated layout
         output_df = None
+        pflops = None
+        gflop_per_watt = None
         if self.current_time % FMU_UPDATE_FREQ == 0:
             # Power for NUM_CDUS (25 for Frontier)
             cdu_power = rack_power.T[-1] * 1000
