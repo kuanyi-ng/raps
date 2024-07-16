@@ -443,6 +443,8 @@ class Scheduler:
             jobs = self.running + self.queue,
             down_nodes = expand_ranges(self.down_nodes[1:]),
             cooling_df = output_df,
+            p_flops = pflops,
+            g_flops_w = gflop_per_watt
         )
 
         self.current_time += 1
