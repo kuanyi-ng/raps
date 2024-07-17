@@ -22,7 +22,7 @@ parser.add_argument('--disable_cooling', action='store_true', help='Disable cool
 parser.add_argument('-d', '--debug', action='store_true', help='Enable debug mode and disable rich layout')
 parser.add_argument('-e', '--encrypt', action='store_true', help='Encrypt any sensitive data in telemetry')
 parser.add_argument('-n', '--numjobs', type=int, default=1000, help='Number of jobs to schedule')
-parser.add_argument('-t', '--timesteps', type=int, default=None, help='Number of timesteps to simulate')
+parser.add_argument('-t', '--time', type=str, default=None, help='Length of time to simulate, e.g., 123, 123s, 27m, 3h, 7d')
 parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose output')
 parser.add_argument('-s', '--seed', action='store_true', help='Set random number seed for deterministic simulation')
 parser.add_argument('-f', '--replay', nargs='+', type=str, help='Either: path/to/joblive path/to/jobprofile' + \
@@ -58,7 +58,7 @@ from raps.power import compute_node_power_uncertainties, compute_node_power_vali
 from raps.scheduler import Scheduler, Job
 from raps.telemetry import Telemetry
 from raps.workload import Workload
-from raps.utils import create_casename
+from raps.utils import create_casename, convert_to_seconds
 
 load_config_variables([
     'SC_SHAPE',
@@ -120,8 +120,8 @@ if args.replay:
 
     # Set number of timesteps based on the last job running which we assume
     # is the maximum value of submit_time + wall_time of all the jobs
-    if args.timesteps:
-        timesteps = args.timesteps
+    if args.time:
+        timesteps = convert_to_seconds(args.time)
     else:
         timesteps = int(max(job[4] + job[7] for job in jobs)) + 1
 
@@ -138,8 +138,8 @@ else:
             print('jobid:', job.id, '\tlen(gpu_trace):', len(job.gpu_trace), '\twall_time(s):', job.wall_time)
         time.sleep(2)
 
-    if args.timesteps:
-        timesteps = args.timesteps
+    if args.time:
+        timesteps = convert_to_seconds(args.time)
     else:
         timesteps = MAX_TIME
 

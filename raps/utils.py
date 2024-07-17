@@ -312,3 +312,26 @@ def next_arrival(lambda_rate=1/JOB_ARRIVAL_TIME):
             -math.log(1.0 - random.random()) / lambda_rate
     return next_arrival.next_time
 
+
+def convert_to_seconds(time_str):
+    # Define the conversion factors
+    time_factors = {
+        'd': 86400,  # 1 day = 86400 seconds
+        'h': 3600,   # 1 hour = 3600 seconds
+        'm': 60,     # 1 minute = 60 seconds
+        's': 1       # 1 second = 1 second
+    }
+    
+    # Check if the input string ends with a unit or is purely numeric
+    if time_str[-1].isdigit():
+        return int(time_str)  # Directly return the number if it's purely numeric
+    
+    # Extract the numeric part and the time unit
+    num = int(time_str[:-1])
+    unit = time_str[-1]
+    
+    # Convert to seconds using the conversion factors
+    if unit in time_factors:
+        return num * time_factors[unit]
+    else:
+        raise ValueError(f"Unknown time unit: {unit}")
