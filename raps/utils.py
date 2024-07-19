@@ -335,3 +335,10 @@ def convert_to_seconds(time_str):
         return num * time_factors[unit]
     else:
         raise ValueError(f"Unknown time unit: {unit}")
+
+
+def encrypt(name):
+    """Encrypts a given name using SHA-256 and returns the hexadecimal digest."""
+    encoded_name = name.encode()
+    hash_object = hashlib.sha256(encoded_name)
+    return hash_object.hexdigest()

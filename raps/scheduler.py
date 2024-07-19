@@ -390,6 +390,8 @@ class Scheduler:
             total_loss_kw = sum(row[-1] for row in rack_loss)
             self.power_manager.history.append((self.current_time, total_power_kw))
             self.power_manager.loss_history.append((self.current_time, total_loss_kw))
+            pflops = int(self.flops_manager.get_system_performance() / 1E15)
+            gflop_per_watt = pflops * 1E6 / (total_power_kw * 1000)
 
         # Render the updated layout
         output_df = None
@@ -416,9 +418,6 @@ class Scheduler:
                 output_df = pd.concat([power_df, cooling_df], axis=1)
             else:
                 output_df = power_df
-
-            pflops = int(self.flops_manager.get_system_performance() / 1E15)
-            gflop_per_watt = pflops * 1E6 / (total_power_kw * 1000)
 
             if self.cooling_model:
                 if self.layout_manager:
