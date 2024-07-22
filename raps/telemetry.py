@@ -118,8 +118,8 @@ class Telemetry:
         jobs = np.load(snapshot, allow_pickle=True)
         return jobs['jobs'].tolist()
 
-    def read_parquets(self, files):
-        return importlib.import_module('raps.readers.' + self.system).read_parquets(files)
+    def load_data(self, files):
+        return importlib.import_module('raps.dataloaders.' + self.system).load_data(files)
 
 
 if __name__ == "__main__":

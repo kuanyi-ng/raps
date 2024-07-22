@@ -117,8 +117,8 @@ if args.replay:
     else:
         print(args.replay)
         print(*args.replay)
-        #jobs = td.read_parquets(args.replay[0], args.replay[1])
-        jobs = td.read_parquets(args.replay)
+        #jobs = td.load_data(args.replay[0], args.replay[1])
+        jobs = td.load_data(args.replay)
         td.save_snapshot(jobs, filename=DIR_NAME)
 
     # Set number of timesteps based on the last job running which we assume

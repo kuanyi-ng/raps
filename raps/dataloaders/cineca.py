@@ -21,7 +21,7 @@ load_config_variables([
 ], globals())
 
 
-def read_parquets(jobs_path):
+def load_data(jobs_path):
     """
     Reads job and job profile data from parquet files and parses them.
 
