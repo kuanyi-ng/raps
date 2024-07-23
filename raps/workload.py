@@ -32,56 +32,23 @@ import numpy as np
 from .config import load_config_variables
 
 load_config_variables([
-    'TRACE_QUANTA',
-    'MAX_NODES_PER_JOB',
-    'JOB_NAMES',
-    'CPUS_PER_NODE',
-    'GPUS_PER_NODE',
-    'MAX_WALL_TIME',
-    'MIN_WALL_TIME',
-    'JOB_END_PROBS',
+    'TRACE_QUANTA', 'MAX_NODES_PER_JOB', 'JOB_NAMES', 'CPUS_PER_NODE',\
+    'GPUS_PER_NODE', 'MAX_WALL_TIME', 'MIN_WALL_TIME', 'JOB_END_PROBS',\
     'ACTIVE_NODES'
 ], globals())
+
+JOB_NAMES = ["LAMMPS", "GROMACS", "VASP", "Quantum ESPRESSO", "NAMD",\
+             "OpenFOAM", "WRF", "AMBER", "CP2K", "nek5000", "CHARMM",\
+             "ABINIT", "Cactus", "Charm++", "NWChem", "STAR-CCM+",\
+             "Gaussian", "ANSYS", "COMSOL", "PLUMED", "nekrs",\
+             "TensorFlow", "PyTorch", "BLAST", "Spark", "GAMESS",\
+             "ORCA", "Simulink", "MOOSE", "ELK"]
 
 from .utils import truncated_normalvariate, determine_state, next_arrival
 
 
 class Workload(object):
-    """
-    Class representing a workload generator.
-
-    This class is responsible for generating random workload traces and jobs.
-
-    Parameters
-    ----------
-    scheduler : object
-        An instance of the scheduler class.
-
-    Methods
-    -------
-    compute_traces(cpu_util, gpu_util, wall_time)
-        Compute CPU and GPU traces based on utilization and wall time.
-
-    generate_random_jobs(num_jobs)
-        Generate random jobs with specified number of jobs.
-
-    random(**kwargs)
-        Generate random jobs with optional arguments.
-
-    test(**kwargs)
-        Generate test jobs for evaluation with optional arguments.
-    """
-    def __init__(self, scheduler):
-        """
-        Initialize the Workload object.
-
-        Parameters
-        ----------
-        scheduler : object
-            An instance of the scheduler class.
-        """
-        self.sc = scheduler
-
+    """ This class is responsible for generating random workload traces and jobs. """
 
     def compute_traces(self, cpu_util: float, gpu_util: float, wall_time: int) -> tuple[np.ndarray, np.ndarray]:
         """ Compute CPU and GPU traces based on mean CPU & GPU utilizations and wall time. """

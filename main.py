@@ -132,7 +132,7 @@ if args.replay:
     time.sleep(1)
 
 else:
-    wl = Workload(sc)
+    wl = Workload()
     jobs = getattr(wl, args.workload)(num_jobs=args.numjobs)
 
     if args.verbose:
