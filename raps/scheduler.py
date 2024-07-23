@@ -195,7 +195,7 @@ class TickData:
     jobs: list[Job]
     down_nodes: list[int]
     cooling_df: Optional[pd.DataFrame]
-    p_flops: int
+    p_flops: float
     g_flops_w: float
 
 
@@ -385,18 +385,17 @@ class Scheduler:
         rack_loss = rect_losses + sivoc_losses
 
         # Update power history every 15s
+        pflops, gflop_per_watt = 0, 0
         if self.current_time % POWER_UPDATE_FREQ == 0:
             total_power_kw = sum(row[-1] for row in rack_power) + POWER_CDUS / 1000.0
             total_loss_kw = sum(row[-1] for row in rack_loss)
             self.power_manager.history.append((self.current_time, total_power_kw))
             self.power_manager.loss_history.append((self.current_time, total_loss_kw))
-            pflops = int(self.flops_manager.get_system_performance() / 1E15)
+            pflops = self.flops_manager.get_system_performance() / 1E15
             gflop_per_watt = pflops * 1E6 / (total_power_kw * 1000)
 
         # Render the updated layout
         output_df = None
-        pflops = None
-        gflop_per_watt = None
         if self.current_time % FMU_UPDATE_FREQ == 0:
             # Power for NUM_CDUS (25 for Frontier)
             cdu_power = rack_power.T[-1] * 1000
