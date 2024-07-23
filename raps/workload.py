@@ -39,7 +39,8 @@ load_config_variables([
     'GPUS_PER_NODE',
     'MAX_WALL_TIME',
     'MIN_WALL_TIME',
-    'JOB_END_PROBS'
+    'JOB_END_PROBS',
+    'ACTIVE_NODES'
 ], globals())
 
 from .utils import truncated_normalvariate, determine_state, next_arrival
@@ -117,30 +118,50 @@ class Workload(object):
         return self.generate_random_jobs(num_jobs=num_jobs)
 
 
-    def test(self, **kwargs):
-        """ Generate standard test workload"""
+    def peak(self, **kwargs):
+        """Peak power test"""
+        jobs = self.generate_random_jobs(num_jobs=0)
+        cpu_util, gpu_util = CPUS_PER_NODE, GPUS_PER_NODE
+        cpu_trace, gpu_trace = self.compute_traces(cpu_util, gpu_util, 10800)
+        jobs.insert(0, [ACTIVE_NODES, "Max Test", cpu_trace, gpu_trace,
+                    len(gpu_trace)*TRACE_QUANTA, 'COMPLETED', None, 100, None])
+        return jobs
+
+
+    def idle(self, **kwargs):
+        """Idle power test"""
+        jobs = self.generate_random_jobs(num_jobs=0)
+        cpu_util, gpu_util = 0, 0
+        cpu_trace, gpu_trace = self.compute_traces(cpu_util, gpu_util, 43200)
+        jobs.insert(0, [ACTIVE_NODES, "Idle Test", cpu_trace, gpu_trace,
+                    len(gpu_trace)*TRACE_QUANTA, 'COMPLETED', None, 0, None])
+        return jobs
+
+
+    def benchmark(self, **kwargs):
+        """Benchmark tests"""
 
         jobs = self.generate_random_jobs(num_jobs=0)
 
         # Max test
         cpu_util, gpu_util = 1, 4
         cpu_trace, gpu_trace = self.compute_traces(cpu_util, gpu_util, 10800)
-        jobs.insert(0, [9472, "Max Test", cpu_trace, gpu_trace,
+        jobs.insert(0, [ACTIVE_NODES, "Max Test", cpu_trace, gpu_trace,
                     len(gpu_trace)*TRACE_QUANTA, 'COMPLETED', None, 100, None])
         # OpenMxP run
         cpu_util, gpu_util = 0, 4
         cpu_trace, gpu_trace = self.compute_traces(cpu_util, gpu_util, 3600)
-        jobs.insert(0, [2800, "OpenMxP", cpu_trace, gpu_trace,
+        jobs.insert(0, [ACTIVE_NODES, "OpenMxP", cpu_trace, gpu_trace,
                     len(gpu_trace)*TRACE_QUANTA, 'COMPLETED', None, 300, None])
         # HPL run
         cpu_util, gpu_util = 0.33, 0.79 * 4 # based on 24-01-18 run
         cpu_trace, gpu_trace = self.compute_traces(cpu_util, gpu_util, 3600)
-        jobs.insert(0, [9216, "HPL", cpu_trace, gpu_trace,
+        jobs.insert(0, [ACTIVE_NODES, "HPL", cpu_trace, gpu_trace,
                     len(gpu_trace)*TRACE_QUANTA, 'COMPLETED', None, 200, None])
         # Idle test
         cpu_util, gpu_util = 0, 0
         cpu_trace, gpu_trace = self.compute_traces(cpu_util, gpu_util, 3600)
-        jobs.insert(0, [9472, "Idle Test", cpu_trace, gpu_trace,
+        jobs.insert(0, [ACTIVE_NODES, "Idle Test", cpu_trace, gpu_trace,
                     len(gpu_trace)*TRACE_QUANTA, 'COMPLETED', None, 0, None])
 
         return jobs
