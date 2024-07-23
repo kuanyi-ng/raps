@@ -5,12 +5,6 @@ parsing parquet files, and generating job state information.
 
 The module defines a `Telemetry` class for managing telemetry data and several
 helper functions for data encryption and conversion between xname and index formats.
-
-Classes
--------
-Telemetry
-    A class for handling telemetry data, including reading/parsing job data,
-    saving snapshots, and converting job dataframes to job states.
 """
 
 import argparse
@@ -20,97 +14,28 @@ import numpy as np
 
 from .scheduler import Job
 
-def encrypt(name):
-    """Encrypts a given name using SHA-256 and returns the hexadecimal digest."""
-
-    """
-    Parameters
-    ----------
-    name : str
-        The name to be encrypted.
-
-    Returns
-    -------
-    str
-        The hexadecimal digest of the SHA-256 hash of the name.
-    """
-    encoded_name = name.encode()
-    hash_object = hashlib.sha256(encoded_name)
-    return hash_object.hexdigest()
-
 
 class Telemetry:
-    """
-    A class for handling telemetry data, including reading/parsing job data,
-    saving snapshots, and converting job dataframes to job states.
-
-    Methods
-    -------
-    save_snapshot(jobs, filename)
-        Saves a snapshot of the jobs to a compressed file.
-    load_snapshot(snapshot)
-        Reads a snapshot from a compressed file and returns the jobs.
-    read_parquets(jobs_path, jobprofile_path)
-        Reads job and job profile data from parquet files and parses them.
-    parse_dataframes(jobs_df, jobprofile_df, min_time=None)
-        Parses job and job profile dataframes to extract job state information.
-    """
+    """A class for handling telemetry data, including reading/parsing job data, and loading/saving snapshots."""
 
     def __init__(self, **kwargs):
-        """
-        Constructs all the necessary attributes for the Telemetry object.
-
-        Parameters
-        ----------
-        encrypt: bool, optional
-            Whether to encrypt job names (default is False).
-        reschedule: bool, optional
-            Whether to reschedule the workloads (as opposed to play as scheduled, default is False).
-        validate : bool, optional
-            Whether to validate job profiles (default is False).
-        jid : str, optional
-            Job ID to filter for specific jobs (default is '*').
-        """
         self.kwargs = kwargs
         self.system = kwargs.get('system')
-        #self.encrypt = kwargs.get('encrypt')
-        #self.reschedule = kwargs.get('reschedule')
-        #self.validate = kwargs.get('validate')
-        #self.jid = kwargs.get('jid')
 
 
-    def save_snapshot(self, jobs, filename):
-        """
-        Saves a snapshot of the jobs to a compressed file.
-
-        Parameters
-        ----------
-        jobs : list
-            The list of jobs to save.
-        filename : str
-            The name of the file to save the jobs to.
-        """
+    def save_snapshot(self, jobs: list, filename: str):
+        """Saves a snapshot of the jobs to a compressed file. """
         np.savez_compressed(filename, jobs=jobs)
 
 
-    def load_snapshot(self, snapshot):
-        """
-        Reads a snapshot from a compressed file and returns the jobs.
-
-        Parameters
-        ----------
-        snapshot : str
-            The name of the snapshot file to read.
-
-        Returns
-        -------
-        list
-            The list of jobs from the snapshot file.
-        """
+    def load_snapshot(self, snapshot: str) -> list:
+        """Reads a snapshot from a compressed file and returns the jobs."""
         jobs = np.load(snapshot, allow_pickle=True)
         return jobs['jobs'].tolist()
 
+
     def load_data(self, files):
+        """Load telemetry data using custom data loaders."""
         module = importlib.import_module('raps.dataloaders.' + self.system)
         return module.load_data(files, **self.kwargs)
 
