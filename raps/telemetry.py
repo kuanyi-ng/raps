@@ -57,7 +57,7 @@ class Telemetry:
     -------
     save_snapshot(jobs, filename)
         Saves a snapshot of the jobs to a compressed file.
-    read_snapshot(snapshot)
+    load_snapshot(snapshot)
         Reads a snapshot from a compressed file and returns the jobs.
     read_parquets(jobs_path, jobprofile_path)
         Reads job and job profile data from parquet files and parses them.
@@ -101,7 +101,7 @@ class Telemetry:
         np.savez_compressed(filename, jobs=jobs)
 
 
-    def read_snapshot(self, snapshot):
+    def load_snapshot(self, snapshot):
         """
         Reads a snapshot from a compressed file and returns the jobs.
 

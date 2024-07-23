@@ -113,7 +113,7 @@ if args.replay:
 
     # Read either npz file or telemetry parquet files
     if args.replay[0].endswith(".npz"):
-        jobs = td.read_snapshot(args.replay[0])
+        jobs = td.load_snapshot(args.replay[0])
     else:
         print(args.replay)
         print(*args.replay)
