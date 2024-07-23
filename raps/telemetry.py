@@ -6,15 +6,6 @@ parsing parquet files, and generating job state information.
 The module defines a `Telemetry` class for managing telemetry data and several
 helper functions for data encryption and conversion between xname and index formats.
 
-Functions
----------
-encrypt(name)
-    Encrypts a given name using SHA-256 and returns the hexadecimal digest.
-xname_to_index(xname)
-    Converts an xname string to an index value based on system configuration.
-index_to_xname(index)
-    Converts an index value back to an xname string based on system configuration.
-
 Classes
 -------
 Telemetry
@@ -30,9 +21,9 @@ import numpy as np
 from .scheduler import Job
 
 def encrypt(name):
-    """
-    Encrypts a given name using SHA-256 and returns the hexadecimal digest.
+    """Encrypts a given name using SHA-256 and returns the hexadecimal digest."""
 
+    """
     Parameters
     ----------
     name : str
@@ -80,11 +71,12 @@ class Telemetry:
         jid : str, optional
             Job ID to filter for specific jobs (default is '*').
         """
+        self.kwargs = kwargs
         self.system = kwargs.get('system')
-        self.encrypt = kwargs.get('encrypt')
-        self.reschedule = kwargs.get('reschedule')
-        self.validate = kwargs.get('validate')
-        self.jid = kwargs.get('jid')
+        #self.encrypt = kwargs.get('encrypt')
+        #self.reschedule = kwargs.get('reschedule')
+        #self.validate = kwargs.get('validate')
+        #self.jid = kwargs.get('jid')
 
 
     def save_snapshot(self, jobs, filename):
@@ -119,7 +111,8 @@ class Telemetry:
         return jobs['jobs'].tolist()
 
     def load_data(self, files):
-        return importlib.import_module('raps.dataloaders.' + self.system).load_data(files)
+        module = importlib.import_module('raps.dataloaders.' + self.system)
+        return module.load_data(files, **self.kwargs)
 
 
 if __name__ == "__main__":

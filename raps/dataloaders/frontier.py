@@ -18,7 +18,7 @@ load_config_variables([
 ], globals())
 
 
-def load_data(files, **options):
+def load_data(files, **kwargs):
     """
     Reads job and job profile data from parquet files and parses them.
 
@@ -36,6 +36,11 @@ def load_data(files, **options):
     list
         The list of parsed jobs.
     """
+    encrypt_bool = kwargs.get('encrypt')
+    reschedule = kwargs.get('reschedule')
+    validate = kwargs.get('validate')
+    jid = kwargs.get('jid')
+
     #min_time = kwargs.get('min_time', None)
     min_time = None
 
@@ -76,10 +81,9 @@ def load_data(files, **options):
         nodes_required = jobs_df.loc[jidx, 'node_count']
         end_state = jobs_df.loc[jidx, 'state_current']
         name = jobs_df.loc[jidx, 'name']
-        #if self.encrypt: name = encrypt(name)
+        if encrypt_bool: name = encrypt(name)
 
-        #if self.validate:
-        if False:
+        if validate:
             cpu_power = jobprofile_df[jobprofile_df['allocation_id']
                                       == allocation_id]['mean_node_power']
             cpu_trace = cpu_power.values
@@ -117,8 +121,7 @@ def load_data(files, **options):
         # Don't replay any job with an empty set of xnames
         if '' in xnames: continue
 
-        #if self.reschedule: # Let the scheduler reschedule the jobs
-        if False:
+        if reschedule: # Let the scheduler reschedule the jobs
             scheduled_nodes = None
             time_offset = next_arrival()
         else: # Prescribed replay
@@ -127,8 +130,7 @@ def load_data(files, **options):
                 indices = xname_to_index(xname)
                 scheduled_nodes.append(indices)
 
-        #if gpu_trace.size > 0 and (self.jid == job_id or self.jid == '*'):
-        if gpu_trace.size > 0:
+        if gpu_trace.size > 0 and (jid == job_id or jid == '*'):
             jobs.append([
                 nodes_required,
                 name,

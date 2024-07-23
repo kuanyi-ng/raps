@@ -21,7 +21,7 @@ load_config_variables([
 ], globals())
 
 
-def load_data(jobs_path):
+def load_data(jobs_path, **kwargs):
     """
     Reads job and job profile data from parquet files and parses them.
 
@@ -36,6 +36,11 @@ def load_data(jobs_path):
         The list of parsed jobs.
     """
     min_time = None
+    encrypt_bool = kwargs.get('encrypt')
+    reschedule = kwargs.get('reschedule')
+    validate = kwargs.get('validate')
+    jid = kwargs.get('jid')
+
     jobs_df = pd.read_parquet(jobs_path, engine='pyarrow')
 
     # Sort jobs dataframe based on values in time_start column, adjust indices after sorting
@@ -70,11 +75,11 @@ def load_data(jobs_path):
     for i in range(num_jobs - 1):
         job_id = jobs_df.loc[i, 'job_id']
 
-        #if not self.jid == '*': 
-        #    if int(self.jid) == int(job_id): 
-        #        print(f'Extracting {job_id} profile')
-        #    else:
-        #        continue
+        if not jid == '*': 
+            if int(jid) == int(job_id): 
+                print(f'Extracting {job_id} profile')
+            else:
+                continue
 
         nodes_required = jobs_df.loc[i, 'num_nodes_alloc']
         
@@ -110,18 +115,16 @@ def load_data(jobs_path):
         
         end_state = jobs_df.loc[i, 'job_state']
         
-        
         time_start = jobs_df.loc[i+1, 'start_time']
         diff = time_start - time_zero
-        #if self.jid == '*': 
-        if True:
+
+        if jid == '*': 
             time_offset = max(diff.total_seconds(), 0)
         else:
             # When extracting out a single job, run one iteration past the end of the job
             time_offset = UI_UPDATE_FREQ
 
-        #if self.reschedule: # Let the scheduler reschedule the jobs
-        if False:
+        if reschedule: # Let the scheduler reschedule the jobs
             scheduled_nodes = None
             time_offset = next_arrival()
         else: # Prescribed replay
