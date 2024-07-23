@@ -1,0 +1,31 @@
+{
+    "POWER_GPU_IDLE": 75,
+    "POWER_GPU_MAX": 300,
+    "POWER_CPU_IDLE": 64,
+    "POWER_CPU_MAX": 226,
+    "POWER_MEM": 74.26,
+    "POWER_NVME": 30,
+    "POWER_NICS": 80,
+    "POWER_CDUS": 211836.75,
+    "POWER_SWITCH": 250,
+    "POWER_UPDATE_FREQ": 20,
+    "RECTIFIER_IDLE_POWER": 3093.75,
+    "RECTIFIER_PEAK_POWER": 15000,
+    "RECTIFIER_PEAK_THRESHOLD": 13670,
+    "SIVOC_LOSS_CONSTANT": 13,
+    "SIVOC_EFFICIENCY": 0.98,
+    "RECTIFIER_LOSS_CONSTANT": 17,
+    "RECTIFIER_EFFICIENCY": 0.96,
+    "POWER_COST": 0.094,
+    "POWER_DF_HEADER": [
+        "CDU",
+        "Rack 1",
+        "Rack 2",
+        "Rack 3",
+        "Sum",
+        "Loss 1",
+        "Loss 2",
+        "Loss 3",
+        "Loss"
+    ]
+}

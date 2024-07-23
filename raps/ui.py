@@ -251,8 +251,8 @@ class LayoutManager:
         # Add row with white data values using the style parameter
         total_table.add_row(
             total_power_str,
-            str(pflops),
-            f"{gflop_per_watt:.1f}",
+            str(f"{pflops:.2f}"),
+            str(f"{gflop_per_watt:.1f}"),
             total_loss_str + " (" + percent_loss_str+ ")",
             f"{cooling_df.iloc[0]['PUE_Out']:.2f}",  # Assuming PUE_Out is present in cooling_df
             style="white"  # Apply white style to all elements in the row
@@ -322,8 +322,8 @@ class LayoutManager:
             # Add row with white data values
             total_table.add_row(
                 total_power_str,
-                str(pflops),
-                f"{gflop_per_watt:.1f}",
+                str(f"{pflops:.2f}"),
+                str(f"{gflop_per_watt:.1f}"),
                 total_loss_str + " (" + percent_loss_str+ ")",
                 style="white"  # Apply 'white' style to the entire row
             )

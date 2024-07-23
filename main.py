@@ -113,9 +113,12 @@ if args.replay:
 
     # Read either npz file or telemetry parquet files
     if args.replay[0].endswith(".npz"):
-        jobs = td.read_snapshot(args.replay[0])
+        jobs = td.load_snapshot(args.replay[0])
     else:
-        jobs = td.read_parquets(args.replay[0], args.replay[1])
+        print(args.replay)
+        print(*args.replay)
+        #jobs = td.load_data(args.replay[0], args.replay[1])
+        jobs = td.load_data(args.replay)
         td.save_snapshot(jobs, filename=DIR_NAME)
 
     # Set number of timesteps based on the last job running which we assume
