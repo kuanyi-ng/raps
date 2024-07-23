@@ -13,7 +13,7 @@ class ConfigManager:
 
     def load_system_config(self, system_name: str) -> None:
         base_path = CONFIG_PATH / system_name
-        config_files = ['system.json', 'power.json', 'cooling.json', 'scheduler.json']
+        config_files = ['system.json', 'power.json', 'cooling.json', 'scheduler.json', 'uq.json']
         
         for config_file in config_files:
             config_data = self.load_config_file(base_path / config_file)
