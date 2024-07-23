@@ -13,10 +13,16 @@ class ConfigManager:
 
     def load_system_config(self, system_name: str) -> None:
         base_path = CONFIG_PATH / system_name
-        config_files = ['system.json', 'power.json', 'cooling.json', 'scheduler.json', 'uq.json']
+        config_files = ['system.json', 'power.json', 'scheduler.json']
+        optional_files = ['cooling.json', 'uq.json']
         
-        for config_file in config_files:
-            config_data = self.load_config_file(base_path / config_file)
+        for config_file in config_files + optional_files:
+            file_path = base_path / config_file
+            if config_file in optional_files and not file_path.exists():
+                continue  # Skip loading if the file is optional and doesn't exist
+            if not file_path.exists():
+                raise FileNotFoundError(f"Mandatory configuration file {config_file} not found.")
+            config_data = self.load_config_file(file_path)
             self.config.update(config_data)
         
     @staticmethod
@@ -51,6 +57,8 @@ class ConfigManager:
             end_node_id = start_node_id + nodes_per_rack
             down_nodes.extend(range(start_node_id, end_node_id))
         self.config['DOWN_NODES'] = down_nodes
+
+        self.config['ACTIVE_NODES'] = self.config['TOTAL_NODES'] - len(down_nodes)
 
     def get(self, key: str) -> Any:
         return self.config.get(key)

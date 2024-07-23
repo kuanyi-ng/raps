@@ -230,7 +230,6 @@ class Scheduler:
             power_manager: Power manager instance.
             fmu_results: Results from the FMU model.
             output: Flag for enabling output.
-            total_time: Total simulation time.
         """
         self.total_nodes = total_nodes
         self.available_nodes = list(set(range(total_nodes)) - set(down_nodes))
@@ -249,9 +248,6 @@ class Scheduler:
         self.debug = kwargs.get('debug')
         self.output = kwargs.get('output')
         self.replay = kwargs.get('replay')
-
-        # Time array to plot against FMU history
-        self.total_time = np.linspace(0, MAX_TIME, int(MAX_TIME/FMU_UPDATE_FREQ))
 
     def schedule(self, jobs):
         """Schedule jobs."""
@@ -396,11 +392,13 @@ class Scheduler:
 
         # Render the updated layout
         output_df = None
-        if self.current_time % FMU_UPDATE_FREQ == 0:
-            # Power for NUM_CDUS (25 for Frontier)
-            cdu_power = rack_power.T[-1] * 1000
 
-            if self.cooling_model:
+        if self.cooling_model:
+
+            if self.current_time % FMU_UPDATE_FREQ == 0:
+                # Power for NUM_CDUS (25 for Frontier)
+                cdu_power = rack_power.T[-1] * 1000
+
                 runtime_values = self.cooling_model.generate_runtime_values(cdu_power)
                 # FMU inputs are N powers and the wetbulb temp
                 fmu_inputs = self.cooling_model.generate_fmu_inputs(runtime_values, \
@@ -408,23 +406,22 @@ class Scheduler:
                 self.fmu_results = self.cooling_model.step(self.current_time,
                                                            fmu_inputs, FMU_UPDATE_FREQ)
 
-            # Get a dataframe of the power data
-            power_df = self.power_manager.get_power_df(rack_power, rack_loss)
+                # Get a dataframe of the power data
+                power_df = self.power_manager.get_power_df(rack_power, rack_loss)
 
-            if self.cooling_model:
                 # Get a dataframe of cooling data then concatenate with power_df
                 cooling_df = self.cooling_model.get_cooling_df()
                 output_df = pd.concat([power_df, cooling_df], axis=1)
-            else:
-                output_df = power_df
 
-            if self.cooling_model:
                 if self.layout_manager:
                     self.layout_manager.update_powertemp_array(power_df, cooling_df, pflops, gflop_per_watt,\
                                 uncertainties=self.power_manager.uncertainties)
                     self.layout_manager.update_pressflow_array(cooling_df)
 
         if self.current_time % UI_UPDATE_FREQ == 0:
+
+            # Get a dataframe of the power data
+            power_df = self.power_manager.get_power_df(rack_power, rack_loss)
 
             if self.layout_manager:
                 self.layout_manager.update_scheduled_jobs(self.running + self.queue)
