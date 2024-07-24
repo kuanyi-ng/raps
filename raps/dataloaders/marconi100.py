@@ -95,7 +95,9 @@ def load_data(jobs_path, **kwargs):
             cpu_power = cpu_power[:min_length]
             mem_power = mem_power[:min_length]
                 
-            gpu_power = node_power - cpu_power - mem_power - ([nodes_required*2*POWER_NICS]*len(node_power)) - ([nodes_required*POWER_NVME]*len(node_power))
+            gpu_power = (node_power - cpu_power - mem_power
+                - ([nodes_required * 2 * POWER_NICS] * len(node_power))
+                - ([nodes_required * POWER_NVME] * len(node_power)))
             gpu_power_array = gpu_power.tolist()
             gpu_min_power = nodes_required * POWER_GPU_IDLE * GPUS_PER_NODE
             gpu_max_power = nodes_required * POWER_GPU_MAX * GPUS_PER_NODE
