@@ -104,34 +104,34 @@ def load_data(jobs_path, **kwargs):
             gpu_util = power_to_utilization(gpu_power_array, gpu_min_power, gpu_max_power)
             gpu_trace = gpu_util * GPUS_PER_NODE
             
-            # wall_time = jobs_df.loc[i, 'run_time']
-            wall_time = gpu_trace.size * TRACE_QUANTA # seconds
+        # wall_time = jobs_df.loc[i, 'run_time']
+        wall_time = gpu_trace.size * TRACE_QUANTA # seconds
             
-            end_state = jobs_df.loc[i, 'job_state']
+        end_state = jobs_df.loc[i, 'job_state']
             
-            time_start = jobs_df.loc[i+1, 'start_time']
-            diff = time_start - time_zero
-            if jid == '*': 
-                time_offset = max(diff.total_seconds(), 0)
-            else:
-                # When extracting out a single job, run one iteration past the end of the job
-                time_offset = UI_UPDATE_FREQ
-            if reschedule: # Let the scheduler reschedule the jobs
-                scheduled_nodes = None
-                time_offset = next_arrival()
-            else: # Prescribed replay
-                scheduled_nodes = (jobs_df.loc[i, 'nodes']).tolist()
+        time_start = jobs_df.loc[i+1, 'start_time']
+        diff = time_start - time_zero
+        if jid == '*': 
+            time_offset = max(diff.total_seconds(), 0)
+        else:
+            # When extracting out a single job, run one iteration past the end of the job
+            time_offset = UI_UPDATE_FREQ
+        if reschedule: # Let the scheduler reschedule the jobs
+            scheduled_nodes = None
+            time_offset = next_arrival()
+        else: # Prescribed replay
+            scheduled_nodes = (jobs_df.loc[i, 'nodes']).tolist()
             
-            jobs.append([
-                nodes_required,
-                name,
-                cpu_trace,
-                gpu_trace,
-                wall_time,
-                end_state,
-                scheduled_nodes,
-                time_offset,
-                job_id
-            ])
+        jobs.append([
+            nodes_required,
+            name,
+            cpu_trace,
+            gpu_trace,
+            wall_time,
+            end_state,
+            scheduled_nodes,
+            time_offset,
+            job_id
+        ])
 
-        return jobs
+    return jobs
