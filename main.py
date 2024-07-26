@@ -37,6 +37,8 @@ parser.add_argument('-o', '--output', action='store_true', help='Output power, c
 parser.add_argument('-p', '--plot', nargs='+', choices=['power', 'loss', 'pue', 'temp'],
                     help='Specify one or more types of plots to generate: power, loss, pue, temp')
 parser.add_argument('--system', type=str, default='frontier', help='System config to use')
+choices = ['fcfs', 'sjf']
+parser.add_argument('--schedule', type=str, default=choices[0], help='Type of schedule to use')
 choices = ['random', 'benchmark', 'peak', 'idle']
 parser.add_argument('-w', '--workload', type=str, choices=choices, default=choices[0], help='Type of synthetic workload')
 choices = ['layout1', 'layout2']

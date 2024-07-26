@@ -168,10 +168,10 @@ class Job:
         else:
             raise ValueError(f"Invalid state: {value}")
 
-    def __lt__(self, other):
-        """Implement less than comparison for jobs based on wall time."""
-        #return self.end_time < other.end_time # First-come, First-served (FCFS)
-        return self.wall_time < other.wall_time  # Shortest-job-first (SJF)
+    # def __lt__(self, other):
+    #     """Implement less than comparison for jobs based on wall time."""
+    #     #return self.end_time < other.end_time # First-come, First-served (FCFS)
+    #     return self.wall_time < other.wall_time  # Shortest-job-first (SJF)
 
     @classmethod
     def _get_next_id(cls):
@@ -247,21 +247,32 @@ class Scheduler:
         self.fmu_results = None
         self.debug = kwargs.get('debug')
         self.output = kwargs.get('output')
+        self.schedule_method = kwargs.get('schedule')
         self.replay = kwargs.get('replay')
 
+    def add_job(self, job):
+        self.queue.append(job)
+        self._sort_queue()
+
+    def _sort_queue(self):
+        if self.schedule_method == 'fcfs':
+            self.queue.sort(key=lambda job: job.submit_time)
+        elif self.schedule_method == 'sjf':
+            self.queue.sort(key=lambda job: job.wall_time)
+    
     def schedule(self, jobs):
         """Schedule jobs."""
         for job_vector in jobs:
             job = Job(job_vector, self.current_time)
-            heapq.heappush(self.queue, job)
-
+            # heapq.heappush(self.queue, job)
+            self.add_job(job)
         #if self.debug:
         #    print(f"\nt={self.current_time} queue={self.queue} heapq={heapq}")
 
         while self.queue:
 
-            job = heapq.heappop(self.queue)
-
+            # job = heapq.heappop(self.queue)
+            job = self.queue.pop(0)
             synthetic_bool = len(self.available_nodes) >= job.nodes_required
             telemetry_bool = job.requested_nodes and job.requested_nodes[0] in self.available_nodes
 
@@ -291,7 +302,8 @@ class Scheduler:
                     print(f"t={self.current_time}: Scheduled job with wall time {job.wall_time} on nodes {scheduled_nodes}")
 
             else:
-                heapq.heappush(self.queue, job)
+                # heapq.heappush(self.queue, job)
+                self.add_job(job)
                 break
 
     def tick(self):
@@ -324,7 +336,8 @@ class Scheduler:
                     self.available_nodes.sort()
 
                     # Keep the job in the queue for visibility
-                    heapq.heappush(self.queue, job)
+                    # heapq.heappush(self.queue, job)
+                    
 
                     # Remove job from the list of running jobs
                     self.running.remove(job)
