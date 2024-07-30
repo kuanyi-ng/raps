@@ -38,7 +38,7 @@ parser.add_argument('-p', '--plot', nargs='+', choices=['power', 'loss', 'pue', 
                     help='Specify one or more types of plots to generate: power, loss, pue, temp')
 parser.add_argument('--system', type=str, default='frontier', help='System config to use')
 choices = ['fcfs', 'sjf']
-parser.add_argument('--schedule', type=str, default=choices[0], help='Type of schedule to use')
+parser.add_argument('--schedule', type=str, choices=choices, default=choices[0], help='Type of schedule to use')
 choices = ['random', 'benchmark', 'peak', 'idle']
 parser.add_argument('-w', '--workload', type=str, choices=choices, default=choices[0], help='Type of synthetic workload')
 choices = ['layout1', 'layout2']
@@ -165,7 +165,11 @@ if args.verbose:
 
 sc.run_simulation_blocking(jobs, timesteps=timesteps)
 output_stats = sc.get_stats()
-print(json.dumps(output_stats, indent=4))
+# print(json.dumps(output_stats, indent=4))
+try:
+    print(json.dumps(output_stats, indent=4))
+except:
+    print(output_stats)
 
 if args.plot:
     if 'power' in args.plot:

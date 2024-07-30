@@ -122,16 +122,18 @@ def load_data(jobs_path, **kwargs):
         else: # Prescribed replay
             scheduled_nodes = (jobs_df.loc[i, 'nodes']).tolist()
             
-        jobs.append([
-            nodes_required,
-            name,
-            cpu_trace,
-            gpu_trace,
-            wall_time,
-            end_state,
-            scheduled_nodes,
-            time_offset,
-            job_id
-        ])
+        # if gpu_trace.size > 0 and (jid == job_id or jid == '*'):
+        if (gpu_trace.size > 0):
+            jobs.append([
+                nodes_required,
+                name,
+                cpu_trace,
+                gpu_trace,
+                wall_time,
+                end_state,
+                scheduled_nodes,
+                time_offset,
+                job_id
+            ])
 
     return jobs
