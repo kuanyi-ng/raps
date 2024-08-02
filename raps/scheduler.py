@@ -256,7 +256,7 @@ class Scheduler:
 
     def _sort_queue(self):
         if self.schedule_method == 'fcfs':
-            self.queue.sort(key=lambda job: job.submit_time)
+            self.queue.sort(key=lambda job: (job.submit_time + job.id))
         elif self.schedule_method == 'sjf':
             self.queue.sort(key=lambda job: job.wall_time)
     
@@ -272,6 +272,9 @@ class Scheduler:
         while self.queue:
 
             # job = heapq.heappop(self.queue)
+            # print("type(self.queue) is" + str(type(self.queue)))
+            submit_times = [job.submit_time for job in self.queue]
+            # print(submit_times)
             job = self.queue.pop(0)
             synthetic_bool = len(self.available_nodes) >= job.nodes_required
             telemetry_bool = job.requested_nodes and job.requested_nodes[0] in self.available_nodes
@@ -466,6 +469,7 @@ class Scheduler:
         """ Generator that yields after each simulation tick """
         time_to_next_job = 0
         self.timesteps = timesteps
+        self._sort_queue()
 
         for _ in range(timesteps):
             if self.current_time >= time_to_next_job:
