@@ -8,9 +8,6 @@ helper functions for data encryption and conversion between xname and index form
 """
 
 import argparse
-import hashlib
-import importlib
-import numpy as np
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Telemetry data validator')
@@ -28,6 +25,8 @@ if __name__ == "__main__":
     if not is_config_initialized():
         initialize_config(args.system)
 
+import importlib
+import numpy as np
 from .scheduler import Job
 
 
