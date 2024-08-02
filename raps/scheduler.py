@@ -153,6 +153,16 @@ class Job:
         self.power = 0
         self.power_history = []
 
+    def __repr__(self):
+        """Return a string representation of the job."""
+        return (f"Job(id={self.id}, name={self.name}, nodes_required={self.nodes_required}, "
+                f"cpu_trace={self.cpu_trace}, gpu_trace={self.gpu_trace}, wall_time={self.wall_time}, "
+                f"end_state={self.end_state}, requested_nodes={self.requested_nodes}, "
+                f"submit_time={self.submit_time}, start_time={self.start_time}, "
+                f"end_time={self.end_time}, running_time={self.running_time}, state={self._state}, "
+                f"scheduled_nodes={self.scheduled_nodes}, power={self.power}, "
+                f"power_history={self.power_history})")
+
     @property
     def state(self):
         """Get the current state of the job."""
