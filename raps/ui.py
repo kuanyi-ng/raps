@@ -184,7 +184,7 @@ class LayoutManager:
         self.add_table_rows(table, data)
         self.layout["pressflow"].update(Panel(table))
 
-    def update_powertemp_array(self, power_df, cooling_df, pflops, gflop_per_watt, uncertainties=False):
+    def update_powertemp_array(self, power_df, cooling_df, pflops, gflop_per_watt, system_util, uncertainties=False):
         """
         Updates the displayed power and temperature table with the provided data.
 
@@ -242,6 +242,7 @@ class LayoutManager:
 
         # Create Total Power table with green headers and white data
         total_table = Table(show_header=True, header_style="bold green")
+        total_table.add_column("System Utilization", justify="center", style="green")
         total_table.add_column("Total Power", justify="center", style="green")
         total_table.add_column("PFLOPS", justify="center", style="green")
         total_table.add_column("GFLOPS/W", justify="center", style="green")
@@ -250,6 +251,7 @@ class LayoutManager:
 
         # Add row with white data values using the style parameter
         total_table.add_row(
+            f"{system_util:.1f}%",
             total_power_str,
             str(f"{pflops:.2f}"),
             str(f"{gflop_per_watt:.1f}"),
@@ -267,7 +269,7 @@ class LayoutManager:
 
         self.layout["totpower"].update(Panel(Align(total_table, align="center"), title="Power and Performance"))
 
-    def update_power_array(self, power_df, pflops, gflop_per_watt, uncertainties=False):
+    def update_power_array(self, power_df, pflops, gflop_per_watt, system_util, uncertainties=False):
         """
         Updates the displayed power array table with the provided data from df.
 
@@ -314,6 +316,7 @@ class LayoutManager:
 
             # Create Total Power table with green headers and white data
             total_table = Table(show_header=True, header_style="bold green")
+            total_table.add_column("System Utilization", justify="center", style="green")
             total_table.add_column("Total Power", justify="center", style="green")
             total_table.add_column("PFLOPS", justify="center", style="green")
             total_table.add_column("GFLOPS/W", justify="center", style="green")
@@ -321,6 +324,7 @@ class LayoutManager:
 
             # Add row with white data values
             total_table.add_row(
+                f"{system_util:.1f}%",
                 total_power_str,
                 str(f"{pflops:.2f}"),
                 str(f"{gflop_per_watt:.1f}"),
