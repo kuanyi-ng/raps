@@ -65,7 +65,9 @@ load_config_variables([
     'COOLING_EFFICIENCY',
     'WET_BULB_TEMP',
     'NUM_CDUS',
-    'POWER_DF_HEADER'
+    'POWER_DF_HEADER',
+    'ACTIVE_NODES',
+    'TOTAL_NODES'
 ], globals())
 
 
@@ -399,6 +401,7 @@ class Scheduler:
             self.power_manager.loss_history.append((self.current_time, total_loss_kw))
             pflops = self.flops_manager.get_system_performance() / 1E15
             gflop_per_watt = pflops * 1E6 / (total_power_kw * 1000)
+            system_util = ACTIVE_NODES / TOTAL_NODES * 100
 
         # Render the updated layout
         output_df = None
@@ -425,7 +428,7 @@ class Scheduler:
 
                 if self.layout_manager:
                     self.layout_manager.update_powertemp_array(power_df, cooling_df, pflops, gflop_per_watt,\
-                                uncertainties=self.power_manager.uncertainties)
+                                system_util, uncertainties=self.power_manager.uncertainties)
                     self.layout_manager.update_pressflow_array(cooling_df)
 
         if self.current_time % UI_UPDATE_FREQ == 0:
@@ -444,7 +447,7 @@ class Scheduler:
                                               len(self.queue), self.num_active_nodes,
                                               self.num_free_nodes, self.down_nodes[1:])
                 self.layout_manager.update_power_array(power_df, pflops, gflop_per_watt, \
-                                    uncertainties=self.power_manager.uncertainties)
+                                    system_util, uncertainties=self.power_manager.uncertainties)
                 self.layout_manager.render()
 
         tick_data = TickData(
