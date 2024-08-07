@@ -36,6 +36,8 @@ parser.add_argument('--validate', action='store_true', help='Use node power inst
 parser.add_argument('-o', '--output', action='store_true', help='Output power, cooling, and loss models for later analysis')
 parser.add_argument('-p', '--plot', nargs='+', choices=['power', 'loss', 'pue', 'temp', 'util'],
                     help='Specify one or more types of plots to generate: power, loss, pue, util, temp')
+choices = ['png', 'svg', 'jpg', 'pdf', 'eps']
+parser.add_argument('--imtype', type=str, choices=choices, default=choices[0], help='Plot image type')
 parser.add_argument('--system', type=str, default='frontier', help='System config to use')
 choices = ['random', 'benchmark', 'peak', 'idle']
 parser.add_argument('-w', '--workload', type=str, choices=choices, default=choices[0], help='Type of synthetic workload')
@@ -172,21 +174,28 @@ except:
 
 if args.plot:
     if 'power' in args.plot:
-        pl = Plotter('Time (s)', 'Power (kW)', 'Power History', OPATH / 'power.svg', uncertainties=args.uncertainties)
+        pl = Plotter('Time (s)', 'Power (kW)', 'Power History', \
+                     OPATH / f'power.{args.imtype}', \
+                     uncertainties=args.uncertainties)
         x, y = zip(*power_manager.history)
         pl.plot_history(x, y)
 
     if 'util' in args.plot:
-        pl = Plotter('Time (s)', 'System Utilization (%)', 'System Utilization History', OPATH / 'util.png')
+        pl = Plotter('Time (s)', 'System Utilization (%)', \
+                     'System Utilization History', OPATH / f'util.{args.imtype}')
         x, y = zip(*sc.sys_util_history)
         pl.plot_history(x, y)
 
     if 'loss' in args.plot:
-        pl = Plotter('Time (s)', 'Power Losses (kW)', 'Power Loss History', OPATH / 'loss.svg', uncertainties=args.uncertainties)
+        pl = Plotter('Time (s)', 'Power Losses (kW)', 'Power Loss History', \
+                     OPATH / f'loss.{args.imtype}', \
+                     uncertainties=args.uncertainties)
         x, y = zip(*power_manager.loss_history)
         pl.plot_history(x, y)
 
-        pl = Plotter('Time (s)', 'Power Losses (%)', 'Power Loss History', OPATH / 'loss_pct.svg', uncertainties=args.uncertainties)
+        pl = Plotter('Time (s)', 'Power Losses (%)', 'Power Loss History', \
+                     OPATH / f'loss_pct.{args.imtype}', \
+                     uncertainties=args.uncertainties)
         x, y = zip(*power_manager.loss_history_percentage)
         pl.plot_history(x, y)
 
@@ -194,7 +203,8 @@ if args.plot:
         if cooling_model:
             ylabel = 'PUE_Out[1]'
             title = 'FMU ' + ylabel + 'History'
-            pl = Plotter('Time (s)', ylabel, title, OPATH / 'pue.svg', uncertainties=args.uncertainties)
+            pl = Plotter('Time (s)', ylabel, title, OPATH / f'pue.{args.imtype}', \
+                         uncertainties=args.uncertainties)
             df = pd.DataFrame(cooling_model.fmu_history)
             df.to_parquet('cooling_model.parquet', engine='pyarrow')
             pl.plot_history(df['time'], df[ylabel])
