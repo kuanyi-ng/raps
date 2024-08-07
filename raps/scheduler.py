@@ -470,6 +470,12 @@ class Scheduler:
         """ Generator that yields after each simulation tick """
         time_to_next_job = 0
         self.timesteps = timesteps
+        rpeak = self.flops_manager.get_rpeak()
+        print(f"System Rpeak: {rpeak/1E15:.2f} PFLOPS")
+        peak_power = self.power_manager.get_peak_power()
+        print(f"Peak power: {peak_power/1E3:.0f} kW")
+        gflops_per_watt_max = rpeak / 1E9 / peak_power
+        print(f"Max energy efficiency: {gflops_per_watt_max:.1f} GFLOPS/W")
 
         for _ in range(timesteps):
             if self.current_time >= time_to_next_job:

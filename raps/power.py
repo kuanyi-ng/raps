@@ -20,7 +20,12 @@ from .config import load_config_variables
 
 
 load_config_variables([
+    'AVAILABLE_NODES',
+    'BLADES_PER_CHASSIS',
     'CHASSIS_PER_RACK',
+    'NUM_CDUS',
+    'NUM_RACKS',
+    'POWER_CDUS',
     'POWER_GPU_IDLE',
     'POWER_GPU_MAX',
     'POWER_GPU_UNCERTAINTY',
@@ -40,6 +45,7 @@ load_config_variables([
     'RACKS_PER_CDU',
     'SIVOC_LOSS_CONSTANT',
     'SIVOC_EFFICIENCY',
+    'NODES_PER_BLADE',
     'NODES_PER_RACK',
     'NODES_PER_RECTIFIER',
     'NODE_POWER_UNCERTAINTY',
@@ -238,6 +244,21 @@ class PowerManager:
             self.uncertainties = True
         if self.down_nodes: self.apply_down_nodes()
 
+    def get_peak_power(self):
+        node_power = compute_node_power(CPUS_PER_NODE, GPUS_PER_NODE)[0]
+
+        # There is an error here somewhere
+        blades_per_rectifier = BLADES_PER_CHASSIS / RECTIFIERS_PER_CHASSIS
+        rectifier_load = blades_per_rectifier * NODES_PER_BLADE * node_power
+        rectifier_power = rectifier_loss(rectifier_load) # with AC-DC conversion losses
+        chassis_power = BLADES_PER_CHASSIS * rectifier_power + SWITCHES_PER_CHASSIS * POWER_SWITCH
+        rack_power = chassis_power * CHASSIS_PER_RACK 
+        total_power = rack_power * NUM_RACKS
+
+        # Just use simple estimate for now for setting gauge max value in dashboard
+        total_power = AVAILABLE_NODES * node_power * 1.1
+        return total_power
+
     def initialize_power_state(self):
         """Initialize the power state array with idle power consumption values."""
         initial_power, _ = self.power_func(0, 0)
@@ -281,6 +302,7 @@ class PowerManager:
     def update_power_state(self, scheduled_nodes, cpu_util, gpu_util):
         """
         Update the power state of scheduled nodes based on CPU and GPU utilization.
+        Note: this is only used to test smart load-sharing "what-if" scenario
 
         Parameters:
         - scheduled_nodes: list
@@ -346,7 +368,7 @@ class PowerManager:
             rectifier_power = np.full((*chassis_power.shape, RECTIFIERS_PER_CHASSIS), np.nan)
             power_with_losses = np.copy(rectifier_power)
 
-            # Chassis_power.shape is (25, 3, 8)
+            # Chassis_power.shape for Frontier is (25, 3, 8)
             for i in range(chassis_power.shape[0]):
                 for j in range(chassis_power.shape[1]):
                     for k in range(chassis_power.shape[2]):
