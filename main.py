@@ -18,7 +18,7 @@ if sys.version_info < (required_major, required_minor):
     sys.exit(1)
 
 parser = argparse.ArgumentParser(description='Resource Allocator & Power Simulator (RAPS)')
-parser.add_argument('--disable_cooling', action='store_true', help='Disable cooling model')
+parser.add_argument('-c', '--cooling', action='store_true', help='Include FMU cooling model')
 parser.add_argument('-d', '--debug', action='store_true', help='Enable debug mode and disable rich layout')
 parser.add_argument('-e', '--encrypt', action='store_true', help='Encrypt any sensitive data in telemetry')
 parser.add_argument('-n', '--numjobs', type=int, default=1000, help='Number of jobs to schedule')
@@ -75,13 +75,10 @@ if args.seed:
     random.seed(SEED)
     np.random.seed(SEED)
 
-if not args.disable_cooling:
-    try:
-        cooling_model = ThermoFluidsModel(FMU_PATH)
-        cooling_model.initialize()
-        args.layout = "layout2"
-    except:
-        cooling_model = None
+if args.cooling:
+    cooling_model = ThermoFluidsModel(FMU_PATH)
+    cooling_model.initialize()
+    args.layout = "layout2"
 else:
     cooling_model = None
 
