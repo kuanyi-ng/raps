@@ -342,3 +342,16 @@ def encrypt(name):
     encoded_name = name.encode()
     hash_object = hashlib.sha256(encoded_name)
     return hash_object.hexdigest()
+
+
+def write_dict_to_file(dictionary, file_path):
+    """Function to write dictionary to a text file"""
+    with open(file_path, 'w') as file:
+        for key, value in dictionary.items():
+            if isinstance(value, dict):
+                file.write(f"{key}: {{\n")
+                for subkey, subvalue in value.items():
+                    file.write(f"  {subkey}: {subvalue}\n")
+                file.write("}\n")
+            else:
+                file.write(f"{key}: {value}\n")

@@ -34,8 +34,8 @@ parser.add_argument('-u', '--uncertainties', action='store_true',
 parser.add_argument('--jid', type=str, default='*', help='Replay job id')
 parser.add_argument('--validate', action='store_true', help='Use node power instead of CPU/GPU utilizations')
 parser.add_argument('-o', '--output', action='store_true', help='Output power, cooling, and loss models for later analysis')
-parser.add_argument('-p', '--plot', nargs='+', choices=['power', 'loss', 'pue', 'temp'],
-                    help='Specify one or more types of plots to generate: power, loss, pue, temp')
+parser.add_argument('-p', '--plot', nargs='+', choices=['power', 'loss', 'pue', 'temp', 'util'],
+                    help='Specify one or more types of plots to generate: power, loss, pue, util, temp')
 parser.add_argument('--system', type=str, default='frontier', help='System config to use')
 choices = ['random', 'benchmark', 'peak', 'idle']
 parser.add_argument('-w', '--workload', type=str, choices=choices, default=choices[0], help='Type of synthetic workload')
@@ -58,7 +58,7 @@ from raps.power import compute_node_power_uncertainties, compute_node_power_vali
 from raps.scheduler import Scheduler, Job
 from raps.telemetry import Telemetry
 from raps.workload import Workload
-from raps.utils import create_casename, convert_to_seconds
+from raps.utils import create_casename, convert_to_seconds, write_dict_to_file
 
 load_config_variables([
     'SC_SHAPE',
@@ -163,12 +163,22 @@ if args.verbose:
 
 sc.run_simulation_blocking(jobs, timesteps=timesteps)
 output_stats = sc.get_stats()
-print(json.dumps(output_stats, indent=4))
+# Following b/c we get the following error when we use PM100 telemetry dataset
+# TypeError: Object of type int64 is not JSON serializable
+try:
+    print(json.dumps(output_stats, indent=4))
+except:
+    print(output_stats)
 
 if args.plot:
     if 'power' in args.plot:
         pl = Plotter('Time (s)', 'Power (kW)', 'Power History', OPATH / 'power.svg', uncertainties=args.uncertainties)
         x, y = zip(*power_manager.history)
+        pl.plot_history(x, y)
+
+    if 'util' in args.plot:
+        pl = Plotter('Time (s)', 'System Utilization (%)', 'System Utilization History', OPATH / 'util.png')
+        x, y = zip(*sc.sys_util_history)
         pl.plot_history(x, y)
 
     if 'loss' in args.plot:
@@ -204,14 +214,10 @@ if args.plot:
 
 if args.output:
 
-    with open(OPATH / 'stats.out', 'w') as f:
-        json.dump(output_stats, f, indent=4)
-
     if args.uncertainties:
-        print('Data dump not implemented using uncertainties!')  # Parquet cannot handle annotated ufloat format AFAIK
-        pass
+        # Parquet cannot handle annotated ufloat format AFAIK
+        print('Data dump not implemented using uncertainties!')  
     else:
-
         if cooling_model:
             df = pd.DataFrame(cooling_model.fmu_history)
             df.to_parquet(OPATH / 'cooling_model.parquet', engine='pyarrow')
@@ -221,3 +227,12 @@ if args.output:
 
         df = pd.DataFrame(power_manager.loss_history)
         df.to_parquet(OPATH / 'loss_history.parquet', engine='pyarrow')
+
+        df = pd.DataFrame(sc.sys_util_history)
+        df.to_parquet(OPATH / 'util.parquet', engine='pyarrow')
+
+        try:
+            with open(OPATH / 'stats.out', 'w') as f:
+                json.dump(output_stats, f, indent=4)
+        except:
+            write_dict_to_file(output_stats, OPATH / 'stats.out')

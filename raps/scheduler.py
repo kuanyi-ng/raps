@@ -66,7 +66,7 @@ load_config_variables([
     'WET_BULB_TEMP',
     'NUM_CDUS',
     'POWER_DF_HEADER',
-    'ACTIVE_NODES',
+    'AVAILABLE_NODES',
     'TOTAL_NODES'
 ], globals())
 
@@ -260,6 +260,7 @@ class Scheduler:
         self.debug = kwargs.get('debug')
         self.output = kwargs.get('output')
         self.replay = kwargs.get('replay')
+        self.sys_util_history = []
 
     def schedule(self, jobs):
         """Schedule jobs."""
@@ -401,7 +402,8 @@ class Scheduler:
             self.power_manager.loss_history.append((self.current_time, total_loss_kw))
             pflops = self.flops_manager.get_system_performance() / 1E15
             gflop_per_watt = pflops * 1E6 / (total_power_kw * 1000)
-            system_util = ACTIVE_NODES / TOTAL_NODES * 100
+            system_util = self.num_active_nodes / AVAILABLE_NODES * 100
+            self.sys_util_history.append((self.current_time, system_util))
 
         # Render the updated layout
         output_df = None

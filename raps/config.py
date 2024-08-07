@@ -61,7 +61,7 @@ class ConfigManager:
             down_nodes.extend(range(start_node_id, end_node_id))
         self.config['DOWN_NODES'] = down_nodes
 
-        self.config['ACTIVE_NODES'] = self.config['TOTAL_NODES'] - len(down_nodes)
+        self.config['AVAILABLE_NODES'] = self.config['TOTAL_NODES'] - len(down_nodes)
 
     def get(self, key: str) -> Any:
         return self.config.get(key)
