@@ -393,6 +393,10 @@ class Scheduler:
         sivoc_losses = self.power_manager.compute_sivoc_losses()
         rack_loss = rect_losses + sivoc_losses
 
+        # Update system utilization
+        system_util = self.num_active_nodes / AVAILABLE_NODES * 100
+        self.sys_util_history.append((self.current_time, system_util))
+
         # Update power history every 15s
         pflops, gflop_per_watt = 0, 0
         if self.current_time % POWER_UPDATE_FREQ == 0:
@@ -402,8 +406,6 @@ class Scheduler:
             self.power_manager.loss_history.append((self.current_time, total_loss_kw))
             pflops = self.flops_manager.get_system_performance() / 1E15
             gflop_per_watt = pflops * 1E6 / (total_power_kw * 1000)
-            system_util = self.num_active_nodes / AVAILABLE_NODES * 100
-            self.sys_util_history.append((self.current_time, system_util))
 
         # Render the updated layout
         output_df = None
