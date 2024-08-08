@@ -104,6 +104,8 @@ def load_data(jobs_path, **kwargs):
             gpu_util = power_to_utilization(gpu_power_array, gpu_min_power, gpu_max_power)
             gpu_trace = gpu_util * GPUS_PER_NODE
             
+        priority = int(jobs_df.loc[i, 'priority'])
+            
         # wall_time = jobs_df.loc[i, 'run_time']
         wall_time = gpu_trace.size * TRACE_QUANTA # seconds
             
@@ -133,7 +135,8 @@ def load_data(jobs_path, **kwargs):
                 end_state,
                 scheduled_nodes,
                 time_offset,
-                job_id
+                job_id, 
+                priority
             ])
 
     return jobs

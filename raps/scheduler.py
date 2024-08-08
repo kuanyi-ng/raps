@@ -145,6 +145,7 @@ class Job:
             self.id = vector[8]
         else:
             self.id = Job._get_next_id()
+        self.priority = vector[9]
         self.start_time = None
         self.end_time = None
         self.running_time = 0
@@ -259,6 +260,8 @@ class Scheduler:
             self.queue.sort(key=lambda job: (job.submit_time + job.id))
         elif self.schedule_method == 'sjf':
             self.queue.sort(key=lambda job: job.wall_time)
+        elif self.schedule_method == 'prq':
+            self.queue.sort(key=lambda job: -job.priority)
     
     def schedule(self, jobs):
         """Schedule jobs."""
@@ -273,8 +276,11 @@ class Scheduler:
 
             # job = heapq.heappop(self.queue)
             # print("type(self.queue) is" + str(type(self.queue)))
-            submit_times = [job.submit_time for job in self.queue]
+            # submit_times = [job.submit_time for job in self.queue]
             # print(submit_times)
+            print("self.queue: ", len(self.queue))
+            priorities = [job.priority for job in self.queue]
+            print("priorities: ", priorities)
             job = self.queue.pop(0)
             synthetic_bool = len(self.available_nodes) >= job.nodes_required
             telemetry_bool = job.requested_nodes and job.requested_nodes[0] in self.available_nodes
@@ -306,7 +312,8 @@ class Scheduler:
 
             else:
                 # heapq.heappush(self.queue, job)
-                self.add_job(job)
+                # self.add_job(job)
+                self.queue.append(job)
                 break
 
     def tick(self):

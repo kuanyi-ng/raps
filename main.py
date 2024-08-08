@@ -37,7 +37,7 @@ parser.add_argument('-o', '--output', action='store_true', help='Output power, c
 parser.add_argument('-p', '--plot', nargs='+', choices=['power', 'loss', 'pue', 'temp'],
                     help='Specify one or more types of plots to generate: power, loss, pue, temp')
 parser.add_argument('--system', type=str, default='frontier', help='System config to use')
-choices = ['fcfs', 'sjf']
+choices = ['fcfs', 'sjf', 'prq']
 parser.add_argument('--schedule', type=str, choices=choices, default=choices[0], help='Type of schedule to use')
 choices = ['random', 'benchmark', 'peak', 'idle']
 parser.add_argument('-w', '--workload', type=str, choices=choices, default=choices[0], help='Type of synthetic workload')
@@ -136,6 +136,9 @@ if args.replay:
 else:
     wl = Workload()
     jobs = getattr(wl, args.workload)(num_jobs=args.numjobs)
+    # jobs = getattr(wl, "random")(num_jobs=args.numjobs)
+    # jobs2 = getattr(wl, "peak")(num_jobs=args.numjobs)
+    # jobs.insert(1, jobs2[0])
 
     if args.verbose:
         for job_vector in jobs:

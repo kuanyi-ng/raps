@@ -90,7 +90,9 @@ class Workload(object):
         jobs = self.generate_random_jobs(num_jobs=0)
         cpu_util, gpu_util = CPUS_PER_NODE, GPUS_PER_NODE
         cpu_trace, gpu_trace = self.compute_traces(cpu_util, gpu_util, 10800)
-        jobs.insert(0, [ACTIVE_NODES, "Max Test", cpu_trace, gpu_trace,
+        # jobs.insert(0, [ACTIVE_NODES, "Max Test", cpu_trace, gpu_trace,
+        #             len(gpu_trace)*TRACE_QUANTA, 'COMPLETED', None, 100, None])
+        jobs.insert(0, [ACTIVE_NODES, "[green]Peak-Test[/green]", cpu_trace, gpu_trace,
                     len(gpu_trace)*TRACE_QUANTA, 'COMPLETED', None, 100, None])
         return jobs
 
