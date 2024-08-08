@@ -245,18 +245,15 @@ class PowerManager:
         if self.down_nodes: self.apply_down_nodes()
 
     def get_peak_power(self):
+        """Estimate peak power of system for setting max value of gauges in dashboard"""
         node_power = compute_node_power(CPUS_PER_NODE, GPUS_PER_NODE)[0]
-
-        # There is an error here somewhere
         blades_per_rectifier = BLADES_PER_CHASSIS / RECTIFIERS_PER_CHASSIS
         rectifier_load = blades_per_rectifier * NODES_PER_BLADE * node_power
         rectifier_power = rectifier_loss(rectifier_load) # with AC-DC conversion losses
-        chassis_power = BLADES_PER_CHASSIS * rectifier_power + SWITCHES_PER_CHASSIS * POWER_SWITCH
+        chassis_power = BLADES_PER_CHASSIS * rectifier_power / blades_per_rectifier \
+                      + SWITCHES_PER_CHASSIS * POWER_SWITCH
         rack_power = chassis_power * CHASSIS_PER_RACK 
-        total_power = rack_power * NUM_RACKS
-
-        # Just use simple estimate for now for setting gauge max value in dashboard
-        total_power = AVAILABLE_NODES * node_power * 1.1
+        total_power = rack_power * NUM_RACKS + POWER_CDUS
         return total_power
 
     def initialize_power_state(self):

@@ -470,7 +470,7 @@ class Scheduler:
         """For setting max values in dashboard gauges"""
         peak_flops = self.flops_manager.get_rpeak()
         peak_power = self.power_manager.get_peak_power()
-        gflops_per_watt_max = rpeak / 1E9 / peak_power
+        gflops_per_watt_max = peak_flops / 1E9 / peak_power
 
         if self.debug:
             print(f"System Rpeak: {peak_flops/1E15:.2f} PFLOPS")
@@ -485,6 +485,9 @@ class Scheduler:
         """ Generator that yields after each simulation tick """
         time_to_next_job = 0
         self.timesteps = timesteps
+        if self.debug: 
+            limits = self.get_gauge_limits()
+            print(limits)
         
         for _ in range(timesteps):
             if self.current_time >= time_to_next_job:
