@@ -478,7 +478,7 @@ class Scheduler:
             print(f"Max energy efficiency: {gflops_per_watt_max:.1f} GFLOPS/W")
 
         limits = {'rpeak': rpeak, 'peak_power': peak_power, \
-                  'g_flops_w': gflops_per_watt_max}
+                  'g_flops_w_peak': gflops_per_watt_max}
         return limits
 
     def run_simulation(self, jobs, timesteps):
