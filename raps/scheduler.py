@@ -65,7 +65,9 @@ load_config_variables([
     'COOLING_EFFICIENCY',
     'WET_BULB_TEMP',
     'NUM_CDUS',
-    'POWER_DF_HEADER'
+    'POWER_DF_HEADER',
+    'AVAILABLE_NODES',
+    'TOTAL_NODES'
 ], globals())
 
 
@@ -153,6 +155,16 @@ class Job:
         self.scheduled_nodes = []
         self.power = 0
         self.power_history = []
+
+    def __repr__(self):
+        """Return a string representation of the job."""
+        return (f"Job(id={self.id}, name={self.name}, nodes_required={self.nodes_required}, "
+                f"cpu_trace={self.cpu_trace}, gpu_trace={self.gpu_trace}, wall_time={self.wall_time}, "
+                f"end_state={self.end_state}, requested_nodes={self.requested_nodes}, "
+                f"submit_time={self.submit_time}, start_time={self.start_time}, "
+                f"end_time={self.end_time}, running_time={self.running_time}, state={self._state}, "
+                f"scheduled_nodes={self.scheduled_nodes}, power={self.power}, "
+                f"power_history={self.power_history})")
 
     @property
     def state(self):
@@ -250,6 +262,7 @@ class Scheduler:
         self.output = kwargs.get('output')
         self.schedule_method = kwargs.get('schedule')
         self.replay = kwargs.get('replay')
+        self.sys_util_history = []
 
     def add_job(self, job):
         self.queue.append(job)
@@ -403,6 +416,10 @@ class Scheduler:
         sivoc_losses = self.power_manager.compute_sivoc_losses()
         rack_loss = rect_losses + sivoc_losses
 
+        # Update system utilization
+        system_util = self.num_active_nodes / AVAILABLE_NODES * 100
+        self.sys_util_history.append((self.current_time, system_util))
+
         # Update power history every 15s
         pflops, gflop_per_watt = 0, 0
         if self.current_time % POWER_UPDATE_FREQ == 0:
@@ -438,7 +455,7 @@ class Scheduler:
 
                 if self.layout_manager:
                     self.layout_manager.update_powertemp_array(power_df, cooling_df, pflops, gflop_per_watt,\
-                                uncertainties=self.power_manager.uncertainties)
+                                system_util, uncertainties=self.power_manager.uncertainties)
                     self.layout_manager.update_pressflow_array(cooling_df)
 
         if self.current_time % UI_UPDATE_FREQ == 0:
@@ -457,7 +474,7 @@ class Scheduler:
                                               len(self.queue), self.num_active_nodes,
                                               self.num_free_nodes, self.down_nodes[1:])
                 self.layout_manager.update_power_array(power_df, pflops, gflop_per_watt, \
-                                    uncertainties=self.power_manager.uncertainties)
+                                    system_util, uncertainties=self.power_manager.uncertainties)
                 self.layout_manager.render()
 
         tick_data = TickData(
@@ -472,12 +489,29 @@ class Scheduler:
         self.current_time += 1
         return tick_data
 
+    def get_gauge_limits(self):
+        """For setting max values in dashboard gauges"""
+        peak_flops = self.flops_manager.get_rpeak()
+        peak_power = self.power_manager.get_peak_power()
+        gflops_per_watt_max = peak_flops / 1E9 / peak_power
+
+        if self.debug:
+            print(f"System Rpeak: {peak_flops/1E15:.2f} PFLOPS")
+            print(f"Peak power: {peak_power/1E3:.0f} kW")
+            print(f"Max energy efficiency: {gflops_per_watt_max:.1f} GFLOPS/W")
+
+        limits = {'peak_flops': peak_flops, 'peak_power': peak_power, \
+                  'g_flops_w_peak': gflops_per_watt_max}
+        return limits
+
     def run_simulation(self, jobs, timesteps):
         """ Generator that yields after each simulation tick """
         time_to_next_job = 0
         self.timesteps = timesteps
-        self._sort_queue()
-
+        if self.debug: 
+            limits = self.get_gauge_limits()
+            print(limits)
+        
         for _ in range(timesteps):
             if self.current_time >= time_to_next_job:
                 if jobs:

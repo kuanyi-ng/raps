@@ -32,14 +32,18 @@ class ConfigManager:
 
     def derive_values(self) -> None:
         # Derive SC_SHAPE and TOTAL_NODES
-        num_cdus = self.config.get("NUM_CDUS", 0)
-        racks_per_cdu = self.config.get("RACKS_PER_CDU", 0)
-        nodes_per_rack = self.config.get("NODES_PER_RACK", 0)
-        down_nodes = self.config.get("DOWN_NODES", 0)
-        missing_racks = self.config.get("MISSING_RACKS", 0)
+        num_cdus = self.config.get('NUM_CDUS', 0)
+        racks_per_cdu = self.config.get('RACKS_PER_CDU', 0)
+        nodes_per_rack = self.config.get('NODES_PER_RACK', 0)
+        chassis_per_rack = self.config.get('CHASSIS_PER_RACK', 0)
+        nodes_per_blade = self.config.get('NODES_PER_BLADE', 0)
+        down_nodes = self.config.get('DOWN_NODES', 0)
+        missing_racks = self.config.get('MISSING_RACKS', 0)
 
+        self.config['NUM_RACKS'] = num_cdus * racks_per_cdu - len(missing_racks)
         self.config['SC_SHAPE'] = [num_cdus, racks_per_cdu, nodes_per_rack]
         self.config['TOTAL_NODES'] = num_cdus * racks_per_cdu * nodes_per_rack
+        self.config['BLADES_PER_CHASSIS'] = int(nodes_per_rack / chassis_per_rack / nodes_per_blade)
 
         # Generate POWER_DF_HEADER
         power_df_header = ["CDU"]
@@ -58,7 +62,7 @@ class ConfigManager:
             down_nodes.extend(range(start_node_id, end_node_id))
         self.config['DOWN_NODES'] = down_nodes
 
-        self.config['ACTIVE_NODES'] = self.config['TOTAL_NODES'] - len(down_nodes)
+        self.config['AVAILABLE_NODES'] = self.config['TOTAL_NODES'] - len(down_nodes)
 
     def get(self, key: str) -> Any:
         return self.config.get(key)

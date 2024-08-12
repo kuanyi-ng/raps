@@ -18,7 +18,7 @@ if sys.version_info < (required_major, required_minor):
     sys.exit(1)
 
 parser = argparse.ArgumentParser(description='Resource Allocator & Power Simulator (RAPS)')
-parser.add_argument('--disable_cooling', action='store_true', help='Disable cooling model')
+parser.add_argument('-c', '--cooling', action='store_true', help='Include FMU cooling model')
 parser.add_argument('-d', '--debug', action='store_true', help='Enable debug mode and disable rich layout')
 parser.add_argument('-e', '--encrypt', action='store_true', help='Encrypt any sensitive data in telemetry')
 parser.add_argument('-n', '--numjobs', type=int, default=1000, help='Number of jobs to schedule')
@@ -34,8 +34,10 @@ parser.add_argument('-u', '--uncertainties', action='store_true',
 parser.add_argument('--jid', type=str, default='*', help='Replay job id')
 parser.add_argument('--validate', action='store_true', help='Use node power instead of CPU/GPU utilizations')
 parser.add_argument('-o', '--output', action='store_true', help='Output power, cooling, and loss models for later analysis')
-parser.add_argument('-p', '--plot', nargs='+', choices=['power', 'loss', 'pue', 'temp'],
-                    help='Specify one or more types of plots to generate: power, loss, pue, temp')
+parser.add_argument('-p', '--plot', nargs='+', choices=['power', 'loss', 'pue', 'temp', 'util'],
+                    help='Specify one or more types of plots to generate: power, loss, pue, util, temp')
+choices = ['png', 'svg', 'jpg', 'pdf', 'eps']
+parser.add_argument('--imtype', type=str, choices=choices, default=choices[0], help='Plot image type')
 parser.add_argument('--system', type=str, default='frontier', help='System config to use')
 choices = ['fcfs', 'sjf', 'prq']
 parser.add_argument('--schedule', type=str, choices=choices, default=choices[0], help='Type of schedule to use')
@@ -60,7 +62,7 @@ from raps.power import compute_node_power_uncertainties, compute_node_power_vali
 from raps.scheduler import Scheduler, Job
 from raps.telemetry import Telemetry
 from raps.workload import Workload
-from raps.utils import create_casename, convert_to_seconds
+from raps.utils import create_casename, convert_to_seconds, write_dict_to_file
 
 load_config_variables([
     'SC_SHAPE',
@@ -75,13 +77,10 @@ if args.seed:
     random.seed(SEED)
     np.random.seed(SEED)
 
-if not args.disable_cooling:
-    try:
-        cooling_model = ThermoFluidsModel(FMU_PATH)
-        cooling_model.initialize()
-        args.layout = "layout2"
-    except:
-        cooling_model = None
+if args.cooling:
+    cooling_model = ThermoFluidsModel(FMU_PATH)
+    cooling_model.initialize()
+    args.layout = "layout2"
 else:
     cooling_model = None
 
@@ -168,7 +167,8 @@ if args.verbose:
 
 sc.run_simulation_blocking(jobs, timesteps=timesteps)
 output_stats = sc.get_stats()
-# print(json.dumps(output_stats, indent=4))
+# Following b/c we get the following error when we use PM100 telemetry dataset
+# TypeError: Object of type int64 is not JSON serializable
 try:
     print(json.dumps(output_stats, indent=4))
 except:
@@ -176,16 +176,28 @@ except:
 
 if args.plot:
     if 'power' in args.plot:
-        pl = Plotter('Time (s)', 'Power (kW)', 'Power History', OPATH / 'power.svg', uncertainties=args.uncertainties)
+        pl = Plotter('Time (s)', 'Power (kW)', 'Power History', \
+                     OPATH / f'power.{args.imtype}', \
+                     uncertainties=args.uncertainties)
         x, y = zip(*power_manager.history)
         pl.plot_history(x, y)
 
+    if 'util' in args.plot:
+        pl = Plotter('Time (s)', 'System Utilization (%)', \
+                     'System Utilization History', OPATH / f'util.{args.imtype}')
+        x, y = zip(*sc.sys_util_history)
+        pl.plot_history(x, y)
+
     if 'loss' in args.plot:
-        pl = Plotter('Time (s)', 'Power Losses (kW)', 'Power Loss History', OPATH / 'loss.svg', uncertainties=args.uncertainties)
+        pl = Plotter('Time (s)', 'Power Losses (kW)', 'Power Loss History', \
+                     OPATH / f'loss.{args.imtype}', \
+                     uncertainties=args.uncertainties)
         x, y = zip(*power_manager.loss_history)
         pl.plot_history(x, y)
 
-        pl = Plotter('Time (s)', 'Power Losses (%)', 'Power Loss History', OPATH / 'loss_pct.svg', uncertainties=args.uncertainties)
+        pl = Plotter('Time (s)', 'Power Losses (%)', 'Power Loss History', \
+                     OPATH / f'loss_pct.{args.imtype}', \
+                     uncertainties=args.uncertainties)
         x, y = zip(*power_manager.loss_history_percentage)
         pl.plot_history(x, y)
 
@@ -193,7 +205,8 @@ if args.plot:
         if cooling_model:
             ylabel = 'PUE_Out[1]'
             title = 'FMU ' + ylabel + 'History'
-            pl = Plotter('Time (s)', ylabel, title, OPATH / 'pue.svg', uncertainties=args.uncertainties)
+            pl = Plotter('Time (s)', ylabel, title, OPATH / f'pue.{args.imtype}', \
+                         uncertainties=args.uncertainties)
             df = pd.DataFrame(cooling_model.fmu_history)
             df.to_parquet('cooling_model.parquet', engine='pyarrow')
             pl.plot_history(df['time'], df[ylabel])
@@ -213,14 +226,10 @@ if args.plot:
 
 if args.output:
 
-    with open(OPATH / 'stats.out', 'w') as f:
-        json.dump(output_stats, f, indent=4)
-
     if args.uncertainties:
-        print('Data dump not implemented using uncertainties!')  # Parquet cannot handle annotated ufloat format AFAIK
-        pass
+        # Parquet cannot handle annotated ufloat format AFAIK
+        print('Data dump not implemented using uncertainties!')  
     else:
-
         if cooling_model:
             df = pd.DataFrame(cooling_model.fmu_history)
             df.to_parquet(OPATH / 'cooling_model.parquet', engine='pyarrow')
@@ -230,3 +239,12 @@ if args.output:
 
         df = pd.DataFrame(power_manager.loss_history)
         df.to_parquet(OPATH / 'loss_history.parquet', engine='pyarrow')
+
+        df = pd.DataFrame(sc.sys_util_history)
+        df.to_parquet(OPATH / 'util.parquet', engine='pyarrow')
+
+        try:
+            with open(OPATH / 'stats.out', 'w') as f:
+                json.dump(output_stats, f, indent=4)
+        except:
+            write_dict_to_file(output_stats, OPATH / 'stats.out')

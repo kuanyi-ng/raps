@@ -8,10 +8,25 @@ helper functions for data encryption and conversion between xname and index form
 """
 
 import argparse
-import hashlib
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Telemetry data validator')
+    parser.add_argument('--jid', type=str, default='*', help='Replay job id')
+    parser.add_argument('-f', '--replay', nargs='+', type=str, 
+                        help='Either: path/to/joblive path/to/jobprofile' + \
+                             ' -or- filename.npz (overrides --workload option)')
+    parser.add_argument('-p', '--plot', nargs='+', choices=['power', 'loss', 'pue', 'temp'],
+                        help='Specify one or more types of plots to generate: power, loss, pue, temp')
+    parser.add_argument('--system', type=str, default='frontier', help='System config to use')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose output')
+    args = parser.parse_args()
+
+    from .config import is_config_initialized, initialize_config
+    if not is_config_initialized():
+        initialize_config(args.system)
+
 import importlib
 import numpy as np
-
 from .scheduler import Job
 
 
@@ -37,18 +52,15 @@ class Telemetry:
     def load_data(self, files):
         """Load telemetry data using custom data loaders."""
         module = importlib.import_module('raps.dataloaders.' + self.system)
+        print(files)
         return module.load_data(files, **self.kwargs)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Telemetry data validator')
-    parser.add_argument('-f', '--replay', nargs=2, type=str, default=[],
-                        help='Paths of two telemetry parquet files')
-    parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose output')
-    args = parser.parse_args()
 
-    td = Telemetry()
-    jobs = td.read_parquets(args.replay[0], args.replay[1])
+    args_dict = vars(args)
+    td = Telemetry(**args_dict)
+    jobs = td.load_data(args.replay)
     timesteps = int(max(job[4] + job[7] for job in jobs))
 
     dt_list = []
@@ -63,11 +75,7 @@ if __name__ == "__main__":
             dt = job.submit_time - last
             dt_list.append(dt)
             last = job.submit_time
-
-        if args.verbose:
-            print('jobid:', job.id, '\tlen(gpu_trace):', len(job.gpu_trace),
-                  '\twall_time(s):', job.wall_time, '\tsubmit_time:', job.submit_time,
-                  '\tend_time:', job.submit_time + job.wall_time)
+        if args.verbose: print(job)
 
     print(f'Simulation will run for {timesteps} seconds')
     print(f'Average job arrival time is: {np.mean(dt_list):.2f}s')
@@ -75,38 +83,3 @@ if __name__ == "__main__":
     print(f'Nodes required (avg): {np.mean(nr_list):.2f}')
     print(f'Nodes required (max): {np.max(nr_list)}')
     print(f'Nodes required (std): {np.std(nr_list):.2f}')
-
-# =============================================================================
-#     # Plot CPU/GPU Power and Calculate stats given specific job name
-#     import matplotlib.pyplot as plt
-#     import numpy as np
-#     # Plotting
-#     plt.figure(figsize=(10, 6))
-#     plt.plot(td.job_cpu_data, label='CPU Power')
-#     plt.plot(td.job_gpu_data, label='GPU Power')
-#     plt.title('CPU and GPU Powers')
-#     plt.xlabel('Index')
-#     plt.ylabel('Power')
-#     plt.legend()
-#     plt.show()
-#
-# # Computation
-#     cpu_avg = np.mean(td.job_cpu_data)
-#     gpu_avg = np.mean(td.job_gpu_data)
-#     cpu_min = np.min(td.job_cpu_data)
-#     gpu_min = np.min(td.job_gpu_data)
-#     cpu_max = np.max(td.job_cpu_data)
-#     gpu_max = np.max(td.job_gpu_data)
-#     cpu_std = np.std(td.job_cpu_data)
-#     gpu_std = np.std(td.job_gpu_data)
-#
-#     # Print statements
-#     print(f'CPU Average: {cpu_avg}')
-#     print(f'GPU Average: {gpu_avg}')
-#     print(f'CPU Minimum: {cpu_min}')
-#     print(f'GPU Minimum: {gpu_min}')
-#     print(f'CPU Maximum: {cpu_max}')
-#     print(f'GPU Maximum: {gpu_max}')
-#     print(f'CPU Standard Deviation: {cpu_std}')
-#     print(f'GPU Standard Deviation: {gpu_std}')
-# =============================================================================
