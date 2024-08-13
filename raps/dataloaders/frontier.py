@@ -44,6 +44,8 @@ def load_data(files, **kwargs):
     #min_time = kwargs.get('min_time', None)
     min_time = None
 
+    assert(len(files) == 2), "Frontier dataloader requires two files: joblive and jobprofile"
+
     jobs_path = files[0]
     jobs_df = pd.read_parquet(jobs_path, engine='pyarrow')
 

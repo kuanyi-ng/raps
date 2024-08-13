@@ -98,7 +98,6 @@ layout_manager = LayoutManager(args.layout, args.debug)
 sc = Scheduler(TOTAL_NODES, DOWN_NODES, power_manager, flops_manager, layout_manager,
                cooling_model, **args_dict)
 if args.replay:
-    print(args.replay)
     td = Telemetry(**args_dict)
 
     # Try to extract date from given name to use as case directory
@@ -114,9 +113,7 @@ if args.replay:
     if args.replay[0].endswith(".npz"):
         jobs = td.load_snapshot(args.replay[0])
     else:
-        print(args.replay)
         print(*args.replay)
-        #jobs = td.load_data(args.replay[0], args.replay[1])
         jobs = td.load_data(args.replay)
         td.save_snapshot(jobs, filename=DIR_NAME)
 
