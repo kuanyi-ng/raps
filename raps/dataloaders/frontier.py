@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 
-from raps.config import load_config_variables
-from raps.utils import power_to_utilization, next_arrival, encrypt
+from ..config import load_config_variables
+from ..utils import power_to_utilization, next_arrival, encrypt
 
 load_config_variables([
     'CPUS_PER_NODE',
