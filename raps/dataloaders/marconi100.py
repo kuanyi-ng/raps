@@ -7,12 +7,13 @@ from ..utils import power_to_utilization, next_arrival
 load_config_variables([
     'CPUS_PER_NODE',
     'GPUS_PER_NODE',
+    'NICS_PER_NODE',
     'TRACE_QUANTA',
     'POWER_GPU_IDLE',
     'POWER_GPU_MAX',
     'POWER_CPU_IDLE',
     'POWER_CPU_MAX',
-    'POWER_NICS',
+    'POWER_NIC',
     'POWER_NVME', 
     'UI_UPDATE_FREQ'
 ], globals())
@@ -90,7 +91,7 @@ def load_data(jobs_path, **kwargs):
             mem_power = mem_power[:min_length]
                 
             gpu_power = (node_power - cpu_power - mem_power
-                - ([nodes_required * 2 * POWER_NICS] * len(node_power))
+                - ([nodes_required * NICS_PER_NODE * POWER_NIC] * len(node_power))
                 - ([nodes_required * POWER_NVME] * len(node_power)))
             gpu_power_array = gpu_power.tolist()
             gpu_min_power = nodes_required * POWER_GPU_IDLE * GPUS_PER_NODE
@@ -99,9 +100,7 @@ def load_data(jobs_path, **kwargs):
             gpu_trace = gpu_util * GPUS_PER_NODE
             
         wall_time = gpu_trace.size * TRACE_QUANTA # seconds
-            
         end_state = jobs_df.loc[i, 'job_state']
-            
         time_start = jobs_df.loc[i+1, 'start_time']
         diff = time_start - time_zero
 

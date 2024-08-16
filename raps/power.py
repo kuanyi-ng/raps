@@ -31,13 +31,14 @@ load_config_variables([
     'POWER_GPU_UNCERTAINTY',
     'CPUS_PER_NODE',
     'GPUS_PER_NODE',
+    'NICS_PER_NODE',
     'POWER_CPU_IDLE',
     'POWER_CPU_MAX',
     'POWER_CPU_UNCERTAINTY',
     'POWER_MEM',
     'POWER_MEM_UNCERTAINTY',
-    'POWER_NICS',
-    'POWER_NICS_UNCERTAINTY',
+    'POWER_NIC',
+    'POWER_NIC_UNCERTAINTY',
     'POWER_NVME',
     'POWER_NVME_UNCERTAINTY',
     'POWER_SWITCH',
@@ -101,7 +102,7 @@ def compute_node_power(cpu_util, gpu_util, verbose=False):
     power_cpu = cpu_util * POWER_CPU_MAX + (CPUS_PER_NODE - cpu_util) * POWER_CPU_IDLE
     power_gpu = gpu_util * POWER_GPU_MAX + (GPUS_PER_NODE - gpu_util) * POWER_GPU_IDLE
 
-    power_total = power_cpu + power_gpu + POWER_MEM + POWER_NICS + POWER_NVME
+    power_total = power_cpu + power_gpu + POWER_MEM + NICS_PER_NODE * POWER_NIC + POWER_NVME
 
     # Apply power loss due to Sivoc and Rectifier
     power_with_sivoc_loss = sivoc_loss(power_total)
@@ -135,7 +136,7 @@ def compute_node_power_uncertainties(cpu_util, gpu_util, verbose=False):
 
     power_total = power_cpu + power_gpu \
                   + uf.ufloat(POWER_MEM, POWER_MEM * POWER_MEM_UNCERTAINTY) \
-                  + uf.ufloat(POWER_NICS, POWER_NICS * POWER_NICS_UNCERTAINTY) \
+                  + uf.ufloat(POWER_NIC, POWER_NIC * POWER_NIC_UNCERTAINTY) \
                   + uf.ufloat(POWER_NVME, POWER_NVME * POWER_NVME_UNCERTAINTY)
 
     # Apply power loss due to Sivoc and Rectifier
