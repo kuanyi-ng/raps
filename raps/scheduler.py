@@ -291,9 +291,9 @@ class Scheduler:
             # print("type(self.queue) is" + str(type(self.queue)))
             # submit_times = [job.submit_time for job in self.queue]
             # print(submit_times)
-            print("self.queue: ", len(self.queue))
-            priorities = [job.priority for job in self.queue]
-            print("priorities: ", priorities)
+            # print("self.queue: ", len(self.queue))
+            # priorities = [job.priority for job in self.queue]
+            # print("priorities: ", priorities)
             job = self.queue.pop(0)
             synthetic_bool = len(self.available_nodes) >= job.nodes_required
             telemetry_bool = job.requested_nodes and job.requested_nodes[0] in self.available_nodes
