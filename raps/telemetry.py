@@ -51,8 +51,14 @@ class Telemetry:
 
     def load_data(self, files):
         """Load telemetry data using custom data loaders."""
-        module = importlib.import_module('raps.dataloaders.' + self.system)
+        module = importlib.import_module(f".dataloaders.{self.system}", package=__package__)
         return module.load_data(files, **self.kwargs)
+
+
+    def load_data_from_df(self, *args, **kwargs):
+        """Load telemetry data using custom data loaders."""
+        module = importlib.import_module(f".dataloaders.{self.system}", package=__package__)
+        return module.load_data_from_df(*args, **kwargs)
 
 
 if __name__ == "__main__":
