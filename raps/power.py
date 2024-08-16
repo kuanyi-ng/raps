@@ -25,7 +25,7 @@ load_config_variables([
     'CHASSIS_PER_RACK',
     'NUM_CDUS',
     'NUM_RACKS',
-    'POWER_CDUS',
+    'POWER_CDU',
     'POWER_GPU_IDLE',
     'POWER_GPU_MAX',
     'POWER_GPU_UNCERTAINTY',
@@ -254,7 +254,7 @@ class PowerManager:
         chassis_power = BLADES_PER_CHASSIS * rectifier_power / blades_per_rectifier \
                       + SWITCHES_PER_CHASSIS * POWER_SWITCH
         rack_power = chassis_power * CHASSIS_PER_RACK 
-        total_power = rack_power * NUM_RACKS + POWER_CDUS
+        total_power = rack_power * NUM_RACKS + POWER_CDU * NUM_CDUS
         return total_power
 
     def initialize_power_state(self):
