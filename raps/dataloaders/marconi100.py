@@ -33,8 +33,8 @@ def load_data(jobs_path, **kwargs):
     list
         The list of parsed jobs.
     """
-   
-    return load_data_from_df(jobs_path, **kwargs)
+    jobs_df = pd.read_parquet(jobs_path, engine='pyarrow')
+    return load_data_from_df(jobs_df, **kwargs)
 
 
 def load_data_from_df(jobs_df: pd.DataFrame, **kwargs):
