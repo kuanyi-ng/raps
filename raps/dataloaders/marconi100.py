@@ -1,18 +1,13 @@
 import uuid
-import hashlib
 import pandas as pd
-import numpy as np
 
 from ..config import load_config_variables
-from ..utils import power_to_utilization, next_arrival, encrypt
+from ..utils import power_to_utilization, next_arrival
 
 load_config_variables([
     'CPUS_PER_NODE',
     'GPUS_PER_NODE',
-    'BLADES_PER_CHASSIS',
-    'SC_SHAPE',
     'TRACE_QUANTA',
-    'NODES_PER_BLADE',
     'POWER_GPU_IDLE',
     'POWER_GPU_MAX',
     'POWER_CPU_IDLE',
@@ -38,7 +33,6 @@ def load_data(jobs_path, **kwargs):
         The list of parsed jobs.
     """
     min_time = None
-    encrypt_bool = kwargs.get('encrypt')
     reschedule = kwargs.get('reschedule')
     validate = kwargs.get('validate')
     jid = kwargs.get('jid')
@@ -104,18 +98,19 @@ def load_data(jobs_path, **kwargs):
             gpu_util = power_to_utilization(gpu_power_array, gpu_min_power, gpu_max_power)
             gpu_trace = gpu_util * GPUS_PER_NODE
             
-        # wall_time = jobs_df.loc[i, 'run_time']
         wall_time = gpu_trace.size * TRACE_QUANTA # seconds
             
         end_state = jobs_df.loc[i, 'job_state']
             
         time_start = jobs_df.loc[i+1, 'start_time']
         diff = time_start - time_zero
+
         if jid == '*': 
             time_offset = max(diff.total_seconds(), 0)
         else:
             # When extracting out a single job, run one iteration past the end of the job
             time_offset = UI_UPDATE_FREQ
+
         if reschedule: # Let the scheduler reschedule the jobs
             scheduled_nodes = None
             time_offset = next_arrival()

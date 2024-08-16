@@ -32,11 +32,18 @@ Note: Requires python3.9 or greater.
     DPATH=~/data/frontier-sample-2024-01-18
     python main.py -f $DPATH/slurm/joblive/$DATEDIR $DPATH/jobprofile/$DATEDIR
 
+## Open Telemetry dataset
+
+Download `job_table.parquet` from https://zenodo.org/records/10127767
+
     # Marconi100
     python main.py --system marconi100 -f ~/data/job_table.parquet 
 
-    Note, once the data has been processed, it will be saved as an NPZ file, which
-    can be more quickly started in subsequent simulations
+## Snapshot of extracted workload data
+
+To reduce the expense of extracting the needed data from the telemetry parquet files,
+RAPS saves a snapshot of the extracted data in NPZ format. The NPZ file can be
+given instead of the parquet files for more quickly running subsequent simulations, e.g.:
 
     python main.py -f jobs_2024-02-20_12-20-39.npz
 
