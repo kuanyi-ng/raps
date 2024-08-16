@@ -276,6 +276,8 @@ class Scheduler:
             self.queue.sort(key=lambda job: job.wall_time)
         elif self.schedule_method == 'prq':
             self.queue.sort(key=lambda job: -job.priority)
+        elif self.schedule_method == 'prq+ag':
+            self.queue.sort(key=lambda job: -(job.priority+job.wait_time))
     
     def increment_deferred_jobs(self, tasks):
         for task in tasks:
@@ -301,6 +303,8 @@ class Scheduler:
             # print("self.queue: ", len(self.queue))
             # priorities = [job.priority for job in self.queue]
             # print("priorities: ", priorities)
+            # priorities_aging = [(job.priority+job.wait_time) for job in self.queue]
+            # print("priorities: ", priorities_aging)
             job = self.queue.pop(0)
             synthetic_bool = len(self.available_nodes) >= job.nodes_required
             telemetry_bool = job.requested_nodes and job.requested_nodes[0] in self.available_nodes

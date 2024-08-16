@@ -39,7 +39,7 @@ parser.add_argument('-p', '--plot', nargs='+', choices=['power', 'loss', 'pue', 
 choices = ['png', 'svg', 'jpg', 'pdf', 'eps']
 parser.add_argument('--imtype', type=str, choices=choices, default=choices[0], help='Plot image type')
 parser.add_argument('--system', type=str, default='frontier', help='System config to use')
-choices = ['fcfs', 'sjf', 'prq']
+choices = ['fcfs', 'sjf', 'prq', 'prq+ag']
 parser.add_argument('--schedule', type=str, choices=choices, default=choices[0], help='Type of schedule to use')
 choices = ['random', 'benchmark', 'peak', 'idle']
 parser.add_argument('-w', '--workload', type=str, choices=choices, default=choices[0], help='Type of synthetic workload')
