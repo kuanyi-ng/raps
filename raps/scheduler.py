@@ -155,6 +155,7 @@ class Job:
         self.scheduled_nodes = []
         self.power = 0
         self.power_history = []
+        self.wait_time = 0
 
     def __repr__(self):
         """Return a string representation of the job."""
@@ -276,6 +277,12 @@ class Scheduler:
         elif self.schedule_method == 'prq':
             self.queue.sort(key=lambda job: -job.priority)
     
+    def increment_deferred_jobs(self, tasks):
+        for task in tasks:
+            if task.wait_time != 0:
+                task.wait_time += 1
+        return tasks
+    
     def schedule(self, jobs):
         """Schedule jobs."""
         for job_vector in jobs:
@@ -297,7 +304,7 @@ class Scheduler:
             job = self.queue.pop(0)
             synthetic_bool = len(self.available_nodes) >= job.nodes_required
             telemetry_bool = job.requested_nodes and job.requested_nodes[0] in self.available_nodes
-
+            self.increment_deferred_jobs(self.queue)
             if synthetic_bool or telemetry_bool:
 
                 if job.requested_nodes:
@@ -326,6 +333,11 @@ class Scheduler:
             else:
                 # heapq.heappush(self.queue, job)
                 # self.add_job(job)
+                # print("Printing job", job)
+                # print("Printing job type", type(job))
+                # Increment wait_time for all jobs in the queue
+                job.wait_time += 1
+                # print("Job wait time is ", job.wait_time)
                 self.queue.append(job)
                 break
 
