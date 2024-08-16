@@ -8,7 +8,7 @@ from .utils import summarize_ranges, convert_seconds
 from .constants import ELLIPSES
 from .config import load_config_variables
 
-load_config_variables(['POWER_CDUS', 'POWER_DF_HEADER', 'FMU_COLUMN_MAPPING', 'RACKS_PER_CDU'], globals())
+load_config_variables(['NUM_CDUS', 'POWER_CDU', 'POWER_DF_HEADER', 'FMU_COLUMN_MAPPING', 'RACKS_PER_CDU'], globals())
 
 class LayoutManager:
     def __init__(self, layout_type, debug=False):
@@ -62,7 +62,7 @@ class LayoutManager:
             table.add_row(*formatted_row)
 
     def calculate_totals(self, df, power_column=POWER_DF_HEADER[RACKS_PER_CDU + 1], loss_column=POWER_DF_HEADER[-1]): # 'Sum' and 'Loss' columns
-        total_power_kw = df[power_column].sum() + (POWER_CDUS / 1000.0)
+        total_power_kw = df[power_column].sum() + (NUM_CDUS * POWER_CDU / 1000.0)
         total_power_mw = total_power_kw / 1000.0
         total_loss_kw = df[loss_column].sum()
         total_loss_mw = total_loss_kw / 1000.0

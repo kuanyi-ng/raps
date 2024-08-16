@@ -32,7 +32,7 @@ Constants:
 - POWER_UPDATE_FREQ: Frequency of updating power-related metrics.
 - POWER_DF_HEADER: Header for the power related components of DataFrame.
 - FMU_UPDATE_FREQ: Frequency of updating the FMU model.
-- POWER_CDUS: Power consumption of CDUs.
+- POWER_CDU: Power consumption of CDU.
 - TOTAL_NODES: Total number of nodes in the system.
 - COOLING_EFFICIENCY: Cooling efficiency factor.
 
@@ -60,7 +60,7 @@ load_config_variables([
     'MAX_TIME',
     'POWER_UPDATE_FREQ',
     'FMU_UPDATE_FREQ',
-    'POWER_CDUS',
+    'POWER_CDU',
     'TOTAL_NODES',
     'COOLING_EFFICIENCY',
     'WET_BULB_TEMP',
@@ -423,7 +423,7 @@ class Scheduler:
         # Update power history every 15s
         pflops, gflop_per_watt = 0, 0
         if self.current_time % POWER_UPDATE_FREQ == 0:
-            total_power_kw = sum(row[-1] for row in rack_power) + POWER_CDUS / 1000.0
+            total_power_kw = sum(row[-1] for row in rack_power) + NUM_CDUS * POWER_CDU / 1000.0
             total_loss_kw = sum(row[-1] for row in rack_loss)
             self.power_manager.history.append((self.current_time, total_power_kw))
             self.power_manager.loss_history.append((self.current_time, total_loss_kw))
