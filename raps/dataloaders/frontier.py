@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 
-from raps.config import load_config_variables
-from raps.utils import power_to_utilization, next_arrival, encrypt
+from ..config import load_config_variables
+from ..utils import power_to_utilization, next_arrival, encrypt
 
 load_config_variables([
     'CPUS_PER_NODE',
@@ -43,6 +43,8 @@ def load_data(files, **kwargs):
 
     #min_time = kwargs.get('min_time', None)
     min_time = None
+
+    assert(len(files) == 2), "Frontier dataloader requires two files: joblive and jobprofile"
 
     jobs_path = files[0]
     jobs_df = pd.read_parquet(jobs_path, engine='pyarrow')

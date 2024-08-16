@@ -52,7 +52,6 @@ class Telemetry:
     def load_data(self, files):
         """Load telemetry data using custom data loaders."""
         module = importlib.import_module('raps.dataloaders.' + self.system)
-        print(files)
         return module.load_data(files, **self.kwargs)
 
 

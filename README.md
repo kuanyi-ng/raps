@@ -27,23 +27,22 @@ Note: Requires python3.9 or greater.
 
 ## Run simulator with telemetry replay
 
+    # Frontier 
     DATEDIR="date=2024-01-18"
     DPATH=~/data/frontier-sample-2024-01-18
     python main.py -f $DPATH/slurm/joblive/$DATEDIR $DPATH/jobprofile/$DATEDIR
 
-## Job-level power output example for replay of single job
+    # Marconi100
+    python main.py --system marconi100 -f ~/data/job_table.parquet 
 
-    python main.py -f $DPATH/slurm/joblive/$DATEDIR $DPATH/jobprofile/$DATEDIR --jid 1575883 -o
-
-## On Frontier or JupyterLab
-
-    DATEDIR="date=2024-01-18"
-    DPATH=/lustre/orion/stf218/proj-shared/data/lake/frontier
-    python main.py -f $DPATH/slurm/joblive/$DATEDIR $DPATH/jobprofile/jobprofile/$DATEDIR
-
-or
+    Note, once the data has been processed, it will be saved as an NPZ file, which
+    can be more quickly started in subsequent simulations
 
     python main.py -f jobs_2024-02-20_12-20-39.npz
+
+## Job-level power output example for replay of single job
+
+    python main.py -f $DPATH/slurm/joblive/$DATEDIR $DPATH/jobprofile/$DATEDIR --jid 1234567 -o
 
 ## Compute stats on telemetry data, e.g., average job arrival time
 
