@@ -22,14 +22,25 @@ def load_data(files, **kwargs):
     """
     Reads job and job profile data from parquet files and parses them.
 
-    Parameters
-    ----------
-    jobs_path : str
-        The path to the jobs parquet file.
-    jobprofile_path : str
-        The path to the job profile parquet file.
-    min_time: Value to use as zero time. Setting this to None will
-              autocompute the min value.
+    Returns
+    -------
+    list
+        The list of parsed jobs.
+    """
+    assert(len(files) == 2), "Frontier dataloader requires two files: joblive and jobprofile"
+
+    jobs_path = files[0]
+    jobs_df = pd.read_parquet(jobs_path, engine='pyarrow')
+
+    jobprofile_path = files[1]
+    jobprofile_df = pd.read_parquet(jobprofile_path, engine='pyarrow')
+
+    return load_data_from_df(jobs_df, jobprofile_df, **kwargs)
+
+
+def load_data_from_df(jobs_df: pd.DataFrame, jobprofile_df: pd.DataFrame, **kwargs):
+    """
+    Reads job and job profile data from dataframes files and parses them.
 
     Returns
     -------
@@ -39,18 +50,10 @@ def load_data(files, **kwargs):
     encrypt_bool = kwargs.get('encrypt')
     reschedule = kwargs.get('reschedule')
     validate = kwargs.get('validate')
-    jid = kwargs.get('jid')
+    jid = kwargs.get('jid', '*')
 
     #min_time = kwargs.get('min_time', None)
     min_time = None
-
-    assert(len(files) == 2), "Frontier dataloader requires two files: joblive and jobprofile"
-
-    jobs_path = files[0]
-    jobs_df = pd.read_parquet(jobs_path, engine='pyarrow')
-
-    jobprofile_path = files[1]
-    jobprofile_df = pd.read_parquet(jobprofile_path, engine='pyarrow')
 
     # Sort jobs dataframe based on values in time_start column, adjust indices after sorting
     jobs_df = jobs_df[jobs_df['time_start'].notna()]
