@@ -315,6 +315,11 @@ class Scheduler:
         # Simulate node failure
         newly_downed_nodes = self.node_failure(MTBF)
 
+        # Update active/free nodes
+        self.num_free_nodes = len(self.available_nodes)
+        self.num_active_nodes = TOTAL_NODES - self.num_free_nodes \
+                              - len(expand_ranges(self.down_nodes))
+
         # Update running time for all running jobs
         for job in self.running:
 
@@ -442,11 +447,6 @@ class Scheduler:
 
             if self.layout_manager:
                 self.layout_manager.update_scheduled_jobs(self.running + self.queue)
-
-                self.num_free_nodes = len(self.available_nodes)
-                self.num_active_nodes = TOTAL_NODES - self.num_free_nodes - \
-                        len(expand_ranges(self.down_nodes))
-                
                 self.layout_manager.update_status(self.current_time, len(self.running),
                                               len(self.queue), self.num_active_nodes,
                                               self.num_free_nodes, self.down_nodes[1:])
@@ -490,12 +490,15 @@ class Scheduler:
             print(limits)
         
         for _ in range(timesteps):
-            if self.current_time >= time_to_next_job:
+            while self.current_time >= time_to_next_job and jobs:
+                job = jobs.pop(0)
+                self.schedule([job])
                 if jobs:
-                    job = jobs.pop(0)
-                    self.schedule([job])
-                    time_to_next_job = job[7]
+                    time_to_next_job = job[7]  # Update time to next job based on the next job's scheduled time
+                else:
+                    time_to_next_job = float('inf')  # No more jobs, set to infinity or some large number to avoid triggering again
             yield self.tick()
+
             # Stop the simulation if no more jobs running or are in the queue
             if not self.queue and not self.running and not self.replay:
                 print("stopping simulation at time", self.current_time)
