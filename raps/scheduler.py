@@ -403,7 +403,6 @@ class Scheduler:
         self.sys_util_history.append((self.current_time, system_util))
 
         # Update power history every 15s
-        pflops, gflop_per_watt = 0, 0
         if self.current_time % POWER_UPDATE_FREQ == 0:
             total_power_kw = sum(row[-1] for row in rack_power) + NUM_CDUS * POWER_CDU / 1000.0
             total_loss_kw = sum(row[-1] for row in rack_loss)
@@ -411,6 +410,8 @@ class Scheduler:
             self.power_manager.loss_history.append((self.current_time, total_loss_kw))
             pflops = self.flops_manager.get_system_performance() / 1E15
             gflop_per_watt = pflops * 1E6 / (total_power_kw * 1000)
+        else:    
+            pflops, gflop_per_watt = None, None
 
         # Render the updated layout
         output_df = None
