@@ -445,6 +445,7 @@ class Scheduler:
 
             # Get a dataframe of the power data
             power_df = self.power_manager.get_power_df(rack_power, rack_loss)
+            output_df = power_df
 
             if self.layout_manager:
                 self.layout_manager.update_scheduled_jobs(self.running + self.queue)
