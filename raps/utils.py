@@ -8,6 +8,7 @@ generating random numbers, summarizing and expanding ranges, determining job sta
 
 from datetime import timedelta
 
+import hashlib
 import math
 import numpy as np
 import pandas as pd

@@ -402,19 +402,20 @@ class Scheduler:
         system_util = self.num_active_nodes / AVAILABLE_NODES * 100
         self.sys_util_history.append((self.current_time, system_util))
 
+        # Render the updated layout
+        output_df = None
+
         # Update power history every 15s
         if self.current_time % POWER_UPDATE_FREQ == 0:
             total_power_kw = sum(row[-1] for row in rack_power) + NUM_CDUS * POWER_CDU / 1000.0
             total_loss_kw = sum(row[-1] for row in rack_loss)
             self.power_manager.history.append((self.current_time, total_power_kw))
             self.power_manager.loss_history.append((self.current_time, total_loss_kw))
+            output_df = self.power_manager.get_power_df(rack_power, rack_loss)
             pflops = self.flops_manager.get_system_performance() / 1E15
             gflop_per_watt = pflops * 1E6 / (total_power_kw * 1000)
         else:    
             pflops, gflop_per_watt = None, None
-
-        # Render the updated layout
-        output_df = None
 
         if self.cooling_model:
 
@@ -442,7 +443,6 @@ class Scheduler:
                     self.layout_manager.update_pressflow_array(cooling_df)
 
         if self.current_time % UI_UPDATE_FREQ == 0:
-
             # Get a dataframe of the power data
             power_df = self.power_manager.get_power_df(rack_power, rack_loss)
 
