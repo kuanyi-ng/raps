@@ -209,6 +209,7 @@ class TickData:
     cooling_df: Optional[pd.DataFrame]
     p_flops: float
     g_flops_w: float
+    system_util: float
 
 
 class Scheduler:
@@ -461,7 +462,8 @@ class Scheduler:
             down_nodes = expand_ranges(self.down_nodes[1:]),
             cooling_df = output_df,
             p_flops = pflops,
-            g_flops_w = gflop_per_watt
+            g_flops_w = gflop_per_watt,
+            system_util = system_util
         )
 
         self.current_time += 1
