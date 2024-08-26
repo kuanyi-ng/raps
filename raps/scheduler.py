@@ -457,7 +457,7 @@ class Scheduler:
 
         tick_data = TickData(
             current_time = self.current_time,
-            jobs = complete_jobs + self.running + self.queue,
+            jobs = completed_jobs + self.running + self.queue,
             down_nodes = expand_ranges(self.down_nodes[1:]),
             cooling_df = output_df,
             p_flops = pflops,
