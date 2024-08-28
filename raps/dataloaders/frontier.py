@@ -145,7 +145,8 @@ def load_data_from_df(jobs_df: pd.DataFrame, jobprofile_df: pd.DataFrame, **kwar
                 end_state,
                 scheduled_nodes,
                 time_offset,
-                job_id
+                job_id,
+                0 # priority (not supported for Frontier at the moment)
             ])
 
     return jobs

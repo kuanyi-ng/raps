@@ -34,8 +34,7 @@ from .config import load_config_variables
 load_config_variables([
     'TRACE_QUANTA', 'MAX_NODES_PER_JOB', 'JOB_NAMES', 'CPUS_PER_NODE',\
     'GPUS_PER_NODE', 'MAX_WALL_TIME', 'MIN_WALL_TIME', 'JOB_END_PROBS',\
-    'AVAILABLE_NODES', 'MAX_PRIORITY'
-], globals())
+    'AVAILABLE_NODES' ], globals())
 
 JOB_NAMES = ["LAMMPS", "GROMACS", "VASP", "Quantum ESPRESSO", "NAMD",\
              "OpenFOAM", "WRF", "AMBER", "CP2K", "nek5000", "CHARMM",\
@@ -43,6 +42,8 @@ JOB_NAMES = ["LAMMPS", "GROMACS", "VASP", "Quantum ESPRESSO", "NAMD",\
              "Gaussian", "ANSYS", "COMSOL", "PLUMED", "nekrs",\
              "TensorFlow", "PyTorch", "BLAST", "Spark", "GAMESS",\
              "ORCA", "Simulink", "MOOSE", "ELK"]
+
+MAX_PRIORITY = 500000
 
 from .utils import truncated_normalvariate, determine_state, next_arrival
 

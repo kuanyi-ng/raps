@@ -155,7 +155,6 @@ class Job:
         self.scheduled_nodes = []
         self.power = 0
         self.power_history = []
-        self.wait_time = 0
 
     def __repr__(self):
         """Return a string representation of the job."""
@@ -181,11 +180,6 @@ class Job:
             self._state = JobState[value]
         else:
             raise ValueError(f"Invalid state: {value}")
-
-    # def __lt__(self, other):
-    #     """Implement less than comparison for jobs based on wall time."""
-    #     #return self.end_time < other.end_time # First-come, First-served (FCFS)
-    #     return self.wall_time < other.wall_time  # Shortest-job-first (SJF)
 
     @classmethod
     def _get_next_id(cls):
@@ -262,8 +256,8 @@ class Scheduler:
         self.fmu_results = None
         self.debug = kwargs.get('debug')
         self.output = kwargs.get('output')
-        self.schedule_method = kwargs.get('schedule')
         self.replay = kwargs.get('replay')
+        self.policy = kwargs.get('schedule')
         self.sys_util_history = []
 
     def add_job(self, job):
@@ -271,45 +265,27 @@ class Scheduler:
         self._sort_queue()
 
     def _sort_queue(self):
-        if self.schedule_method == 'fcfs':
-            self.queue.sort(key=lambda job: (job.submit_time + job.id))
-        elif self.schedule_method == 'sjf':
+        if self.policy == 'fcfs':
+            self.queue.sort(key=lambda job: job.submit_time)
+        elif self.policy == 'sjf':
             self.queue.sort(key=lambda job: job.wall_time)
-        elif self.schedule_method == 'prq':
+        elif self.policy == 'prq':
             self.queue.sort(key=lambda job: -job.priority)
-        elif self.schedule_method == 'prq+ag':
-            self.queue.sort(key=lambda job: -(job.priority+job.wait_time))
-    
-    def increment_deferred_jobs(self, tasks):
-        for task in tasks:
-            if task.wait_time != 0:
-                task.wait_time += 1
-        return tasks
+        else:
+            raise ValueError(f"The scheduling policy {self.policy} is not supported.")
     
     def schedule(self, jobs):
         """Schedule jobs."""
         for job_vector in jobs:
             job = Job(job_vector, self.current_time)
-            # heapq.heappush(self.queue, job)
             self.add_job(job)
-        #if self.debug:
-        #    print(f"\nt={self.current_time} queue={self.queue} heapq={heapq}")
 
         while self.queue:
 
-            # job = heapq.heappop(self.queue)
-            # print("type(self.queue) is" + str(type(self.queue)))
-            # submit_times = [job.submit_time for job in self.queue]
-            # print(submit_times)
-            # print("self.queue: ", len(self.queue))
-            # priorities = [job.priority for job in self.queue]
-            # print("priorities: ", priorities)
-            # priorities_aging = [(job.priority+job.wait_time) for job in self.queue]
-            # print("priorities: ", priorities_aging)
             job = self.queue.pop(0)
             synthetic_bool = len(self.available_nodes) >= job.nodes_required
             telemetry_bool = job.requested_nodes and job.requested_nodes[0] in self.available_nodes
-            self.increment_deferred_jobs(self.queue)
+
             if synthetic_bool or telemetry_bool:
 
                 if job.requested_nodes:
@@ -336,13 +312,6 @@ class Scheduler:
                     print(f"t={self.current_time}: Scheduled job with wall time {job.wall_time} on nodes {scheduled_nodes}")
 
             else:
-                # heapq.heappush(self.queue, job)
-                # self.add_job(job)
-                # print("Printing job", job)
-                # print("Printing job type", type(job))
-                # Increment wait_time for all jobs in the queue
-                job.wait_time += 1
-                # print("Job wait time is ", job.wait_time)
                 self.queue.append(job)
                 break
 
@@ -379,10 +348,6 @@ class Scheduler:
                         if node not in newly_downed_nodes:
                             self.available_nodes.append(node)
                     self.available_nodes.sort()
-
-                    # Keep the job in the queue for visibility
-                    # heapq.heappush(self.queue, job)
-                    
 
                     # Remove job from the list of running jobs
                     self.running.remove(job)
