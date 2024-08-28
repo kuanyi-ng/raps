@@ -24,7 +24,7 @@ parser.add_argument('-e', '--encrypt', action='store_true', help='Encrypt any se
 parser.add_argument('-n', '--numjobs', type=int, default=1000, help='Number of jobs to schedule')
 parser.add_argument('-t', '--time', type=str, default=None, help='Length of time to simulate, e.g., 123, 123s, 27m, 3h, 7d')
 parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose output')
-parser.add_argument('-s', '--seed', action='store_true', help='Set random number seed for deterministic simulation')
+parser.add_argument('--seed', action='store_true', help='Set random number seed for deterministic simulation')
 parser.add_argument('-f', '--replay', nargs='+', type=str, help='Either: path/to/joblive path/to/jobprofile' + \
                                                                 ' -or- filename.npz (overrides --workload option)')
 parser.add_argument('--reschedule', action='store_true', help='Reschedule the telemetry workload')
@@ -39,6 +39,8 @@ parser.add_argument('-p', '--plot', nargs='+', choices=['power', 'loss', 'pue', 
 choices = ['png', 'svg', 'jpg', 'pdf', 'eps']
 parser.add_argument('--imtype', type=str, choices=choices, default=choices[0], help='Plot image type')
 parser.add_argument('--system', type=str, default='frontier', help='System config to use')
+choices = ['fcfs', 'sjf', 'prq']
+parser.add_argument('-s', '--schedule', type=str, choices=choices, default=choices[0], help='Type of schedule to use')
 choices = ['random', 'benchmark', 'peak', 'idle']
 parser.add_argument('-w', '--workload', type=str, choices=choices, default=choices[0], help='Type of synthetic workload')
 choices = ['layout1', 'layout2']

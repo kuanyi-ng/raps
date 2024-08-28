@@ -34,8 +34,7 @@ from .config import load_config_variables
 load_config_variables([
     'TRACE_QUANTA', 'MAX_NODES_PER_JOB', 'JOB_NAMES', 'CPUS_PER_NODE',\
     'GPUS_PER_NODE', 'MAX_WALL_TIME', 'MIN_WALL_TIME', 'JOB_END_PROBS',\
-    'AVAILABLE_NODES'
-], globals())
+    'AVAILABLE_NODES' ], globals())
 
 JOB_NAMES = ["LAMMPS", "GROMACS", "VASP", "Quantum ESPRESSO", "NAMD",\
              "OpenFOAM", "WRF", "AMBER", "CP2K", "nek5000", "CHARMM",\
@@ -43,6 +42,8 @@ JOB_NAMES = ["LAMMPS", "GROMACS", "VASP", "Quantum ESPRESSO", "NAMD",\
              "Gaussian", "ANSYS", "COMSOL", "PLUMED", "nekrs",\
              "TensorFlow", "PyTorch", "BLAST", "Spark", "GAMESS",\
              "ORCA", "Simulink", "MOOSE", "ELK"]
+
+MAX_PRIORITY = 500000
 
 from .utils import truncated_normalvariate, determine_state, next_arrival
 
@@ -70,12 +71,13 @@ class Workload(object):
             wall_time = truncated_normalvariate(mu, sigma, MIN_WALL_TIME, MAX_WALL_TIME) // 3600 * 3600
             end_state = determine_state(JOB_END_PROBS)
             cpu_trace, gpu_trace = self.compute_traces(cpu_util, gpu_util, wall_time)
+            priority = random.randint(0, MAX_PRIORITY)
 
             # Jobs arrive according to Poisson process
             time_to_next_job = next_arrival()
 
             jobs.append([nodes_required, name, cpu_trace, gpu_trace, \
-                         wall_time, end_state, None, time_to_next_job, None])
+                         wall_time, end_state, None, time_to_next_job, None, priority])
         return jobs
 
 

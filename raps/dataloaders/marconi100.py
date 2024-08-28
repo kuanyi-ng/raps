@@ -110,6 +110,9 @@ def load_data_from_df(jobs_df: pd.DataFrame, **kwargs):
             gpu_util = power_to_utilization(gpu_power_array, gpu_min_power, gpu_max_power)
             gpu_trace = gpu_util * GPUS_PER_NODE
             
+        priority = int(jobs_df.loc[i, 'priority'])
+            
+        # wall_time = jobs_df.loc[i, 'run_time']
         wall_time = gpu_trace.size * TRACE_QUANTA # seconds
         end_state = jobs_df.loc[i, 'job_state']
         time_start = jobs_df.loc[i+1, 'start_time']
@@ -127,16 +130,19 @@ def load_data_from_df(jobs_df: pd.DataFrame, **kwargs):
         else: # Prescribed replay
             scheduled_nodes = (jobs_df.loc[i, 'nodes']).tolist()
             
-        jobs.append([
-            nodes_required,
-            name,
-            cpu_trace,
-            gpu_trace,
-            wall_time,
-            end_state,
-            scheduled_nodes,
-            time_offset,
-            job_id
-        ])
+        # if gpu_trace.size > 0 and (jid == job_id or jid == '*'):
+        if (gpu_trace.size > 0):
+            jobs.append([
+                nodes_required,
+                name,
+                cpu_trace,
+                gpu_trace,
+                wall_time,
+                end_state,
+                scheduled_nodes,
+                time_offset,
+                job_id, 
+                priority
+            ])
 
     return jobs
