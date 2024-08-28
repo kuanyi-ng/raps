@@ -211,6 +211,7 @@ class TickData:
     cooling_df: Optional[pd.DataFrame]
     p_flops: float
     g_flops_w: float
+    system_util: float
 
 
 class Scheduler:
@@ -353,6 +354,11 @@ class Scheduler:
         # Simulate node failure
         newly_downed_nodes = self.node_failure(MTBF)
 
+        # Update active/free nodes
+        self.num_free_nodes = len(self.available_nodes)
+        self.num_active_nodes = TOTAL_NODES - self.num_free_nodes \
+                              - len(expand_ranges(self.down_nodes))
+
         # Update running time for all running jobs
         for job in self.running:
 
@@ -436,18 +442,20 @@ class Scheduler:
         system_util = self.num_active_nodes / AVAILABLE_NODES * 100
         self.sys_util_history.append((self.current_time, system_util))
 
+        # Render the updated layout
+        output_df = None
+
         # Update power history every 15s
-        pflops, gflop_per_watt = 0, 0
         if self.current_time % POWER_UPDATE_FREQ == 0:
             total_power_kw = sum(row[-1] for row in rack_power) + NUM_CDUS * POWER_CDU / 1000.0
             total_loss_kw = sum(row[-1] for row in rack_loss)
             self.power_manager.history.append((self.current_time, total_power_kw))
             self.power_manager.loss_history.append((self.current_time, total_loss_kw))
+            output_df = self.power_manager.get_power_df(rack_power, rack_loss)
             pflops = self.flops_manager.get_system_performance() / 1E15
             gflop_per_watt = pflops * 1E6 / (total_power_kw * 1000)
-
-        # Render the updated layout
-        output_df = None
+        else:    
+            pflops, gflop_per_watt = None, None
 
         if self.cooling_model:
 
@@ -475,17 +483,11 @@ class Scheduler:
                     self.layout_manager.update_pressflow_array(cooling_df)
 
         if self.current_time % UI_UPDATE_FREQ == 0:
-
             # Get a dataframe of the power data
             power_df = self.power_manager.get_power_df(rack_power, rack_loss)
 
             if self.layout_manager:
                 self.layout_manager.update_scheduled_jobs(self.running + self.queue)
-
-                self.num_free_nodes = len(self.available_nodes)
-                self.num_active_nodes = TOTAL_NODES - self.num_free_nodes - \
-                        len(expand_ranges(self.down_nodes))
-                
                 self.layout_manager.update_status(self.current_time, len(self.running),
                                               len(self.queue), self.num_active_nodes,
                                               self.num_free_nodes, self.down_nodes[1:])
@@ -495,11 +497,12 @@ class Scheduler:
 
         tick_data = TickData(
             current_time = self.current_time,
-            jobs = self.running + self.queue,
+            jobs = completed_jobs + self.running + self.queue,
             down_nodes = expand_ranges(self.down_nodes[1:]),
             cooling_df = output_df,
             p_flops = pflops,
-            g_flops_w = gflop_per_watt
+            g_flops_w = gflop_per_watt,
+            system_util = system_util
         )
 
         self.current_time += 1
@@ -529,12 +532,15 @@ class Scheduler:
             print(limits)
         
         for _ in range(timesteps):
-            if self.current_time >= time_to_next_job:
+            while self.current_time >= time_to_next_job and jobs:
+                job = jobs.pop(0)
+                self.schedule([job])
                 if jobs:
-                    job = jobs.pop(0)
-                    self.schedule([job])
-                    time_to_next_job = job[7]
+                    time_to_next_job = job[7]  # Update time to next job based on the next job's scheduled time
+                else:
+                    time_to_next_job = float('inf')  # No more jobs, set to infinity or some large number to avoid triggering again
             yield self.tick()
+
             # Stop the simulation if no more jobs running or are in the queue
             if not self.queue and not self.running and not self.replay:
                 print("stopping simulation at time", self.current_time)

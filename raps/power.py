@@ -345,7 +345,7 @@ class PowerManager:
 
         Returns:
         tuple
-            Tuple containing rack power and rectifier losses.
+            Tuple containing rack power (kW) and rectifier losses (kW).
         """
         shape = (self.sc_shape[0], self.sc_shape[1], CHASSIS_PER_RACK, -1)
         power_state_reshaped = np.reshape(self.power_state, shape)

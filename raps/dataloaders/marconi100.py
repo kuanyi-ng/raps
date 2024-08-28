@@ -33,12 +33,23 @@ def load_data(jobs_path, **kwargs):
     list
         The list of parsed jobs.
     """
+    jobs_df = pd.read_parquet(jobs_path, engine='pyarrow')
+    return load_data_from_df(jobs_df, **kwargs)
+
+
+def load_data_from_df(jobs_df: pd.DataFrame, **kwargs):
+    """
+    Reads job and job profile data from parquet files and parses them.
+
+    Returns
+    -------
+    list
+        The list of parsed jobs.
+    """
     min_time = None
     reschedule = kwargs.get('reschedule')
     validate = kwargs.get('validate')
-    jid = kwargs.get('jid')
-
-    jobs_df = pd.read_parquet(jobs_path, engine='pyarrow')
+    jid = kwargs.get('jid', '*')
 
     # Sort jobs dataframe based on values in time_start column, adjust indices after sorting
     jobs_df = jobs_df.sort_values(by='start_time')
