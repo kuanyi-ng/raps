@@ -261,10 +261,9 @@ class Scheduler:
         self.sys_util_history = []
 
     def add_job(self, job):
+        # add job to queue
         self.queue.append(job)
-        self._sort_queue()
-
-    def _sort_queue(self):
+        # sort queue
         if self.policy == 'fcfs':
             self.queue.sort(key=lambda job: job.submit_time)
         elif self.policy == 'sjf':
