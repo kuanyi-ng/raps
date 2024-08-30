@@ -29,7 +29,7 @@ from fmpy.fmi2 import FMU2Slave
 from .config import load_config_variables
 from collections import OrderedDict
 
-load_config_variables(['FMU_OUTPUT_KEYS','NUM_CDUS', 'COOLING_EFFICIENCY','WET_BULB_TEMP'], globals())
+load_config_variables(['FMU_OUTPUT_KEYS','NUM_CDUS', 'COOLING_EFFICIENCY','WET_BULB_TEMP', 'RACKS_PER_CDU'], globals())
 
 # Define the Merge function outside of the class
 def merge_dicts(dict1, dict2):
@@ -190,7 +190,7 @@ class ThermoFluidsModel:
         # Dynamically generate the power inputs
         for i in range(NUM_CDUS):
            key = f"simulator_1_datacenter_1_computeBlock_{i+1}_cabinet_1_sources_Q_flow_total"
-           runtime_values[key] = cdu_power[i] * COOLING_EFFICIENCY
+           runtime_values[key] = cdu_power[i] * COOLING_EFFICIENCY / RACKS_PER_CDU
 
         # Add the wetbulb temperature
         runtime_values["simulator_1_centralEnergyPlant_1_coolingTowerLoop_1_sources_Towb"] = WET_BULB_TEMP
