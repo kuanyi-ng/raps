@@ -53,6 +53,15 @@ def merge_dicts(dict1, dict2):
     merged_dict = {**dict1, **dict2}
     return merged_dict
 
+def get_matching_variables(variables, pattern):
+    # Regex pattern to match strings containing .summary
+    pattern = re.compile(pattern)
+
+    # Filtering the list using the regex pattern
+    filtered_vars = [var for var in variables if pattern.match(var)]
+    
+    return filtered_vars
+
 
 class ThermoFluidsModel:
     """
@@ -105,7 +114,7 @@ class ThermoFluidsModel:
         self.template = None
         self.fmu_output_keys = []
         self.current_result = None
-
+    
     def initialize(self):
         """
         Initializes the FMU by extracting the file and setting up the model.
@@ -120,14 +129,17 @@ class ThermoFluidsModel:
         # Unzip the FMU file and get the unzip directory
         self.unzipdir = extract(self.FMU_PATH)
         model_description = read_model_description(self.FMU_PATH)
-        # Collect value references
-        vrs = {}
+
+        # Add to list of variable names
+        var_model = []
         for variable in model_description.modelVariables:
-            vrs[variable.name] = variable.valueReference
+            var_model.append(variable.name)
+
+        outputs = get_matching_variables(var_model, r'.*(\.summary\.|^summary).*')
 
         # Get the value references for the variables we want to get/set
         self.inputs = [v for v in model_description.modelVariables if v.causality == 'input']
-        self.outputs = [v for v in model_description.modelVariables if v.causality == 'output']
+        self.outputs = [v for v in model_description.modelVariables if v.name in outputs]
 
         # Dynamically determine the FMU Output Keys
         self.fmu_output_keys = self.generate_fmu_output_keys()
@@ -177,11 +189,11 @@ class ThermoFluidsModel:
 
         # Dynamically generate the power inputs
         for i in range(NUM_CDUS):
-            key = f"power[{i+1}]"
-            runtime_values[key] = cdu_power[i] * COOLING_EFFICIENCY
+           key = f"simulator_1_datacenter_1_computeBlock_{i+1}_cabinet_1_sources_Q_flow_total"
+           runtime_values[key] = cdu_power[i] * COOLING_EFFICIENCY
 
         # Add the wetbulb temperature
-        runtime_values["Towb"] = WET_BULB_TEMP
+        runtime_values["simulator_1_centralEnergyPlant_1_coolingTowerLoop_1_sources_Towb"] = WET_BULB_TEMP
 
         return runtime_values
     
@@ -258,6 +270,9 @@ class ThermoFluidsModel:
         self.fmu_history.append(rows_dict)
         data_array = self.convert_dict_to_array(val_outputs)
         self.current_result = data_array # Store the current fmu results for this timestep
+        print(rows_dict)
+        print('\n\n')
+        #breakpoint()
 
         return data_array
 
