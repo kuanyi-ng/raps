@@ -52,8 +52,7 @@ def load_data_from_df(jobs_df: pd.DataFrame, jobprofile_df: pd.DataFrame, **kwar
     validate = kwargs.get('validate')
     jid = kwargs.get('jid', '*')
 
-    #min_time = kwargs.get('min_time', None)
-    min_time = None
+    min_time = kwargs.get('min_time', None)
 
     # Sort jobs dataframe based on values in time_start column, adjust indices after sorting
     jobs_df = jobs_df[jobs_df['time_start'].notna()]
