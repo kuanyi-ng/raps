@@ -427,7 +427,7 @@ class Scheduler:
                 # Power for NUM_CDUS (25 for Frontier)
                 cdu_power = rack_power.T[-1] * 1000
 
-                runtime_values = self.cooling_model.generate_runtime_values(cdu_power)
+                runtime_values = self.cooling_model.generate_runtime_values(cdu_power, self)
                 
                 # FMU inputs are N powers and the wetbulb temp
                 fmu_inputs = self.cooling_model.generate_fmu_inputs(runtime_values, \
