@@ -211,7 +211,7 @@ class TickData:
 class Scheduler:
     """Job scheduler and simulation manager."""
     def __init__(self, total_nodes, down_nodes, power_manager, flops_manager, \
-                 layout_manager, cooling_model=None, start=None, end=None **kwargs):
+                 layout_manager, cooling_model=None, start=None, end=None, **kwargs):
         """Initialize the scheduler.
 
         Args:
