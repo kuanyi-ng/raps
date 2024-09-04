@@ -98,7 +98,7 @@ class ThermoFluidsModel:
         Cleans up the extracted FMU directory.
     """
 
-    def __init__(self, FMU_PATH):
+    def __init__(self, FMU_PATH, start=None):
         """
         Constructs all the necessary attributes for the ThermoFluidsModel object.
 
@@ -116,7 +116,7 @@ class ThermoFluidsModel:
         self.template = None
         self.fmu_output_keys = []
         self.current_result = None
-        self.weather = Weather()
+        self.weather = None
     
     def initialize(self):
         """

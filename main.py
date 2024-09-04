@@ -62,6 +62,7 @@ from raps.power import compute_node_power_uncertainties, compute_node_power_vali
 from raps.scheduler import Scheduler, Job
 from raps.telemetry import Telemetry
 from raps.workload import Workload
+from raps.weather import Weather
 from raps.utils import create_casename, convert_to_seconds, write_dict_to_file
 
 load_config_variables([
@@ -99,6 +100,11 @@ flops_manager = FLOPSManager(SC_SHAPE)
 layout_manager = LayoutManager(args.layout, args.debug)
 sc = Scheduler(TOTAL_NODES, DOWN_NODES, power_manager, flops_manager, layout_manager,
                cooling_model, **args_dict)
+
+if args.cooling:
+    if sc.replay:
+        cooling_model.weather = Weather(sc.start)
+
 if args.replay:
     td = Telemetry(**args_dict)
 
