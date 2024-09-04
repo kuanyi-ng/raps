@@ -215,20 +215,20 @@ class ThermoFluidsModel:
                 if temperature is not None:
                     print(f"The temperature on {target_datetime.strftime('%Y-%m-%d %H:%M')} for ZIP code {ZIP_CODE} was {temperature:.2f} K.")
                     runtime_values["simulator_1_centralEnergyPlant_1_coolingTowerLoop_1_sources_Towb"] = temperature
-                    breakpoint()
+                    #breakpoint()
                 else:
                     print("Failed to retrieve weather data.")
                     runtime_values["simulator_1_centralEnergyPlant_1_coolingTowerLoop_1_sources_Towb"] = WET_BULB_TEMP
-                    breakpoint()
+                    #breakpoint()
             else:
                 print("Failed to retrieve coordinates.")
                 runtime_values["simulator_1_centralEnergyPlant_1_coolingTowerLoop_1_sources_Towb"] = WET_BULB_TEMP
-                breakpoint()
+                #breakpoint()
 
         # Otherwise just use constant temp from config
         else:
             print('SIMULATED MODE')
-            breakpoint()
+            #breakpoint()
             runtime_values["simulator_1_centralEnergyPlant_1_coolingTowerLoop_1_sources_Towb"] = WET_BULB_TEMP
 
         return runtime_values
