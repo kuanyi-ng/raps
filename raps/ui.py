@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from rich.align import Align
 from rich.console import Console
 from rich.layout import Layout
@@ -162,21 +163,23 @@ class LayoutManager:
         # Update the layout
         self.layout["status"].update(Panel(Align(table, align="center"), title="Scheduler Stats"))
 
-    def update_pressflow_array(self, cooling_df):
+    def update_pressflow_array(self, datacenter_outputs):
         columns = ["Output", "Average Value"]
+
+        datacenter_df = self.get_datacenter_df(datacenter_outputs)
 
         # List of keys to include in the table
         relevant_keys = [
-            "W_CDUP_Out", "ps_pri_Out", "pr_pri_Out",
-            "Q_pri_Out", "Q_sec_Out", "ps_sec_Out", "pr_sec_Out"
+            "Work Done By CDUP", "Facility Supply Pressure", "Facility Return Pressure",
+            "Facility Flowrate", "Rack Flowrate", "Rack Supply Pressure", "Rack Return Pressure"
         ]
 
         # Dynamically build the data list using FMU_COLUMN_MAPPING
         data = []
         for key in relevant_keys:
-            if key in cooling_df and key in FMU_COLUMN_MAPPING:
+            if key in datacenter_df and key in FMU_COLUMN_MAPPING:
                 label = FMU_COLUMN_MAPPING[key]
-                average_value = round(cooling_df[key].mean(), 1)
+                average_value = round(datacenter_df[key].mean(), 1)
                 data.append((label, average_value))
 
         # Create table with white headers
@@ -184,7 +187,42 @@ class LayoutManager:
         self.add_table_rows(table, data)
         self.layout["pressflow"].update(Panel(table))
 
-    def update_powertemp_array(self, power_df, cooling_df, pflops, gflop_per_watt, system_util, uncertainties=False):
+    def get_datacenter_df(self, datacenter_outputs):
+        data = {
+            "Facility Return Pressure": [],
+            "Facility Supply Temperature": [],
+            "Facility Flowrate": [],
+            "Facility Supply Pressure": [],
+            "Rack Return Temperature": [],
+            "Rack Supply Temperature": [],
+            "Rack Flowrate": [],
+            "Rack Supply Pressure": [],
+            "Rack Return Pressure": [],
+            "Work Done By CDUP": []
+        }
+        
+        # Loop over each compute block in the datacenter_outputs dictionary
+        for i in range(1, NUM_CDUS + 1):
+            compute_block_key = f"simulator[1].datacenter[1].computeBlock[{i}].cdu[1].summary."
+            
+            # Append data to the corresponding lists
+            data["Facility Return Pressure"].append(datacenter_outputs.get(compute_block_key + "T_prim_r_C"))
+            data["Facility Supply Temperature"].append(datacenter_outputs.get(compute_block_key + "T_prim_s_C"))
+            data["Facility Flowrate"].append(datacenter_outputs.get(compute_block_key + "V_flow_prim_GPM"))
+            data["Facility Supply Pressure"].append(datacenter_outputs.get(compute_block_key + "p_prim_s_psig"))
+            data["Rack Return Temperature"].append(datacenter_outputs.get(compute_block_key + "T_sec_r_C"))
+            data["Rack Supply Temperature"].append(datacenter_outputs.get(compute_block_key + "T_sec_s_C"))
+            data["Rack Flowrate"].append(datacenter_outputs.get(compute_block_key + "V_flow_sec_GPM"))
+            data["Rack Supply Pressure"].append(datacenter_outputs.get(compute_block_key + "p_sec_r_psig"))
+            data["Rack Return Pressure"].append(datacenter_outputs.get(compute_block_key + "p_sec_s_psig"))
+            data["Work Done By CDUP"].append(datacenter_outputs.get(compute_block_key + "W_flow_CDUP_kW"))
+
+        # Convert to DataFrame
+        df = pd.DataFrame(data)
+            
+        return df
+
+    def update_powertemp_array(self, power_df, datacenter_outputs, pue, pflops, gflop_per_watt, system_util, uncertainties=False):
         """
         Updates the displayed power and temperature table with the provided data.
 
@@ -197,7 +235,9 @@ class LayoutManager:
         """
         # Define the specific columns for power
         power_columns = POWER_DF_HEADER[0:RACKS_PER_CDU + 2] + [POWER_DF_HEADER[-1]]  # "CDU", "Rack 1", "Rack 2", "Rack 3", "Sum", "Loss"
-        cooling_keys = ["Ts_pri_Out", "Tr_pri_Out", "Ts_sec_Out", "Tr_sec_Out"]
+        cooling_keys = ["Facility Return Pressure", "Facility Return Pressure", "Rack Supply Temperature", "Rack Return Temperature"]
+
+        datacenter_df = self.get_datacenter_df(datacenter_outputs)
 
         # Create column headers with appropriate styles
         columns = [f"{col} (kW)" if col != "CDU" else col for col in power_columns]
@@ -224,7 +264,7 @@ class LayoutManager:
             power_df = power_df[power_columns].astype(int)
 
         # Populate the table with data from the DataFrame, applying the data styles
-        for power_row, cooling_row in zip(power_df.iterrows(), cooling_df.iterrows()):
+        for power_row, cooling_row in zip(power_df.iterrows(), datacenter_df.iterrows()):
             power_values = [
                 f"[{data_styles[i]}]{power_row[1][col]}[/]" for i, col in enumerate(power_columns)
             ]
@@ -256,7 +296,7 @@ class LayoutManager:
             str(f"{pflops:.2f}"),
             str(f"{gflop_per_watt:.1f}"),
             total_loss_str + " (" + percent_loss_str+ ")",
-            f"{cooling_df.iloc[0]['PUE_Out']:.2f}",  # Assuming PUE_Out is present in cooling_df
+            f"{pue:.2f}",
             style="white"  # Apply white style to all elements in the row
         )
 

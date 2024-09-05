@@ -143,9 +143,6 @@ class ThermoFluidsModel:
         # Get the value references for the variables we want to get/set
         self.inputs = [v for v in model_description.modelVariables if v.causality == 'input']
         self.outputs = [v for v in model_description.modelVariables if v.name in outputs]
-
-        # Dynamically determine the FMU Output Keys
-        self.fmu_output_keys = self.generate_fmu_output_keys()
         
         # Instantiate and initialize the FMU
         self.fmu = FMU2Slave(guid=model_description.guid,
@@ -156,26 +153,6 @@ class ThermoFluidsModel:
         self.fmu.setupExperiment(startTime=0.0)
         self.fmu.enterInitializationMode()
         self.fmu.exitInitializationMode()
-
-    def generate_fmu_output_keys(self):
-        """
-        Generates the fmu output keys dynamically based on FMU's output variable names,
-        preserving the order in which they appear.
-
-        Returns
-        -------
-        output_keys : list of str
-            A list of unique base names of the output variables in their order of appearance.
-        """
-        seen_keys = OrderedDict()
-        for output in self.outputs:
-            # Split the name at the first '[' and take the base part
-            base_name = output.name.split('[')[0]
-            if base_name not in seen_keys:
-                seen_keys[base_name] = None
-        
-        # Return the keys as a list
-        return list(seen_keys.keys())
 
     def generate_runtime_values(self, cdu_power, sc):
         """
@@ -207,27 +184,27 @@ class ThermoFluidsModel:
 
                 # Initialize target_datetime using the calculated hours, minutes, and seconds
                 target_datetime = datetime(2024, 4, 7, hours, minutes, seconds)  # YYYY-MM-DD HH:MM:SS format
-                print(f"Target Datetime: {target_datetime}")
+                #print(f"Target Datetime: {target_datetime}")
 
                 # Get temperature
                 temperature = self.weather.get_temperature(target_datetime)
         
                 if temperature is not None:
-                    print(f"The temperature on {target_datetime.strftime('%Y-%m-%d %H:%M')} for ZIP code {ZIP_CODE} was {temperature:.2f} K.")
+                    #print(f"The temperature on {target_datetime.strftime('%Y-%m-%d %H:%M')} for ZIP code {ZIP_CODE} was {temperature:.2f} K.")
                     runtime_values["simulator_1_centralEnergyPlant_1_coolingTowerLoop_1_sources_Towb"] = temperature
                     #breakpoint()
                 else:
-                    print("Failed to retrieve weather data.")
+                    #print("Failed to retrieve weather data.")
                     runtime_values["simulator_1_centralEnergyPlant_1_coolingTowerLoop_1_sources_Towb"] = WET_BULB_TEMP
                     #breakpoint()
             else:
-                print("Failed to retrieve coordinates.")
+                #print("Failed to retrieve coordinates.")
                 runtime_values["simulator_1_centralEnergyPlant_1_coolingTowerLoop_1_sources_Towb"] = WET_BULB_TEMP
                 #breakpoint()
 
         # Otherwise just use constant temp from config
         else:
-            print('SIMULATED MODE')
+            #print('SIMULATED MODE')
             #breakpoint()
             runtime_values["simulator_1_centralEnergyPlant_1_coolingTowerLoop_1_sources_Towb"] = WET_BULB_TEMP
 
@@ -266,6 +243,32 @@ class ThermoFluidsModel:
 
         return fmu_inputs
 
+    def calculate_pue(self, cooling_input, datacenter_output, cep_output):
+        # Convert values from kW to Watts
+        W_HTWPs = np.array(cep_output['simulator[1].centralEnergyPlant[1].hotWaterLoop[1].summary.W_flow_HTWP_kW']) * 1e3
+        W_CTWPs = np.array(cep_output['simulator[1].centralEnergyPlant[1].coolingTowerLoop[1].summary.W_flow_CTWP_kW']) * 1e3
+        W_CTs = np.array(cep_output['simulator[1].centralEnergyPlant[1].coolingTowerLoop[1].summary.W_flow_CT_kW']) * 1e3
+
+        # Initialize W_CDUPs as zero array of the same shape as datacenter output
+        W_CDUPs = np.zeros_like(W_HTWPs)
+
+        # Loop over all compute blocks (CDUs)
+        for idx in range(NUM_CDUS):
+            colName = f'simulator[1].datacenter[1].computeBlock[{idx+1}].cdu[1].summary.W_flow_CDUP_kW'
+            # Accumulate the power values for all CDUs
+            W_CDUPs += np.array(datacenter_output[colName]) * 1e3
+
+        # Sum all values in the cooling_input dictionary
+        total_cooling_input_power = np.sum(list(cooling_input.values()))
+
+        # Ensure a non-zero value for total input power to avoid division by zero
+        total_input_power = np.maximum(total_cooling_input_power, 1e-3)
+
+        # Calculate PUE
+        pue = (total_input_power + np.sum(W_CDUPs) + np.sum(W_HTWPs) + np.sum(W_CTWPs) + np.sum(W_CTs)) / total_input_power
+        
+        return pue
+    
     def step(self, current_time, fmu_inputs, step_size):
         """
         Executes a simulation step with the given inputs and step size.
@@ -296,67 +299,25 @@ class ThermoFluidsModel:
         for v in self.inputs:
             val_inputs[v.name] = self.fmu.getReal([v.valueReference])[0]
 
-        val_outputs = {}
+        val_outputs_datacenter = {}
+        val_outputs_cep = {}
         for v in self.outputs:
-            val_outputs[v.name] = self.fmu.getReal([v.valueReference])[0]
+            if "datacenter" in v.name:
+                val_outputs_datacenter[v.name] = self.fmu.getReal([v.valueReference])[0]
+
+            if "centralEnergyPlant" in v.name:
+                val_outputs_cep[v.name] = self.fmu.getReal([v.valueReference])[0]
 
         val_time = {'time': current_time}
+        
         # Append the results
-        rows_dict = merge_dicts(merge_dicts(val_time, val_inputs), val_outputs)
-        self.fmu_history.append(rows_dict)
-        data_array = self.convert_dict_to_array(val_outputs)
-        self.current_result = data_array # Store the current fmu results for this timestep
-        print(rows_dict)
-        print('\n\n')
-        #breakpoint()
+        cooling_input = val_inputs
+        datacenter_output = val_outputs_datacenter
+        cep_output = val_outputs_cep
+        self.fmu_history.append(merge_dicts(merge_dicts(val_time, val_inputs), merge_dicts(datacenter_output, cep_output)))
+        pue = self.calculate_pue(cooling_input, datacenter_output, cep_output)
 
-        return data_array
-
-    def convert_dict_to_array(self, data):
-        """
-        Converts the row dictionary data to a numpy array.
-
-        Parameters
-        ----------
-        data : dict
-            A dictionary containing the row data.
-
-        Returns
-        -------
-        data_array : numpy.ndarray
-            A numpy array with the extracted data values.
-        """
-        data_array = np.zeros((NUM_CDUS, len(self.fmu_output_keys)))
-
-        keys_to_extract = [f'{base}[{i}]' for base in self.fmu_output_keys for i in range(1, NUM_CDUS + 1)]
-        # Iterate through the keys in data and extract relevant values to fill the array
-        for key, value in data.items():
-            if key in keys_to_extract:
-                # Extract the unit number from the key, e.g.:
-                #('cdu_coolingsubsystem_0_liquidoutlet_0_
-                # liquidflow_secondary[1]' -> 1)
-                parts = key.split('[')
-                base_key = parts[0]
-                unit_number = int(parts[1].split(']')[0])
-
-                # Adjust the unit_number to be 1-based (Python uses 0-based indexing)
-                unit_number -= 1
-
-                # Find the index of base_key in self.fmu_output_keys
-                base_index = self.fmu_output_keys.index(base_key)
-
-                # Fill the corresponding element in the array
-                data_array[unit_number, base_index] = value
-        return data_array
-
-    def get_cooling_df(self):
-        # Initialize the columns for cooling_df
-        cooling_columns = self.fmu_output_keys
-
-        # Generate cooling_df
-        cooling_df = pd.DataFrame(self.current_result, columns=cooling_columns)
-
-        return cooling_df
+        return cooling_input, datacenter_output, cep_output, pue
 
     def terminate(self):
         """
