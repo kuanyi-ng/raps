@@ -381,6 +381,8 @@ class Scheduler:
             if self.debug:
                 print("setting idle nodes:", node_indices)
             self.power_manager.set_idle(node_indices)
+            self.flops_manager.update_flop_state(job.scheduled_nodes, \
+                                                 cpu_util=0, gpu_util=0)
 
             # Remove job from list of running jobs
             self.running.remove(job)
