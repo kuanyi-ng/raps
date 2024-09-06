@@ -46,7 +46,7 @@ def load_data_from_df(jobs_df: pd.DataFrame, **kwargs):
     list
         The list of parsed jobs.
     """
-    min_time = None
+    min_time = kwargs.get('min_time', None)
     reschedule = kwargs.get('reschedule')
     validate = kwargs.get('validate')
     jid = kwargs.get('jid', '*')
