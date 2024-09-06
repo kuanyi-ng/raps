@@ -120,7 +120,8 @@ if args.replay:
     else:
         print(*args.replay)
         jobs, start = td.load_data(args.replay)
-        sc.start = start['start_date']
+        if start is not None:
+            sc.start = start['start_date']
         td.save_snapshot(jobs, filename=DIR_NAME)
 
     if args.cooling:
@@ -249,14 +250,3 @@ if args.output:
                 json.dump(output_stats, f, indent=4)
         except:
             write_dict_to_file(output_stats, OPATH / 'stats.out')
-
-import pandas as pd
-
-def write_to_csv(fmu_dict_array, output_file):
-    # Convert the list of dictionaries to a DataFrame
-    df = pd.DataFrame(fmu_dict_array)
-    
-    # Write the DataFrame to a CSV file
-    df.to_csv(output_file, index=False)
-
-write_to_csv(sc.cooling_model.fmu_history, 'RAPS_fmu_results.csv')
