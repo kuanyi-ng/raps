@@ -4,16 +4,16 @@
     "FMU_PATH": "models/Simulator_olcf5_base.fmu",
     "FMU_UPDATE_FREQ": 15,
     "FMU_COLUMN_MAPPING": {
-        "Rack Return Temperature": "Rack Return Temperature (\u00b0C)",
-        "Rack Supply Temperature": "Rack Supply Temperature (\u00b0C)",
-        "Rack Supply Pressure": "Rack Supply Pressure (psig)",
-        "Rack Return Pressure": "Rack Return Pressure (psig)",
-        "Rack Flowrate": "Rack Flowrate (gpm)",
-        "Facility Return Temperature": "Facility Return Temperature (\u00b0C)",
-        "Facility Supply Temperature": "Facility Supply Temperature (\u00b0C)",
-        "Facility Supply Pressure": "Facility Supply Pressure (psig)",
-        "Facility Return Pressure": "Facility Return Pressure (psig)",
-        "Facility Flowrate": "Facility Flowrate (gpm)",
-        "Work Done By CDUP": "Work Done By CDUP (kW)"	
+        "T_sec_r_C": "Rack Return Temperature (\u00b0C)",
+        "T_sec_s_C": "Rack Supply Temperature (\u00b0C)",
+        "p_sec_r_psig": "Rack Supply Pressure (psig)",
+        "p_sec_s_psig": "Rack Return Pressure (psig)",
+        "V_flow_sec_GPM": "Rack Flowrate (gpm)",
+        "T_prim_r_C": "Facility Return Temperature (\u00b0C)",
+        "T_prim_s_C": "Facility Supply Temperature (\u00b0C)",
+        "p_prim_s_psig": "Facility Supply Pressure (psig)",
+        "p_prim_r_psig": "Facility Return Pressure (psig)",
+        "V_flow_prim_GPM": "Facility Flowrate (gpm)",
+        "W_flow_CDUP_kW": "Work Done By CDUP (kW)"	
     }
 }

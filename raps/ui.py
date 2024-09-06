@@ -170,8 +170,8 @@ class LayoutManager:
 
         # List of keys to include in the table
         relevant_keys = [
-            "Work Done By CDUP", "Facility Supply Pressure", "Facility Return Pressure",
-            "Facility Flowrate", "Rack Flowrate", "Rack Supply Pressure", "Rack Return Pressure"
+            "W_flow_CDUP_kW", "p_prim_s_psig", "p_prim_r_psig",
+            "V_flow_prim_GPM", "V_flow_sec_GPM", "p_sec_r_psig", "p_sec_s_psig"
         ]
 
         # Dynamically build the data list using FMU_COLUMN_MAPPING
@@ -188,39 +188,22 @@ class LayoutManager:
         self.layout["pressflow"].update(Panel(table))
 
     def get_datacenter_df(self, datacenter_outputs):
-        data = {
-            "Facility Return Pressure": [],
-            "Facility Supply Temperature": [],
-            "Facility Flowrate": [],
-            "Facility Supply Pressure": [],
-            "Rack Return Temperature": [],
-            "Rack Supply Temperature": [],
-            "Rack Flowrate": [],
-            "Rack Supply Pressure": [],
-            "Rack Return Pressure": [],
-            "Work Done By CDUP": []
-        }
+        # Initialize data dictionary with keys from FMU_COLUMN_MAPPING
+        data = {key: [] for key in FMU_COLUMN_MAPPING.keys()}
         
         # Loop over each compute block in the datacenter_outputs dictionary
         for i in range(1, NUM_CDUS + 1):
             compute_block_key = f"simulator[1].datacenter[1].computeBlock[{i}].cdu[1].summary."
             
-            # Append data to the corresponding lists
-            data["Facility Return Pressure"].append(datacenter_outputs.get(compute_block_key + "T_prim_r_C"))
-            data["Facility Supply Temperature"].append(datacenter_outputs.get(compute_block_key + "T_prim_s_C"))
-            data["Facility Flowrate"].append(datacenter_outputs.get(compute_block_key + "V_flow_prim_GPM"))
-            data["Facility Supply Pressure"].append(datacenter_outputs.get(compute_block_key + "p_prim_s_psig"))
-            data["Rack Return Temperature"].append(datacenter_outputs.get(compute_block_key + "T_sec_r_C"))
-            data["Rack Supply Temperature"].append(datacenter_outputs.get(compute_block_key + "T_sec_s_C"))
-            data["Rack Flowrate"].append(datacenter_outputs.get(compute_block_key + "V_flow_sec_GPM"))
-            data["Rack Supply Pressure"].append(datacenter_outputs.get(compute_block_key + "p_sec_r_psig"))
-            data["Rack Return Pressure"].append(datacenter_outputs.get(compute_block_key + "p_sec_s_psig"))
-            data["Work Done By CDUP"].append(datacenter_outputs.get(compute_block_key + "W_flow_CDUP_kW"))
-
+            # Append data to the corresponding lists dynamically using FMU_COLUMN_MAPPING keys
+            for key in FMU_COLUMN_MAPPING.keys():
+                data[key].append(datacenter_outputs.get(compute_block_key + key))
+        
         # Convert to DataFrame
         df = pd.DataFrame(data)
-            
+        
         return df
+
 
     def update_powertemp_array(self, power_df, datacenter_outputs, pue, pflops, gflop_per_watt, system_util, uncertainties=False):
         """
@@ -235,7 +218,9 @@ class LayoutManager:
         """
         # Define the specific columns for power
         power_columns = POWER_DF_HEADER[0:RACKS_PER_CDU + 2] + [POWER_DF_HEADER[-1]]  # "CDU", "Rack 1", "Rack 2", "Rack 3", "Sum", "Loss"
-        cooling_keys = ["Facility Return Pressure", "Facility Return Pressure", "Rack Supply Temperature", "Rack Return Temperature"]
+        
+        # Updated cooling keys to include temperature instead of pressure
+        cooling_keys = ["T_prim_s_C", "T_prim_r_C", "T_sec_s_C", "T_sec_r_C"]
 
         datacenter_df = self.get_datacenter_df(datacenter_outputs)
 
@@ -246,10 +231,7 @@ class LayoutManager:
         # Define styles for data values
         data_styles = ["bold cyan"] + ["bold green"] * (len(power_columns) - 1)
         data_styles += [
-            "bold blue" if "Facility Supply" in FMU_COLUMN_MAPPING[key] else
-            "bold red" if "Facility Return" in FMU_COLUMN_MAPPING[key] else
-            "bold blue" if "Rack Supply" in FMU_COLUMN_MAPPING[key] else
-            "bold red" for key in cooling_keys
+            "bold blue" if "Supply" in FMU_COLUMN_MAPPING[key] else "bold red" for key in cooling_keys
         ]
 
         # Initialize the table with header styles

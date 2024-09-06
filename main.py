@@ -249,13 +249,13 @@ if args.output:
         except:
             write_dict_to_file(output_stats, OPATH / 'stats.out')
 
-import pandas as pd
+# import pandas as pd
 
-def write_to_csv(fmu_dict_array, output_file):
-    # Convert the list of dictionaries to a DataFrame
-    df = pd.DataFrame(fmu_dict_array)
+# def write_to_csv(fmu_dict_array, output_file):
+#     # Convert the list of dictionaries to a DataFrame
+#     df = pd.DataFrame(fmu_dict_array)
     
-    # Write the DataFrame to a CSV file
-    df.to_csv(output_file, index=False)
+#     # Write the DataFrame to a CSV file
+#     df.to_csv(output_file, index=False)
 
-write_to_csv(sc.cooling_model.fmu_history, 'RAPS_fmu_results_04_07_24.csv')
+# write_to_csv(sc.cooling_model.fmu_history, 'RAPS_fmu_results_04_07_24.csv')
