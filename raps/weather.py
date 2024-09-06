@@ -9,7 +9,7 @@ from .config import load_config_variables
 load_config_variables(['ZIP_CODE', 'COUNTRY_CODE'], globals())
 
 class Weather:
-    def __init__(self, start):
+    def __init__(self, sc):
         """
         Initialize the Weather class with configuration loaded from a JSON file.
         If zip_code and country_code are provided, the coordinates (lat, lon)
@@ -21,7 +21,7 @@ class Weather:
         self.lon = None
         self.weather_cache = {}  # Cache for storing weather data for the entire day
         self.has_coords = False
-        print(f"Simulation Start{start}")
+
         # Retrieve coordinates if zip_code and country_code are provided
         if self.zip_code and self.country_code:
             self.lat, self.lon = self.get_coordinates()
@@ -30,7 +30,7 @@ class Weather:
             else:
                 self.has_coords = True
                 # Specify the date you want to fetch weather data for
-                target_date = datetime(2024, 4, 7).date()
+                target_date = sc.start.date()
 
                 self.retrieve_weather_data_for_day(target_date)  # Pre-fetch weather data for the current day
         else:
@@ -75,10 +75,7 @@ class Weather:
         if self.lat is None or self.lon is None:
             print("Error: Latitude and longitude are not set. Please provide valid ZIP code and country code.")
             return
-        
-        print(f"MONTH: {date.month}")
-        #breakpoint()
-       
+               
         weather_url = f'https://archive-api.open-meteo.com/v1/archive?latitude={self.lat}&longitude={self.lon}&start_date={date}&end_date={date}&temperature_unit=celsius&hourly=temperature_2m'
         response = requests.get(weather_url, verify=False)  # Disable SSL verification temporarily
         
@@ -88,8 +85,6 @@ class Weather:
                 data = response.json()  # Attempt to parse the JSON response
                 if 'hourly' in data and 'temperature_2m' in data['hourly']:
                     times = data['hourly']['time']
-                    print(f"Times: {times}")
-                    #breakpoint()
                     temperatures = data['hourly']['temperature_2m']
                     
                     # Cache the weather data for fast lookup

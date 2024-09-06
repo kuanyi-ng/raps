@@ -1,5 +1,7 @@
 import numpy as np
 import pandas as pd
+import re
+from datetime import datetime
 
 from ..config import load_config_variables
 from ..utils import power_to_utilization, next_arrival, encrypt
@@ -35,6 +37,15 @@ def load_data(files, **kwargs):
     jobprofile_path = files[1]
     jobprofile_df = pd.read_parquet(jobprofile_path, engine='pyarrow')
 
+    # Add meta data for start date
+    match = re.search(r'\d{4}-\d{2}-\d{2}', files[0])
+    if match:
+        date_str = match.group()  # Extract the date string
+        
+        # Convert to datetime object
+        start_date = datetime.strptime(date_str, "%Y-%m-%d")
+        jobs_df.attrs['metadata'] = {'start_date': start_date}
+
     return load_data_from_df(jobs_df, jobprofile_df, **kwargs)
 
 
@@ -59,6 +70,7 @@ def load_data_from_df(jobs_df: pd.DataFrame, jobprofile_df: pd.DataFrame, **kwar
     jobs_df = jobs_df.drop_duplicates(subset='job_id', keep='last').reset_index()
     jobs_df = jobs_df.sort_values(by='time_start')
     jobs_df = jobs_df.reset_index(drop=True)
+    start = jobs_df.attrs['metadata']
 
     # Convert timestamp column to datetime format
     jobprofile_df['timestamp'] = pd.to_datetime(jobprofile_df['timestamp'])
@@ -148,7 +160,7 @@ def load_data_from_df(jobs_df: pd.DataFrame, jobprofile_df: pd.DataFrame, **kwar
                 0 # priority (not supported for Frontier at the moment)
             ])
 
-    return jobs
+    return jobs, start
 
 
 def xname_to_index(xname: str):

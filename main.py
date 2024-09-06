@@ -101,10 +101,6 @@ layout_manager = LayoutManager(args.layout, args.debug)
 sc = Scheduler(TOTAL_NODES, DOWN_NODES, power_manager, flops_manager, layout_manager,
                cooling_model, **args_dict)
 
-if args.cooling:
-    if sc.replay:
-        cooling_model.weather = Weather(sc.start)
-
 if args.replay:
     td = Telemetry(**args_dict)
 
@@ -119,11 +115,16 @@ if args.replay:
 
     # Read either npz file or telemetry parquet files
     if args.replay[0].endswith(".npz"):
-        jobs = td.load_snapshot(args.replay[0])
+        jobs, start = td.load_snapshot(args.replay[0])
+        sc.start = start
     else:
         print(*args.replay)
-        jobs = td.load_data(args.replay)
+        jobs, start = td.load_data(args.replay)
+        sc.start = start['start_date']
         td.save_snapshot(jobs, filename=DIR_NAME)
+
+    if args.cooling:
+        cooling_model.weather = Weather(sc)
 
     # Set number of timesteps based on the last job running which we assume
     # is the maximum value of submit_time + wall_time of all the jobs
@@ -249,13 +250,13 @@ if args.output:
         except:
             write_dict_to_file(output_stats, OPATH / 'stats.out')
 
-# import pandas as pd
+import pandas as pd
 
-# def write_to_csv(fmu_dict_array, output_file):
-#     # Convert the list of dictionaries to a DataFrame
-#     df = pd.DataFrame(fmu_dict_array)
+def write_to_csv(fmu_dict_array, output_file):
+    # Convert the list of dictionaries to a DataFrame
+    df = pd.DataFrame(fmu_dict_array)
     
-#     # Write the DataFrame to a CSV file
-#     df.to_csv(output_file, index=False)
+    # Write the DataFrame to a CSV file
+    df.to_csv(output_file, index=False)
 
-# write_to_csv(sc.cooling_model.fmu_history, 'RAPS_fmu_results_04_07_24.csv')
+write_to_csv(sc.cooling_model.fmu_history, 'RAPS_fmu_results.csv')

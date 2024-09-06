@@ -27,6 +27,8 @@ if __name__ == "__main__":
 
 import importlib
 import numpy as np
+import re
+from datetime import datetime
 from .scheduler import Job
 
 
@@ -45,8 +47,16 @@ class Telemetry:
 
     def load_snapshot(self, snapshot: str) -> list:
         """Reads a snapshot from a compressed file and returns the jobs."""
+        # Add meta data for start date
+        match = re.search(r'\d{4}-\d{2}-\d{2}', snapshot)
+        if match:
+            date_str = match.group()  # Extract the date string
+            
+            # Convert to datetime object
+            start = datetime.strptime(date_str, "%Y-%m-%d")
+        
         jobs = np.load(snapshot, allow_pickle=True)
-        return jobs['jobs'].tolist()
+        return jobs['jobs'].tolist(), start
 
 
     def load_data(self, files):

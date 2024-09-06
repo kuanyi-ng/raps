@@ -50,6 +50,7 @@ def load_data_from_df(jobs_df: pd.DataFrame, **kwargs):
     reschedule = kwargs.get('reschedule')
     validate = kwargs.get('validate')
     jid = kwargs.get('jid', '*')
+    start = None
 
     # Sort jobs dataframe based on values in time_start column, adjust indices after sorting
     jobs_df = jobs_df.sort_values(by='start_time')
@@ -145,4 +146,4 @@ def load_data_from_df(jobs_df: pd.DataFrame, **kwargs):
                 priority
             ])
 
-    return jobs
+    return jobs, start

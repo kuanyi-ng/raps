@@ -172,42 +172,28 @@ class ThermoFluidsModel:
            key = f"simulator_1_datacenter_1_computeBlock_{i+1}_cabinet_1_sources_Q_flow_total"
            runtime_values[key] = cdu_power[i] * COOLING_EFFICIENCY / RACKS_PER_CDU
 
-        # If replay get temperature based on datetime and location
-        if sc.replay:
-            if self.weather.has_coords:
-                # Convert total seconds to timedelta object
-                delta = timedelta(seconds=sc.current_time)
-
-                # Extract hours, minutes, and seconds from timedelta
-                hours, remainder = divmod(delta.seconds, 3600)  # Get hours and the remaining seconds
-                minutes, seconds = divmod(remainder, 60)  # Get minutes and the remaining seconds
-
-                # Initialize target_datetime using the calculated hours, minutes, and seconds
-                target_datetime = datetime(2024, 4, 7, hours, minutes, seconds)  # YYYY-MM-DD HH:MM:SS format
-                #print(f"Target Datetime: {target_datetime}")
-
-                # Get temperature
-                temperature = self.weather.get_temperature(target_datetime)
-        
-                if temperature is not None:
-                    #print(f"The temperature on {target_datetime.strftime('%Y-%m-%d %H:%M')} for ZIP code {ZIP_CODE} was {temperature:.2f} K.")
-                    runtime_values["simulator_1_centralEnergyPlant_1_coolingTowerLoop_1_sources_Towb"] = temperature
-                    #breakpoint()
-                else:
-                    #print("Failed to retrieve weather data.")
-                    runtime_values["simulator_1_centralEnergyPlant_1_coolingTowerLoop_1_sources_Towb"] = WET_BULB_TEMP
-                    #breakpoint()
-            else:
-                #print("Failed to retrieve coordinates.")
-                runtime_values["simulator_1_centralEnergyPlant_1_coolingTowerLoop_1_sources_Towb"] = WET_BULB_TEMP
-                #breakpoint()
-
-        # Otherwise just use constant temp from config
-        else:
-            #print('SIMULATED MODE')
-            #breakpoint()
+        # Use temp from config by default
+        if not sc.replay:
             runtime_values["simulator_1_centralEnergyPlant_1_coolingTowerLoop_1_sources_Towb"] = WET_BULB_TEMP
 
+        # Otherwise get temperature based on the day we're replaying
+        else:
+            if sc.start is not None:
+                    if self.weather.has_coords:
+                        # Convert total seconds to timedelta object
+                        delta = timedelta(seconds=sc.current_time)
+                        target_datetime = sc.start + delta  # YYYY-MM-DD HH:MM:SS format
+
+                        # Get temperature
+                        temperature = self.weather.get_temperature(target_datetime)
+                
+                        if temperature is not None:
+                            runtime_values["simulator_1_centralEnergyPlant_1_coolingTowerLoop_1_sources_Towb"] = temperature
+                        else:
+                            runtime_values["simulator_1_centralEnergyPlant_1_coolingTowerLoop_1_sources_Towb"] = WET_BULB_TEMP
+            else:
+                runtime_values["simulator_1_centralEnergyPlant_1_coolingTowerLoop_1_sources_Towb"] = WET_BULB_TEMP
+            
         return runtime_values
     
     def generate_fmu_inputs(self, runtime_values, uncertainties=False):
