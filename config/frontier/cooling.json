@@ -1,6 +1,8 @@
 {
     "COOLING_EFFICIENCY": 0.945,
     "WET_BULB_TEMP": 290.0,
+    "ZIP_CODE": 37831,
+    "COUNTRY_CODE": "US",
     "FMU_PATH": "models/Simulator_olcf5_base.fmu",
     "FMU_UPDATE_FREQ": 15,
     "FMU_COLUMN_MAPPING": {
