@@ -47,16 +47,8 @@ class Telemetry:
 
     def load_snapshot(self, snapshot: str) -> list:
         """Reads a snapshot from a compressed file and returns the jobs."""
-        # Add meta data for start date
-        match = re.search(r'\d{4}-\d{2}-\d{2}', snapshot)
-        if match:
-            date_str = match.group()  # Extract the date string
-            
-            # Convert to datetime object
-            start = datetime.strptime(date_str, "%Y-%m-%d")
-        
         jobs = np.load(snapshot, allow_pickle=True)
-        return jobs['jobs'].tolist(), start
+        return jobs['jobs'].tolist()
 
 
     def load_data(self, files):

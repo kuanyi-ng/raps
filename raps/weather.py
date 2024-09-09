@@ -9,7 +9,7 @@ from .config import load_config_variables
 load_config_variables(['ZIP_CODE', 'COUNTRY_CODE'], globals())
 
 class Weather:
-    def __init__(self, sc):
+    def __init__(self, iso_string=None):
         """
         Initialize the Weather class with configuration loaded from a JSON file.
         If zip_code and country_code are provided, the coordinates (lat, lon)
@@ -21,6 +21,17 @@ class Weather:
         self.lon = None
         self.weather_cache = {}  # Cache for storing weather data for the entire day
         self.has_coords = False
+        self.start = None
+
+        try:
+            # Convert the ISO 8601 string to a datetime object
+            dt = datetime.fromisoformat(iso_string.replace("Z", "+00:00"))
+            
+            # Check if dt is a datetime object
+            if isinstance(dt, datetime):
+                self.start = dt
+        except ValueError:
+            print("Invalid ISO 8601 datetime string specified for --start. Using default temperature instead.")
 
         # Retrieve coordinates if zip_code and country_code are provided
         if self.zip_code and self.country_code:
@@ -30,9 +41,10 @@ class Weather:
             else:
                 self.has_coords = True
                 # Specify the date you want to fetch weather data for
-                target_date = sc.start.date()
 
-                self.retrieve_weather_data_for_day(target_date)  # Pre-fetch weather data for the current day
+                if self.start is not None:
+                    target_date = self.start.strftime('%Y-%m-%d')
+                    self.retrieve_weather_data_for_day(target_date)  # Pre-fetch weather data for the current day
         else:
             print("Warning: zip_code and country_code are not specified. Coordinates will be None.")
 
@@ -112,7 +124,9 @@ class Weather:
         
         # Round target_datetime to the nearest previous hour
         target_hour = target_datetime.replace(minute=0, second=0, microsecond=0)
-        target_hour_str = target_hour.isoformat(timespec='minutes')  # Format to 'YYYY-MM-DDTHH:MM'
+        
+        # Convert to string format without timezone info to match cache format
+        target_hour_str = target_hour.isoformat(timespec='minutes').replace('+00:00', '')  # Remove timezone information
         
         # Retrieve from cache
         if target_hour_str in self.weather_cache:

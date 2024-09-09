@@ -19,6 +19,8 @@ if sys.version_info < (required_major, required_minor):
 
 parser = argparse.ArgumentParser(description='Resource Allocator & Power Simulator (RAPS)')
 parser.add_argument('-c', '--cooling', action='store_true', help='Include FMU cooling model')
+parser.add_argument('--start', type=str, help='ISO8061 string for start of simulation')
+parser.add_argument('--end', type=str, help='ISO8061 string for end of simulation')
 parser.add_argument('-d', '--debug', action='store_true', help='Enable debug mode and disable rich layout')
 parser.add_argument('-e', '--encrypt', action='store_true', help='Encrypt any sensitive data in telemetry')
 parser.add_argument('-n', '--numjobs', type=int, default=1000, help='Number of jobs to schedule')
@@ -82,6 +84,9 @@ if args.cooling:
     cooling_model = ThermoFluidsModel(FMU_PATH)
     cooling_model.initialize()
     args.layout = "layout2"
+
+    if args_dict['start']:
+        cooling_model.weather = Weather(args_dict['start'])
 else:
     cooling_model = None
 
@@ -115,17 +120,11 @@ if args.replay:
 
     # Read either npz file or telemetry parquet files
     if args.replay[0].endswith(".npz"):
-        jobs, start = td.load_snapshot(args.replay[0])
-        sc.start = start
+        jobs = td.load_snapshot(args.replay[0])
     else:
         print(*args.replay)
-        jobs, start = td.load_data(args.replay)
-        if start is not None:
-            sc.start = start['start_date']
+        jobs = td.load_data(args.replay)
         td.save_snapshot(jobs, filename=DIR_NAME)
-
-    if args.cooling:
-        cooling_model.weather = Weather(sc)
 
     # Set number of timesteps based on the last job running which we assume
     # is the maximum value of submit_time + wall_time of all the jobs

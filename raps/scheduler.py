@@ -215,7 +215,7 @@ class TickData:
 class Scheduler:
     """Job scheduler and simulation manager."""
     def __init__(self, total_nodes, down_nodes, power_manager, flops_manager, \
-                 layout_manager, cooling_model=None, start=None, end=None, **kwargs):
+                 layout_manager, cooling_model=None, **kwargs):
         """Initialize the scheduler.
 
         Args:
@@ -262,8 +262,6 @@ class Scheduler:
         self.replay = kwargs.get('replay')
         self.policy = kwargs.get('schedule')
         self.sys_util_history = []
-        self.start = start
-        self.end = end
 
     def add_job(self, job):
         # add job to queue
@@ -434,8 +432,6 @@ class Scheduler:
             if self.current_time % FMU_UPDATE_FREQ == 0:
                 # Power for NUM_CDUS (25 for Frontier)
                 cdu_power = rack_power.T[-1] * 1000
-                #print(self.start)
-                #breakpoint()
                 runtime_values = self.cooling_model.generate_runtime_values(cdu_power, self)
                 
                 # FMU inputs are N powers and the wetbulb temp

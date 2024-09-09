@@ -33,6 +33,12 @@ from datetime import datetime, timedelta
 
 load_config_variables(['FMU_OUTPUT_KEYS','NUM_CDUS', 'COOLING_EFFICIENCY','WET_BULB_TEMP', 'RACKS_PER_CDU', 'ZIP_CODE', 'COUNTRY_CODE'], globals())
 
+temperature_key = "simulator_1_centralEnergyPlant_1_coolingTowerLoop_1_sources_Towb"
+base_path = 'simulator[1].centralEnergyPlant[1]'
+hot_water_loop_htwp = f'{base_path}.hotWaterLoop[1].summary.W_flow_HTWP_kW'
+cooling_tower_loop_ctwp = f'{base_path}.coolingTowerLoop[1].summary.W_flow_CTWP_kW'
+cooling_tower_loop_ct = f'{base_path}.coolingTowerLoop[1].summary.W_flow_CT_kW'
+
 # Define the Merge function outside of the class
 def merge_dicts(dict1, dict2):
     """
@@ -157,11 +163,11 @@ class ThermoFluidsModel:
     def generate_runtime_values(self, cdu_power, sc):
         """
         Generate the runtime values for the FMU inputs dynamically.
-    
+
         Parameters:
         cdu_power (array): The array of CDU powers.
         wetbulb_temp (float): The wetbulb temperature.
-    
+
         Returns:
         dict: A dictionary with the runtime values for the FMU inputs.
         """
@@ -169,31 +175,24 @@ class ThermoFluidsModel:
 
         # Dynamically generate the power inputs
         for i in range(NUM_CDUS):
-           key = f"simulator_1_datacenter_1_computeBlock_{i+1}_cabinet_1_sources_Q_flow_total"
-           runtime_values[key] = cdu_power[i] * COOLING_EFFICIENCY / RACKS_PER_CDU
+            key = f"simulator_1_datacenter_1_computeBlock_{i+1}_cabinet_1_sources_Q_flow_total"
+            runtime_values[key] = cdu_power[i] * COOLING_EFFICIENCY / RACKS_PER_CDU
 
-        # Use temp from config by default
-        if not sc.replay:
-            runtime_values["simulator_1_centralEnergyPlant_1_coolingTowerLoop_1_sources_Towb"] = WET_BULB_TEMP
+        # Default temperature is from the config
+        temperature = WET_BULB_TEMP
 
-        # Otherwise get temperature based on the day we're replaying
-        else:
-            if sc.start is not None:
-                    if self.weather.has_coords:
-                        # Convert total seconds to timedelta object
-                        delta = timedelta(seconds=sc.current_time)
-                        target_datetime = sc.start + delta  # YYYY-MM-DD HH:MM:SS format
+        # If replay mode is on and weather data is available
+        if sc.replay and self.weather and self.weather.start is not None and self.weather.has_coords:
+            # Convert total seconds to timedelta object
+            delta = timedelta(seconds=sc.current_time)
+            target_datetime = self.weather.start + delta
 
-                        # Get temperature
-                        temperature = self.weather.get_temperature(target_datetime)
-                
-                        if temperature is not None:
-                            runtime_values["simulator_1_centralEnergyPlant_1_coolingTowerLoop_1_sources_Towb"] = temperature
-                        else:
-                            runtime_values["simulator_1_centralEnergyPlant_1_coolingTowerLoop_1_sources_Towb"] = WET_BULB_TEMP
-                    else:
-                        runtime_values["simulator_1_centralEnergyPlant_1_coolingTowerLoop_1_sources_Towb"] = WET_BULB_TEMP
-            
+            # Get temperature from weather data
+            temperature = self.weather.get_temperature(target_datetime) or WET_BULB_TEMP
+
+        # Set the temperature value
+        runtime_values[temperature_key] = temperature
+
         return runtime_values
     
     def generate_fmu_inputs(self, runtime_values, uncertainties=False):
@@ -231,9 +230,9 @@ class ThermoFluidsModel:
 
     def calculate_pue(self, cooling_input, datacenter_output, cep_output):
         # Convert values from kW to Watts
-        W_HTWPs = np.array(cep_output['simulator[1].centralEnergyPlant[1].hotWaterLoop[1].summary.W_flow_HTWP_kW']) * 1e3
-        W_CTWPs = np.array(cep_output['simulator[1].centralEnergyPlant[1].coolingTowerLoop[1].summary.W_flow_CTWP_kW']) * 1e3
-        W_CTs = np.array(cep_output['simulator[1].centralEnergyPlant[1].coolingTowerLoop[1].summary.W_flow_CT_kW']) * 1e3
+        W_HTWPs = np.array(cep_output[hot_water_loop_htwp]) * 1e3
+        W_CTWPs = np.array(cep_output[cooling_tower_loop_ctwp]) * 1e3
+        W_CTs = np.array(cep_output[cooling_tower_loop_ct]) * 1e3
 
         # Initialize W_CDUPs as zero array of the same shape as datacenter output
         W_CDUPs = np.zeros_like(W_HTWPs)
