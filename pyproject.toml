@@ -19,5 +19,5 @@ dependencies = [
     "scipy==1.10.1",
     "pyarrow==15.0.1",
     "uncertainties==3.2.1",
-	"requests==2.32.3"
+    "requests==2.32.3"
 ]
