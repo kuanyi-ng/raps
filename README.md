@@ -55,6 +55,15 @@ given instead of the parquet files for more quickly running subsequent simulatio
 
     python -m raps.telemetry -f $DPATH/slurm/joblive/$DATEDIR $DPATH/jobprofile/jobprofile/$DATEDIR
 
+## OpenStreetMap Attribution
+
+Map data used in this project is provided by [OpenStreetMap](https://www.openstreetmap.org/copyright) and is available under the Open Database License (ODbL). © OpenStreetMap contributors.
+
+## Open-Meteo API Attribution
+
+Weather data used in this project is provided by the [Open-Meteo API](https://open-meteo.com/en/docs). Open-Meteo offers free weather forecast data for various applications, and their API provides easy access to weather information without requiring user authentication.
+
+
 ## Build and run Docker container
 
     make docker_build && make docker_run
