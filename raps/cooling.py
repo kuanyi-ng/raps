@@ -4,62 +4,21 @@ an FMU (Functional Mock-up Unit).
 
 The module defines a `ThermoFluidsModel` class that encapsulates the 
 initialization, simulation step execution,
-data conversion, and cleanup processes for the FMU-based model. Additionally, 
-it includes a helper function to merge dictionaries.
-
-Functions
----------
-merge_dicts(dict1, dict2)
-    Merge two dictionaries into one.
-
-Classes
--------
-ThermoFluidsModel
-    A class to represent a thermo-fluids model using an FMU.
+data conversion, and cleanup processes for the FMU-based model. 
 """
-
 import shutil
 import re
 import numpy as np
-import pandas as pd
 from uncertainties import unumpy
+from uncertainties.core import AffineScalarFunc
 
 from fmpy import read_model_description, extract
 from fmpy.fmi2 import FMU2Slave
 from .config import load_config_variables
-from collections import OrderedDict
-from raps.weather import Weather
-from datetime import datetime, timedelta
+from datetime import timedelta
 
-load_config_variables(['FMU_OUTPUT_KEYS','NUM_CDUS', 'COOLING_EFFICIENCY','WET_BULB_TEMP', 'RACKS_PER_CDU', 'ZIP_CODE', 'COUNTRY_CODE'], globals())
-
-temperature_key = "simulator_1_centralEnergyPlant_1_coolingTowerLoop_1_sources_Towb"
-base_path = 'simulator[1].centralEnergyPlant[1]'
-hot_water_loop_htwp = f'{base_path}.hotWaterLoop[1].summary.W_flow_HTWP_kW'
-cooling_tower_loop_ctwp = f'{base_path}.coolingTowerLoop[1].summary.W_flow_CTWP_kW'
-cooling_tower_loop_ct = f'{base_path}.coolingTowerLoop[1].summary.W_flow_CT_kW'
-
-# Define the Merge function outside of the class
-def merge_dicts(dict1, dict2):
-    """
-    Merge two dictionaries into one.
-
-    Parameters
-    ----------
-    dict1 : dict
-        The first dictionary to merge.
-    dict2 : dict
-        The second dictionary to merge. If there are duplicate keys, the values
-        from this dictionary will overwrite those from the first dictionary.
-
-    Returns
-    -------
-    merged_dict : dict
-        A new dictionary containing all the keys and values from both input dictionaries.
-        If there are duplicate keys, the values from `dict2` will overwrite those from `dict1`.
-    """
-    merged_dict = {**dict1, **dict2}
-    return merged_dict
+load_config_variables(['NUM_CDUS', 'COOLING_EFFICIENCY','WET_BULB_TEMP', 'RACKS_PER_CDU', 'ZIP_CODE', 'COUNTRY_CODE', \
+                       'TEMPERATURE_KEY', 'W_HTWPs_KEY', 'W_CTWPs_KEY', 'W_CTs_KEY'], globals())
 
 def get_matching_variables(variables, pattern):
     # Regex pattern to match strings containing .summary
@@ -75,12 +34,18 @@ class ThermoFluidsModel:
     """
     A class to represent a thermo-fluids model using an FMU (Functional Mock-up Unit).
 
+    This class encapsulates the initialization, simulation step execution, data conversion, 
+    and cleanup processes for the FMU-based thermo-fluids model. It provides methods to 
+    initialize the model, execute simulation steps, generate runtime values, calculate Power 
+    Usage Effectiveness (PUE), and properly manage the FMU resources.
+
     Attributes
     ----------
     FMU_PATH : str
         The file path to the FMU file.
     fmu_history : list
-        A list to store the history of FMU states.
+        A list to store the history of FMU states, combining cooling input, datacenter output, 
+        and central energy plant (CEP) output for each simulation step.
     inputs : list
         A list of input variables for the FMU.
     outputs : list
@@ -89,21 +54,29 @@ class ThermoFluidsModel:
         The directory where the FMU file is extracted.
     fmu : FMU2Slave
         The instantiated FMU object.
+    weather : Optional
+        An object that provides weather-related data for simulations. Used when replay mode is on.
 
     Methods
     -------
     initialize():
-        Initializes the FMU by extracting the file and setting up the model.
-    step(current_time, fmu_inputs, step_size):
-        Executes a simulation step with the given inputs and step size.
-    convert_rowsdict_to_array(data):
-        Converts the row dictionary data to a numpy array.
+        Initializes the FMU by extracting the file, reading the model description, setting up input and output variables, 
+        and preparing the model for simulation.
+    generate_runtime_values(cdu_power, sc) -> dict:
+        Generates runtime values dynamically for the FMU inputs based on CDU power and other configuration parameters.
+    generate_fmu_inputs(runtime_values: dict, uncertainties: bool = False) -> list:
+        Converts runtime values to a list suitable for FMU inputs, handling uncertainties if specified.
+    calculate_pue(cooling_input: dict, datacenter_output: dict, cep_output: dict) -> float:
+        Calculates the Power Usage Effectiveness (PUE) of the data center based on the cooling, datacenter, 
+        and CEP output power values.
+    step(current_time: float, fmu_inputs: list, step_size: float) -> Tuple[dict, dict, dict, float]:
+        Executes a simulation step with the given inputs and step size. Returns the cooling input, datacenter output, 
+        CEP output, and PUE for the current step.
     terminate():
-        Terminates the FMU instance.
+        Terminates the FMU instance, ensuring that all resources are properly released.
     cleanup():
-        Cleans up the extracted FMU directory.
+        Cleans up the extracted FMU directory, ensuring no temporary files are left behind.
     """
-
     def __init__(self, FMU_PATH):
         """
         Constructs all the necessary attributes for the ThermoFluidsModel object.
@@ -119,9 +92,6 @@ class ThermoFluidsModel:
         self.outputs = None
         self.unzipdir = None
         self.fmu = None
-        self.template = None
-        self.fmu_output_keys = []
-        self.current_result = None
         self.weather = None
     
     def initialize(self):
@@ -160,23 +130,22 @@ class ThermoFluidsModel:
         self.fmu.enterInitializationMode()
         self.fmu.exitInitializationMode()
 
-    def generate_runtime_values(self, cdu_power, sc):
+    def generate_runtime_values(self, cdu_power, sc) -> dict:
         """
         Generate the runtime values for the FMU inputs dynamically.
 
         Parameters:
         cdu_power (array): The array of CDU powers.
-        wetbulb_temp (float): The wetbulb temperature.
+        sc (Scheduler Object): The current instance of a Scheduler.
 
         Returns:
         dict: A dictionary with the runtime values for the FMU inputs.
         """
-        runtime_values = {}
-
         # Dynamically generate the power inputs
-        for i in range(NUM_CDUS):
-            key = f"simulator_1_datacenter_1_computeBlock_{i+1}_cabinet_1_sources_Q_flow_total"
-            runtime_values[key] = cdu_power[i] * COOLING_EFFICIENCY / RACKS_PER_CDU
+        runtime_values = {
+        f"simulator_1_datacenter_1_computeBlock_{i+1}_cabinet_1_sources_Q_flow_total": cdu_power[i] * COOLING_EFFICIENCY / RACKS_PER_CDU
+        for i in range(NUM_CDUS)
+        }
 
         # Default temperature is from the config
         temperature = WET_BULB_TEMP
@@ -191,7 +160,7 @@ class ThermoFluidsModel:
             temperature = self.weather.get_temperature(target_datetime) or WET_BULB_TEMP
 
         # Set the temperature value
-        runtime_values[temperature_key] = temperature
+        runtime_values[TEMPERATURE_KEY] = temperature
 
         return runtime_values
     
@@ -199,49 +168,77 @@ class ThermoFluidsModel:
         """
         Convert the runtime values based on the cooling model's inputs to a list suitable for FMU inputs.
         Raises an error if any input key is missing in runtime values.
+
+        Parameters
+        ----------
+        runtime_values : dict
+            A dictionary containing runtime values for FMU inputs.
+        uncertainties : bool, optional
+            If True, processes the values to strip uncertainties for certain inputs.
+
+        Returns
+        -------
+        fmu_inputs : list
+            A list of input values suitable for FMU.
         """
         # Initialize an empty list for FMU inputs
         fmu_inputs = []
 
+        # Helper function to process uncertainty
+        def process_uncertainty(value):
+            """Strip uncertainty if present, otherwise return the value as-is."""    
+            # Convert to nominal value if it's an AffineScalarFunc and uncertainties flag is set
+            return unumpy.nominal_values(value) if uncertainties and isinstance(value, AffineScalarFunc) else value
+
         # Iterate through the cooling model's inputs
         for input_var in self.inputs:
             input_name = input_var.name  # Get the name of the input variable
-            # Check if the input name matches any key in the runtime values
-            if input_name in runtime_values:
-                # Append the value from runtime values to fmu_inputs
-                if uncertainties:
-                    # Strip only the power values of the uncertainty, others should not be a ufloat
-                    # #Alternative uncomment line below and remove pattern match:
-                    # #fmu_inputs.append(unumpy.nominal_values(runtime_values[input_name]))
-                    pattern = re.compile(r"power", re.IGNORECASE)
-                    if bool(pattern.search(input_name)):
-                        fmu_inputs.append(unumpy.nominal_values(runtime_values[input_name]))
-                    else:
-                        fmu_inputs.append(runtime_values[input_name])
-                else:
-                    fmu_inputs.append(runtime_values[input_name])
-            else:
-                # If you have additional values that the fmu isn't expecting
-                # nothing will happen. However, an error will be raised
-                # if a value for an expected key is missing in runtime values
+
+            # Fetch the runtime value for the input name
+            try:
+                value = runtime_values[input_name]
+            except KeyError:
                 raise KeyError(f"Missing value for key '{input_name}' in runtime values.")
+
+            # Process the value based on uncertainty and append
+            fmu_inputs.append(process_uncertainty(value))
 
         return fmu_inputs
 
+
     def calculate_pue(self, cooling_input, datacenter_output, cep_output):
-        # Convert values from kW to Watts
-        W_HTWPs = np.array(cep_output[hot_water_loop_htwp]) * 1e3
-        W_CTWPs = np.array(cep_output[cooling_tower_loop_ctwp]) * 1e3
-        W_CTs = np.array(cep_output[cooling_tower_loop_ct]) * 1e3
+        """
+        Calculate the Power Usage Effectiveness (PUE) of the data center.
 
-        # Initialize W_CDUPs as zero array of the same shape as datacenter output
-        W_CDUPs = np.zeros_like(W_HTWPs)
+        Parameters
+        ----------
+        cooling_input : dict
+            A dictionary containing input power values for cooling.
+        datacenter_output : dict
+            A dictionary containing output power values for the datacenter.
+        cep_output : dict
+            A dictionary containing output power values for the central energy plant.
 
-        # Loop over all compute blocks (CDUs)
-        for idx in range(NUM_CDUS):
-            colName = f'simulator[1].datacenter[1].computeBlock[{idx+1}].cdu[1].summary.W_flow_CDUP_kW'
-            # Accumulate the power values for all CDUs
-            W_CDUPs += np.array(datacenter_output[colName]) * 1e3
+        Returns
+        -------
+        pue : float
+            The calculated Power Usage Effectiveness (PUE).
+        """
+        # Utility function to convert kW to Watts
+        def convert_to_watts(value_in_kw):
+            """Convert a value in kilowatts to Watts."""
+            return np.array(value_in_kw) * 1e3 if value_in_kw is not None else 0.0
+
+        # Convert values from kW to Watts using the utility function
+        W_HTWPs = convert_to_watts(cep_output.get(W_HTWPs_KEY))
+        W_CTWPs = convert_to_watts(cep_output.get(W_CTWPs_KEY))
+        W_CTs = convert_to_watts(cep_output.get(W_CTs_KEY))
+
+        # Get the sum of the work done by all CDU pumps
+        W_CDUPs = sum(
+            convert_to_watts(datacenter_output.get(f'simulator[1].datacenter[1].computeBlock[{idx+1}].cdu[1].summary.W_flow_CDUP_kW'))
+            for idx in range(NUM_CDUS)
+        )
 
         # Sum all values in the cooling_input dictionary
         total_cooling_input_power = np.sum(list(cooling_input.values()))
@@ -251,7 +248,7 @@ class ThermoFluidsModel:
 
         # Calculate PUE
         pue = (total_input_power + np.sum(W_CDUPs) + np.sum(W_HTWPs) + np.sum(W_CTWPs) + np.sum(W_CTs)) / total_input_power
-        
+
         return pue
     
     def step(self, current_time, fmu_inputs, step_size):
@@ -269,38 +266,37 @@ class ThermoFluidsModel:
 
         Returns
         -------
-        data_array : numpy.ndarray
-            A numpy array containing the simulation results for the current step.
+        cooling_input : dict
+            A dictionary containing the input values for cooling.
+        datacenter_output : dict
+            A dictionary containing the output values for the datacenter.
+        cep_output : dict
+            A dictionary containing the output values for the central energy plant.
+        pue : float
+            The Power Usage Effectiveness (PUE) calculated from the outputs.
         """
-        # Simulation Loop
+        # Set FMU inputs
         for index, v in enumerate(self.inputs):
             self.fmu.setReal([v.valueReference], [fmu_inputs[index]])
 
-        # Perform one step
+        # Perform one step in the FMU
         self.fmu.doStep(currentCommunicationPoint=current_time, communicationStepSize=step_size)
 
-        # Get the values for 'inputs' and 'outputs'
-        val_inputs = {}
-        for v in self.inputs:
-            val_inputs[v.name] = self.fmu.getReal([v.valueReference])[0]
+        # Initialize dictionaries for cooling input, datacenter output, and CEP output
+        cooling_input = {v.name: self.fmu.getReal([v.valueReference])[0] for v in self.inputs}
+        datacenter_output = {v.name: self.fmu.getReal([v.valueReference])[0] for v in self.outputs if "datacenter" in v.name}
+        cep_output = {v.name: self.fmu.getReal([v.valueReference])[0] for v in self.outputs if "centralEnergyPlant" in v.name}
 
-        val_outputs_datacenter = {}
-        val_outputs_cep = {}
-        for v in self.outputs:
-            if "datacenter" in v.name:
-                val_outputs_datacenter[v.name] = self.fmu.getReal([v.valueReference])[0]
-
-            if "centralEnergyPlant" in v.name:
-                val_outputs_cep[v.name] = self.fmu.getReal([v.valueReference])[0]
-
-        val_time = {'time': current_time}
-        
-        # Append the results
-        cooling_input = val_inputs
-        datacenter_output = val_outputs_datacenter
-        cep_output = val_outputs_cep
-        self.fmu_history.append(merge_dicts(merge_dicts(val_time, val_inputs), merge_dicts(datacenter_output, cep_output)))
+        # Calculate PUE
         pue = self.calculate_pue(cooling_input, datacenter_output, cep_output)
+
+        # Append time to each dictionary
+        cooling_input['time'] = current_time
+        datacenter_output['time'] = current_time
+        cep_output['time'] = current_time
+
+        # Append the combined results to the history
+        self.fmu_history.append({**cooling_input, **datacenter_output, **cep_output})
 
         return cooling_input, datacenter_output, cep_output, pue
 
