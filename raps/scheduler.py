@@ -202,10 +202,14 @@ class TickData:
     current_time: int
     jobs: list[Job]
     down_nodes: list[int]
-    cooling_df: Optional[pd.DataFrame]
+    power_df: Optional[pd.DataFrame]
     p_flops: float
     g_flops_w: float
     system_util: float
+    fmu_inputs: Optional[dict]
+    fmu_datacenter_outputs: Optional[dict]
+    fmu_cep_outputs: Optional[dict]
+    pue: Optional[float]
 
 
 class Scheduler:
@@ -253,7 +257,6 @@ class Scheduler:
         self.layout_manager = layout_manager
         self.power_manager = power_manager
         self.flops_manager = flops_manager
-        self.fmu_results = None
         self.debug = kwargs.get('debug')
         self.output = kwargs.get('output')
         self.replay = kwargs.get('replay')
@@ -409,7 +412,8 @@ class Scheduler:
         self.sys_util_history.append((self.current_time, system_util))
 
         # Render the updated layout
-        output_df = None
+        power_df = None
+        cooling_inputs, datacenter_outputs, cep_outputs, pue = None, None, None, None
 
         # Update power history every 15s
         if self.current_time % POWER_UPDATE_FREQ == 0:
@@ -428,25 +432,21 @@ class Scheduler:
             if self.current_time % FMU_UPDATE_FREQ == 0:
                 # Power for NUM_CDUS (25 for Frontier)
                 cdu_power = rack_power.T[-1] * 1000
-
-                runtime_values = self.cooling_model.generate_runtime_values(cdu_power)
+                runtime_values = self.cooling_model.generate_runtime_values(cdu_power, self)
+                
                 # FMU inputs are N powers and the wetbulb temp
                 fmu_inputs = self.cooling_model.generate_fmu_inputs(runtime_values, \
                              uncertainties=self.power_manager.uncertainties)
-                self.fmu_results = self.cooling_model.step(self.current_time,
+                cooling_inputs, datacenter_outputs, cep_outputs, pue = self.cooling_model.step(self.current_time,
                                                            fmu_inputs, FMU_UPDATE_FREQ)
-
+                
                 # Get a dataframe of the power data
                 power_df = self.power_manager.get_power_df(rack_power, rack_loss)
 
-                # Get a dataframe of cooling data then concatenate with power_df
-                cooling_df = self.cooling_model.get_cooling_df()
-                output_df = pd.concat([power_df, cooling_df], axis=1)
-
                 if self.layout_manager:
-                    self.layout_manager.update_powertemp_array(power_df, cooling_df, pflops, gflop_per_watt,\
+                    self.layout_manager.update_powertemp_array(power_df, datacenter_outputs, pue, pflops, gflop_per_watt,\
                                 system_util, uncertainties=self.power_manager.uncertainties)
-                    self.layout_manager.update_pressflow_array(cooling_df)
+                    self.layout_manager.update_pressflow_array(datacenter_outputs)
 
         if self.current_time % UI_UPDATE_FREQ == 0:
             # Get a dataframe of the power data
@@ -465,10 +465,14 @@ class Scheduler:
             current_time = self.current_time,
             jobs = completed_jobs + self.running + self.queue,
             down_nodes = expand_ranges(self.down_nodes[1:]),
-            cooling_df = output_df,
+            power_df = power_df,
             p_flops = pflops,
             g_flops_w = gflop_per_watt,
-            system_util = system_util
+            system_util = system_util,
+            fmu_inputs = cooling_inputs,
+            fmu_datacenter_outputs = datacenter_outputs,
+            fmu_cep_outputs = cep_outputs,
+            pue = pue
         )
 
         self.current_time += 1

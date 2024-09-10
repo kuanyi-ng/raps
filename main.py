@@ -19,6 +19,8 @@ if sys.version_info < (required_major, required_minor):
 
 parser = argparse.ArgumentParser(description='Resource Allocator & Power Simulator (RAPS)')
 parser.add_argument('-c', '--cooling', action='store_true', help='Include FMU cooling model')
+parser.add_argument('--start', type=str, help='ISO8061 string for start of simulation')
+parser.add_argument('--end', type=str, help='ISO8061 string for end of simulation')
 parser.add_argument('-d', '--debug', action='store_true', help='Enable debug mode and disable rich layout')
 parser.add_argument('-e', '--encrypt', action='store_true', help='Encrypt any sensitive data in telemetry')
 parser.add_argument('-n', '--numjobs', type=int, default=1000, help='Number of jobs to schedule')
@@ -62,6 +64,7 @@ from raps.power import compute_node_power_uncertainties, compute_node_power_vali
 from raps.scheduler import Scheduler, Job
 from raps.telemetry import Telemetry
 from raps.workload import Workload
+from raps.weather import Weather
 from raps.utils import create_casename, convert_to_seconds, write_dict_to_file
 
 load_config_variables([
@@ -81,6 +84,9 @@ if args.cooling:
     cooling_model = ThermoFluidsModel(FMU_PATH)
     cooling_model.initialize()
     args.layout = "layout2"
+
+    if args_dict['start']:
+        cooling_model.weather = Weather(args_dict['start'])
 else:
     cooling_model = None
 
@@ -99,6 +105,7 @@ flops_manager = FLOPSManager(SC_SHAPE)
 layout_manager = LayoutManager(args.layout, args.debug)
 sc = Scheduler(TOTAL_NODES, DOWN_NODES, power_manager, flops_manager, layout_manager,
                cooling_model, **args_dict)
+
 if args.replay:
     td = Telemetry(**args_dict)
 
