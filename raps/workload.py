@@ -30,6 +30,7 @@ import random
 import numpy as np
 
 from .config import load_config_variables
+from .job import job_dict
 
 load_config_variables([
     'TRACE_QUANTA', 'MAX_NODES_PER_JOB', 'JOB_NAMES', 'CPUS_PER_NODE',\
@@ -45,7 +46,7 @@ JOB_NAMES = ["LAMMPS", "GROMACS", "VASP", "Quantum ESPRESSO", "NAMD",\
 
 MAX_PRIORITY = 500000
 
-from .utils import truncated_normalvariate, determine_state, next_arrival, job_dict
+from .utils import truncated_normalvariate, determine_state, next_arrival
 
 
 class Workload(object):

@@ -356,19 +356,3 @@ def write_dict_to_file(dictionary, file_path):
                 file.write("}\n")
             else:
                 file.write(f"{key}: {value}\n")
-
-def job_dict(nodes_required, name, cpu_trace, gpu_trace, wall_time, \
-             end_state, scheduled_nodes, time_offset, job_id, priority=0):
-    """ Return job info dictionary """
-    return {
-        'nodes_required': nodes_required,
-        'name': name,
-        'cpu_trace': cpu_trace,
-        'gpu_trace': gpu_trace,
-        'wall_time': wall_time, 
-        'end_state': end_state,
-        'requested_nodes': scheduled_nodes,
-        'submit_time': time_offset,
-        'id': job_id,
-        'priority': priority
-    }
