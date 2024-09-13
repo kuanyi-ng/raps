@@ -131,7 +131,7 @@ if args.replay:
     if args.time:
         timesteps = convert_to_seconds(args.time)
     else:
-        timesteps = int(max(job[4] + job[7] for job in jobs)) + 1
+        timesteps = int(max(job['wall_time'] + job['submit_time'] for job in jobs)) + 1
 
     print(f'Running simulation for {timesteps} seconds')
     time.sleep(1)

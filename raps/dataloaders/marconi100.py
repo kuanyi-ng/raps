@@ -2,7 +2,7 @@ import uuid
 import pandas as pd
 
 from ..config import load_config_variables
-from ..utils import power_to_utilization, next_arrival
+from ..utils import power_to_utilization, next_arrival, job_dict
 
 load_config_variables([
     'CPUS_PER_NODE',
@@ -130,19 +130,9 @@ def load_data_from_df(jobs_df: pd.DataFrame, **kwargs):
         else: # Prescribed replay
             scheduled_nodes = (jobs_df.loc[i, 'nodes']).tolist()
             
-        # if gpu_trace.size > 0 and (jid == job_id or jid == '*'):
         if (gpu_trace.size > 0):
-            jobs.append([
-                nodes_required,
-                name,
-                cpu_trace,
-                gpu_trace,
-                wall_time,
-                end_state,
-                scheduled_nodes,
-                time_offset,
-                job_id, 
-                priority
-            ])
+            job_info = job_dict(nodes_required, name, cpu_trace, gpu_trace, wall_time,
+                                end_state, scheduled_nodes, time_offset, job_id, priority)
+            jobs.append(job_info)
 
     return jobs
