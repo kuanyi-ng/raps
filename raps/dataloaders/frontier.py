@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 from ..config import load_config_variables
+from ..job import job_dict
 from ..utils import power_to_utilization, next_arrival, encrypt
 
 load_config_variables([
@@ -135,18 +136,9 @@ def load_data_from_df(jobs_df: pd.DataFrame, jobprofile_df: pd.DataFrame, **kwar
                 scheduled_nodes.append(indices)
 
         if gpu_trace.size > 0 and (jid == job_id or jid == '*'):
-            jobs.append([
-                nodes_required,
-                name,
-                cpu_trace,
-                gpu_trace,
-                wall_time,
-                end_state,
-                scheduled_nodes,
-                time_offset,
-                job_id,
-                0 # priority (not supported for Frontier at the moment)
-            ])
+            job_info = job_dict(nodes_required, name, cpu_trace, gpu_trace, wall_time, 
+                                end_state, scheduled_nodes, time_offset, job_id)
+            jobs.append(job_info)
 
     return jobs
 
