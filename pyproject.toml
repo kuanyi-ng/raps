@@ -18,6 +18,7 @@ dependencies = [
     "pandas==2.0.3",
     "scipy==1.10.1",
     "pyarrow==15.0.1",
+    "tqdm==4.66.5",
     "uncertainties==3.2.1",
     "requests==2.32.3"
 ]

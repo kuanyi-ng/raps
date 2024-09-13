@@ -105,13 +105,14 @@ class LayoutManager:
             row = [
                 str(job.id).zfill(5),
                 convert_seconds(job.wall_time),
-                job.name,
+                str(job.name),
                 job.state.value,
                 str(job.nodes_required),
                 nodes_display,
                 convert_seconds(job.running_time)
             ]
             # Add the row with the 'white' style applied to the whole row
+            print(row)
             table.add_row(*row, style="white")
 
         # Update the layout
