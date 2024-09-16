@@ -53,7 +53,7 @@ given instead of the parquet files for more quickly running subsequent simulatio
 
 ## Compute stats on telemetry data, e.g., average job arrival time
 
-    python -m raps.telemetry -f $DPATH/slurm/joblive/$DATEDIR $DPATH/jobprofile/jobprofile/$DATEDIR
+    python -m raps.telemetry -f $DPATH/slurm/joblive/$DATEDIR $DPATH/jobprofile/$DATEDIR
 
 ## OpenStreetMap Attribution
 
