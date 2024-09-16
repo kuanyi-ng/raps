@@ -68,7 +68,7 @@ if __name__ == "__main__":
     args_dict = vars(args)
     td = Telemetry(**args_dict)
     jobs = td.load_data(args.replay)
-    timesteps = int(max(job['wall_time'] + job['time_offset'] for job in jobs))
+    timesteps = int(max(job['wall_time'] + job['submit_time'] for job in jobs))
 
     dt_list = []
     wt_list = []
