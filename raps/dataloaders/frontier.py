@@ -1,3 +1,14 @@
+"""
+    Note: Frontier telemetry data is not publicly available.
+
+    # To simulate
+    DATEDIR="date=2024-01-18"
+    DPATH=/path/to/data
+    python main.py -f $DPATH/slurm/joblive/$DATEDIR $DPATH/jobprofile/$DATEDIR
+
+    # To analyze the data
+    python -m raps.telemetry -f $DPATH/slurm/joblive/$DATEDIR $DPATH/jobprofile/$DATEDIR
+"""
 import numpy as np
 import pandas as pd
 from tqdm import tqdm

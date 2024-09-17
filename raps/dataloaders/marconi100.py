@@ -1,3 +1,26 @@
+"""
+    # Reference
+    Antici, Francesco, et al. "PM100: A Job Power Consumption Dataset of a 
+    Large-scale Production HPC System." Proceedings of the SC'23 Workshops 
+    of The International Conference on High Performance Computing, 
+    Network, Storage, and Analysis. 2023.
+
+    # get the data
+    Download `job_table.parquet` from https://zenodo.org/records/10127767
+
+    # to simulate the dataset
+    python main.py -f /path/to/job_table.parquet --system marconi100
+
+    # to reschedule
+    python main.py -f /path/to/job_table.parquet --system marconi100 --reschedule
+
+    # to fast-forward 60 days and replay for 1 day
+    python main.py -f /path/to/job_table.parquet --system marconi100 -ff 60d -t 1d
+
+    # to analyze dataset
+    python -m raps.telemetry -f /path/to/job_table.parquet --system marconi100 -v
+
+"""
 import uuid
 import pandas as pd
 from tqdm import tqdm
