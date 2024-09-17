@@ -28,11 +28,14 @@ def load_data_from_df(allocation_df, node_df, step_df, **kwargs):
     Loads data from pandas DataFrames and returns the extracted job info.
     """
     reschedule = kwargs.get('reschedule')
+    fastforward = kwargs.get('fastforward')
+    if fastforward: print(f"fast-forwarding {fastforward} seconds")
 
     allocation_df['begin_time'] = pd.to_datetime(allocation_df['begin_time'], format='mixed', errors='coerce')
     allocation_df['end_time'] = pd.to_datetime(allocation_df['end_time'], format='mixed', errors='coerce')
 
     earliest_begin_time = pd.to_datetime(allocation_df['begin_time']).min()
+    print(earliest_begin_time)
     job_list = []
 
     for _, row in tqdm(allocation_df.iterrows(), total=len(allocation_df), desc="Processing Jobs"):
@@ -45,13 +48,9 @@ def load_data_from_df(allocation_df, node_df, step_df, **kwargs):
         # Compute GPU power
         gpu_energy = node_data['gpu_energy'].sum() # Joules
         # divide by nodes_required to get average gpu_usage per node
-        #gpu_usage = node_data['gpu_usage'].sum() / 1E6 / nodes_required # seconds
         #gpu_power = gpu_energy / gpu_usage if gpu_usage > 0 else 0
         gpu_power = gpu_energy / wall_time
-        if gpu_power == 0:
-            continue
-        else:
-            gpu_power_array = np.array([gpu_power] * samples)
+        gpu_power_array = np.array([gpu_power] * samples)
 
         gpu_min_power = nodes_required * POWER_GPU_IDLE
         gpu_max_power = nodes_required * POWER_GPU_MAX
@@ -60,7 +59,6 @@ def load_data_from_df(allocation_df, node_df, step_df, **kwargs):
 
         # Compute CPU power (assuming total energy minus gpu_energy is cpu_energy)
         total_energy = node_data['energy'].sum() # Joules
-        # divide by nodes_required to get average cpu_usage per node
         #cpu_usage = node_data['cpu_usage'].sum() / 1E9 / nodes_required # seconds
         cpu_energy = total_energy - gpu_energy 
 
@@ -80,16 +78,20 @@ def load_data_from_df(allocation_df, node_df, step_df, **kwargs):
         else:
             scheduled_nodes = get_scheduled_nodes(row['allocation_id'], node_df)
             time_offset = compute_time_offset(row['begin_time'], earliest_begin_time)
+            if fastforward: time_offset -= fastforward
 
-        job_info = job_dict(nodes_required, \
-                            row['primary_job_id'], \
-                            cpu_trace, gpu_trace, wall_time, \
-                            row['exit_status'], \
-                            scheduled_nodes, \
-                            time_offset, \
-                            row['primary_job_id'], \
-                            row.get('priority', 0))
-        job_list.append(job_info)
+        if time_offset >= 0:
+
+            job_info = job_dict(nodes_required, \
+                                row['primary_job_id'], \
+                                cpu_trace, gpu_trace, wall_time, \
+                                row['exit_status'], \
+                                scheduled_nodes, \
+                                time_offset, \
+                                row['primary_job_id'], \
+                                row.get('priority', 0))
+
+            job_list.append(job_info)
 
     return job_list
 
