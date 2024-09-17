@@ -63,6 +63,7 @@ def load_data_from_df(allocation_df, node_df, step_df, **kwargs):
 
     for _, row in tqdm(allocation_df.iterrows(), total=len(allocation_df), desc="Processing Jobs"):
         node_data = node_df[node_df['allocation_id'] == row['allocation_id']]
+
         nodes_required = row['num_nodes']
 
         wall_time = compute_wall_time(row['begin_time'], row['end_time'])
@@ -106,7 +107,7 @@ def load_data_from_df(allocation_df, node_df, step_df, **kwargs):
         if time_offset >= 0:
 
             job_info = job_dict(nodes_required, \
-                                row['primary_job_id'], \
+                                row['hashed_user_id'], \
                                 cpu_trace, gpu_trace, wall_time, \
                                 row['exit_status'], \
                                 scheduled_nodes, \
