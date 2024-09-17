@@ -72,8 +72,9 @@ def load_data_from_df(allocation_df, node_df, step_df, **kwargs):
         # Compute GPU power
         gpu_energy = node_data['gpu_energy'].sum() # Joules
         # divide by nodes_required to get average gpu_usage per node
-        #gpu_power = gpu_energy / gpu_usage if gpu_usage > 0 else 0
-        gpu_power = gpu_energy / wall_time
+        gpu_usage = node_data['gpu_usage'].sum() / 1E6 / nodes_required # seconds
+        gpu_power = gpu_energy / gpu_usage if gpu_usage > 0 else 0
+        #gpu_power = gpu_energy / wall_time
         gpu_power_array = np.array([gpu_power] * samples)
 
         gpu_min_power = nodes_required * POWER_GPU_IDLE
@@ -83,11 +84,11 @@ def load_data_from_df(allocation_df, node_df, step_df, **kwargs):
 
         # Compute CPU power (assuming total energy minus gpu_energy is cpu_energy)
         total_energy = node_data['energy'].sum() # Joules
-        #cpu_usage = node_data['cpu_usage'].sum() / 1E9 / nodes_required # seconds
         cpu_energy = total_energy - gpu_energy 
 
-        #cpu_power = cpu_energy / cpu_usage if cpu_usage > 0 else 0
-        cpu_power = cpu_energy / wall_time 
+        cpu_usage = node_data['cpu_usage'].sum() / 1E9 / nodes_required # seconds
+        cpu_power = cpu_energy / cpu_usage if cpu_usage > 0 else 0
+        #cpu_power = cpu_energy / wall_time 
         cpu_power -= nodes_required * (POWER_MEM + NICS_PER_NODE * POWER_NIC + POWER_NVME)
         cpu_power_array = np.array([cpu_power] * samples)
 
