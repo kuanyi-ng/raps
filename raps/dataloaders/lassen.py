@@ -1,3 +1,26 @@
+"""
+Reference:
+
+    Patki, Tapasya, et al. "Monitoring large scale supercomputers: A case study with the Lassen supercomputer." 
+    2021 IEEE International Conference on Cluster Computing (CLUSTER). IEEE, 2021.
+
+Instructions:
+
+    git clone https://github.com/LLNL/LAST/ && cd LAST
+    git lfs pull
+    
+    # to analyze dataset
+    python -m raps.telemetry -f /path/to/LAST/Lassen-Supercomputer-Job-Dataset --system lassen -v
+    
+    # to simulate the dataset    
+    python main.py -f /path/to/LAST/Lassen-Supercomputer-Job-Dataset --system lassen
+
+    # to reschedule
+    python main.py -f /path/to/LAST/Lassen-Supercomputer-Job-Dataset --system lassen --reschedule
+
+    # to fast-forward 37 days and replay for 1 day
+    python main.py -f /path/to/LAST/Lassen-Supercomputer-Job-Dataset --system lassen -ff 37d -t 1d
+"""
 import math
 import numpy as np
 import os
