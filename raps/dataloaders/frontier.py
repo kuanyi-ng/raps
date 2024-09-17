@@ -49,9 +49,12 @@ def load_data_from_df(jobs_df: pd.DataFrame, jobprofile_df: pd.DataFrame, **kwar
         The list of parsed jobs.
     """
     encrypt_bool = kwargs.get('encrypt')
+    fastforward = kwargs.get('fastforward')
     reschedule = kwargs.get('reschedule')
     validate = kwargs.get('validate')
     jid = kwargs.get('jid', '*')
+
+    if fastforward: print(f"fast-forwarding {fastforward} seconds")
 
     min_time = kwargs.get('min_time', None)
 
@@ -122,6 +125,8 @@ def load_data_from_df(jobs_df: pd.DataFrame, jobprofile_df: pd.DataFrame, **kwar
         diff = time_start - time_zero
         time_offset = max(diff.total_seconds(), 0)
 
+        if fastforward: time_offset -= fastforward
+
         xnames = jobs_df.loc[jidx, 'xnames']
         # Don't replay any job with an empty set of xnames
         if '' in xnames: continue
@@ -135,7 +140,7 @@ def load_data_from_df(jobs_df: pd.DataFrame, jobprofile_df: pd.DataFrame, **kwar
                 indices = xname_to_index(xname)
                 scheduled_nodes.append(indices)
 
-        if gpu_trace.size > 0 and (jid == job_id or jid == '*'):
+        if gpu_trace.size > 0 and (jid == job_id or jid == '*') and time_offset > 0:
             job_info = job_dict(nodes_required, name, cpu_trace, gpu_trace, wall_time, 
                                 end_state, scheduled_nodes, time_offset, job_id)
             jobs.append(job_info)

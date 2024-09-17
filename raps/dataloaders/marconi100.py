@@ -49,8 +49,11 @@ def load_data_from_df(jobs_df: pd.DataFrame, **kwargs):
     """
     min_time = kwargs.get('min_time', None)
     reschedule = kwargs.get('reschedule')
+    fastforward = kwargs.get('fastforward')
     validate = kwargs.get('validate')
     jid = kwargs.get('jid', '*')
+
+    if fastforward: print(f"fast-forwarding {fastforward} seconds")
 
     # Sort jobs dataframe based on values in time_start column, adjust indices after sorting
     jobs_df = jobs_df.sort_values(by='start_time')
@@ -125,13 +128,15 @@ def load_data_from_df(jobs_df: pd.DataFrame, **kwargs):
             # When extracting out a single job, run one iteration past the end of the job
             time_offset = UI_UPDATE_FREQ
 
+        if fastforward: time_offset -= fastforward
+
         if reschedule: # Let the scheduler reschedule the jobs
             scheduled_nodes = None
             time_offset = next_arrival()
         else: # Prescribed replay
             scheduled_nodes = (jobs_df.loc[i, 'nodes']).tolist()
             
-        if (gpu_trace.size > 0):
+        if gpu_trace.size > 0 and time_offset >= 0:
             job_info = job_dict(nodes_required, name, cpu_trace, gpu_trace, wall_time,
                                 end_state, scheduled_nodes, time_offset, job_id, priority)
             jobs.append(job_info)
