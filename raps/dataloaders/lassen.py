@@ -1,10 +1,14 @@
 """
+Lassen specifications:
+
+    https://hpc.llnl.gov/hardware/compute-platforms/lassen
+
 Reference:
 
     Patki, Tapasya, et al. "Monitoring large scale supercomputers: A case study with the Lassen supercomputer." 
     2021 IEEE International Conference on Cluster Computing (CLUSTER). IEEE, 2021.
 
-Instructions:
+Usage Instructions:
 
     git clone https://github.com/LLNL/LAST/ && cd LAST
     git lfs pull
@@ -29,7 +33,6 @@ from ..config import load_config_variables
 from ..job import job_dict
 from ..utils import power_to_utilization, next_arrival
 from tqdm import tqdm
-import time
 
 load_config_variables(['TRACE_QUANTA', 'CPUS_PER_NODE', 'GPUS_PER_NODE', 
                        'POWER_GPU_IDLE', 'POWER_GPU_MAX', 'POWER_CPU_IDLE',
@@ -143,9 +146,3 @@ def compute_time_offset(begin_time, reference_time):
     """
     time_offset = pd.to_datetime(begin_time) - reference_time
     return int(time_offset.total_seconds())
-
-# Example usage
-if __name__ == "__main__":
-    path = "/Users/w1b/data/LAST/Lassen-Supercomputer-Job-Dataset/"
-    jobs = load_data(path)
-    print(jobs)
