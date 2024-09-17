@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
 from ..config import load_config_variables
 from ..job import job_dict
@@ -82,7 +83,7 @@ def load_data_from_df(jobs_df: pd.DataFrame, jobprofile_df: pd.DataFrame, **kwar
 
     jobs = []
     # Map dataframe to job state. Add results to jobs list
-    for jidx in range(num_jobs - 1):
+    for jidx in tqdm(range(num_jobs - 1), total=num_jobs, desc="Processing Jobs"):
 
         job_id = jobs_df.loc[jidx, 'job_id']
         allocation_id = jobs_df.loc[jidx, 'allocation_id']

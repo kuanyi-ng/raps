@@ -1,5 +1,6 @@
 import uuid
 import pandas as pd
+from tqdm import tqdm
 
 from ..config import load_config_variables
 from ..job import job_dict
@@ -70,34 +71,36 @@ def load_data_from_df(jobs_df: pd.DataFrame, **kwargs):
     print("time_zero:", time_zero, "num_jobs", num_jobs)
 
     jobs = []
+
     # Map dataframe to job state. Add results to jobs list
-    for i in range(num_jobs - 1):
-        job_id = jobs_df.loc[i, 'job_id']
+    for jidx in tqdm(range(num_jobs - 1), total=num_jobs, desc="Processing Jobs"):
+
+        job_id = jobs_df.loc[jidx, 'job_id']
 
         if not jid == '*': 
             if int(jid) == int(job_id): 
                 print(f'Extracting {job_id} profile')
             else:
                 continue
-        nodes_required = jobs_df.loc[i, 'num_nodes_alloc']
+        nodes_required = jobs_df.loc[jidx, 'num_nodes_alloc']
 
         name = str(uuid.uuid4())[:6]
             
         if validate:
-            cpu_power = jobs_df.loc[i, 'node_power_consumption']/jobs_df.loc[i, 'num_nodes_alloc']
+            cpu_power = jobs_df.loc[jidx, 'node_power_consumption']/jobs_df.loc[jidx, 'num_nodes_alloc']
             cpu_trace = cpu_power
             gpu_trace = cpu_trace
 
         else:                
-            cpu_power = jobs_df.loc[i, 'cpu_power_consumption']
+            cpu_power = jobs_df.loc[jidx, 'cpu_power_consumption']
             cpu_power_array = cpu_power.tolist()
             cpu_min_power = nodes_required * POWER_CPU_IDLE * CPUS_PER_NODE
             cpu_max_power = nodes_required * POWER_CPU_MAX * CPUS_PER_NODE
             cpu_util = power_to_utilization(cpu_power_array, cpu_min_power, cpu_max_power)
             cpu_trace = cpu_util * CPUS_PER_NODE
                 
-            node_power = (jobs_df.loc[i, 'node_power_consumption']).tolist()
-            mem_power = (jobs_df.loc[i, 'mem_power_consumption']).tolist()
+            node_power = (jobs_df.loc[jidx, 'node_power_consumption']).tolist()
+            mem_power = (jobs_df.loc[jidx, 'mem_power_consumption']).tolist()
             # Find the minimum length among the three lists
             min_length = min(len(node_power), len(cpu_power), len(mem_power))
             # Slice each list to the minimum length
@@ -114,12 +117,12 @@ def load_data_from_df(jobs_df: pd.DataFrame, **kwargs):
             gpu_util = power_to_utilization(gpu_power_array, gpu_min_power, gpu_max_power)
             gpu_trace = gpu_util * GPUS_PER_NODE
             
-        priority = int(jobs_df.loc[i, 'priority'])
+        priority = int(jobs_df.loc[jidx, 'priority'])
             
         # wall_time = jobs_df.loc[i, 'run_time']
         wall_time = gpu_trace.size * TRACE_QUANTA # seconds
-        end_state = jobs_df.loc[i, 'job_state']
-        time_start = jobs_df.loc[i+1, 'start_time']
+        end_state = jobs_df.loc[jidx, 'job_state']
+        time_start = jobs_df.loc[jidx+1, 'start_time']
         diff = time_start - time_zero
 
         if jid == '*': 
@@ -134,7 +137,7 @@ def load_data_from_df(jobs_df: pd.DataFrame, **kwargs):
             scheduled_nodes = None
             time_offset = next_arrival()
         else: # Prescribed replay
-            scheduled_nodes = (jobs_df.loc[i, 'nodes']).tolist()
+            scheduled_nodes = (jobs_df.loc[jidx, 'nodes']).tolist()
             
         if gpu_trace.size > 0 and time_offset >= 0:
             job_info = job_dict(nodes_required, name, cpu_trace, gpu_trace, wall_time,
