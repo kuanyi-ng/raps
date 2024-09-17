@@ -37,7 +37,7 @@ Note: Requires python3.9 or greater.
 Download `job_table.parquet` from https://zenodo.org/records/10127767
 
     # Marconi100
-    python main.py --system marconi100 -f ~/data/job_table.parquet 
+    python main.py --system marconi100 -f ~/data/marconi100/job_table.parquet 
 
 ## Snapshot of extracted workload data
 
@@ -54,15 +54,6 @@ given instead of the parquet files for more quickly running subsequent simulatio
 ## Compute stats on telemetry data, e.g., average job arrival time
 
     python -m raps.telemetry -f $DPATH/slurm/joblive/$DATEDIR $DPATH/jobprofile/$DATEDIR
-
-## OpenStreetMap Attribution
-
-Map data used in this project is provided by [OpenStreetMap](https://www.openstreetmap.org/copyright) and is available under the Open Database License (ODbL). © OpenStreetMap contributors.
-
-## Open-Meteo API Attribution
-
-Weather data used in this project is provided by the [Open-Meteo API](https://open-meteo.com/en/docs). Open-Meteo offers free weather forecast data for various applications, and their API provides easy access to weather information without requiring user authentication.
-
 
 ## Build and run Docker container
 
@@ -90,3 +81,10 @@ All new contributions must be made under both the MIT and Apache-2.0 licenses.
 See LICENSE-MIT, LICENSE-APACHE, COPYRIGHT, NOTICE, and CONTRIBUTORS.txt for details.  
 
 SPDX-License-Identifier: (Apache-2.0 OR MIT)  
+
+## Attributions
+
+Map data used in this project is provided by [OpenStreetMap](https://www.openstreetmap.org/copyright) and is available under the Open Database License (ODbL). © OpenStreetMap contributors.
+
+Weather data used in this project is provided by the [Open-Meteo API](https://open-meteo.com/en/docs). Open-Meteo offers free weather forecast data for various applications, and their API provides easy access to weather information without requiring user authentication.
+

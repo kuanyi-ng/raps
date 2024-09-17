@@ -1,5 +1,17 @@
+"""
+    Note: Frontier telemetry data is not publicly available.
+
+    # To simulate
+    DATEDIR="date=2024-01-18"
+    DPATH=/path/to/data
+    python main.py -f $DPATH/slurm/joblive/$DATEDIR $DPATH/jobprofile/$DATEDIR
+
+    # To analyze the data
+    python -m raps.telemetry -f $DPATH/slurm/joblive/$DATEDIR $DPATH/jobprofile/$DATEDIR
+"""
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
 from ..config import load_config_variables
 from ..job import job_dict
@@ -49,9 +61,12 @@ def load_data_from_df(jobs_df: pd.DataFrame, jobprofile_df: pd.DataFrame, **kwar
         The list of parsed jobs.
     """
     encrypt_bool = kwargs.get('encrypt')
+    fastforward = kwargs.get('fastforward')
     reschedule = kwargs.get('reschedule')
     validate = kwargs.get('validate')
     jid = kwargs.get('jid', '*')
+
+    if fastforward: print(f"fast-forwarding {fastforward} seconds")
 
     min_time = kwargs.get('min_time', None)
 
@@ -79,7 +94,7 @@ def load_data_from_df(jobs_df: pd.DataFrame, jobprofile_df: pd.DataFrame, **kwar
 
     jobs = []
     # Map dataframe to job state. Add results to jobs list
-    for jidx in range(num_jobs - 1):
+    for jidx in tqdm(range(num_jobs - 1), total=num_jobs, desc="Processing Jobs"):
 
         job_id = jobs_df.loc[jidx, 'job_id']
         allocation_id = jobs_df.loc[jidx, 'allocation_id']
@@ -122,6 +137,8 @@ def load_data_from_df(jobs_df: pd.DataFrame, jobprofile_df: pd.DataFrame, **kwar
         diff = time_start - time_zero
         time_offset = max(diff.total_seconds(), 0)
 
+        if fastforward: time_offset -= fastforward
+
         xnames = jobs_df.loc[jidx, 'xnames']
         # Don't replay any job with an empty set of xnames
         if '' in xnames: continue
@@ -135,7 +152,7 @@ def load_data_from_df(jobs_df: pd.DataFrame, jobprofile_df: pd.DataFrame, **kwar
                 indices = xname_to_index(xname)
                 scheduled_nodes.append(indices)
 
-        if gpu_trace.size > 0 and (jid == job_id or jid == '*'):
+        if gpu_trace.size > 0 and (jid == job_id or jid == '*') and time_offset > 0:
             job_info = job_dict(nodes_required, name, cpu_trace, gpu_trace, wall_time, 
                                 end_state, scheduled_nodes, time_offset, job_id)
             jobs.append(job_info)

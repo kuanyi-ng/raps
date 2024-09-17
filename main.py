@@ -25,6 +25,7 @@ parser.add_argument('-d', '--debug', action='store_true', help='Enable debug mod
 parser.add_argument('-e', '--encrypt', action='store_true', help='Encrypt any sensitive data in telemetry')
 parser.add_argument('-n', '--numjobs', type=int, default=1000, help='Number of jobs to schedule')
 parser.add_argument('-t', '--time', type=str, default=None, help='Length of time to simulate, e.g., 123, 123s, 27m, 3h, 7d')
+parser.add_argument('-ff', '--fastforward', type=str, default=None, help='Fast-forward by time amount (uses same units as -t)')
 parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose output')
 parser.add_argument('--seed', action='store_true', help='Set random number seed for deterministic simulation')
 parser.add_argument('-f', '--replay', nargs='+', type=str, help='Either: path/to/joblive path/to/jobprofile' + \
@@ -107,6 +108,9 @@ sc = Scheduler(TOTAL_NODES, DOWN_NODES, power_manager, flops_manager, layout_man
                cooling_model, **args_dict)
 
 if args.replay:
+
+    if args.fastforward: args.fastforward = convert_to_seconds(args.fastforward)
+
     td = Telemetry(**args_dict)
 
     # Try to extract date from given name to use as case directory
@@ -133,7 +137,7 @@ if args.replay:
     else:
         timesteps = int(max(job['wall_time'] + job['submit_time'] for job in jobs)) + 1
 
-    print(f'Running simulation for {timesteps} seconds')
+    print(f'Simulating {len(jobs)} jobs for {timesteps} seconds')
     time.sleep(1)
 
 else:
