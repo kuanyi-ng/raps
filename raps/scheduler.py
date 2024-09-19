@@ -69,6 +69,26 @@ load_config_variables([
 ], globals())
 
 
+def shadow_time(queue):
+    first_job = queue[0]  
+    # Sort jobs according to their termination time (end_time)
+    sorted_queue = sorted(queue, key=lambda job: job.end_time)
+    # Loop over the list and collect nodes until the number of available nodes
+    # is sufficient for the first job in the queue 
+    sum_nodes = 0
+    shadow_time = None
+    for job in sorted_queue:
+        sum_nodes += job.nodes_required
+        if sum_nodes >= first_job.nodes_required:
+            shadow_time = job.end_time
+            break
+    return shadow_time
+
+
+def find_backfill_job(queue):
+    pass
+
+
 @dataclasses.dataclass
 class TickData:
     """ Represents the state output from the simulation each tick """
