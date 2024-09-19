@@ -48,6 +48,7 @@ import pandas as pd
 
 from .config import load_config_variables
 from .job import Job, JobState
+from .policy import find_backfill_job
 from .utils import summarize_ranges, expand_ranges
 
 load_config_variables([
@@ -136,11 +137,12 @@ class Scheduler:
         self.policy = kwargs.get('schedule')
         self.sys_util_history = []
 
+
     def add_job(self, job):
         # add job to queue
         self.queue.append(job)
         # sort queue
-        if self.policy == 'fcfs':
+        if self.policy == 'fcfs' or self.policy == 'backfill':
             self.queue.sort(key=lambda job: job.submit_time)
         elif self.policy == 'sjf':
             self.queue.sort(key=lambda job: job.wall_time)
@@ -149,46 +151,76 @@ class Scheduler:
         else:
             raise ValueError(f"The scheduling policy {self.policy} is not supported.")
     
+
+    def assign_nodes_to_job(self, job):
+        """Helper function to assign nodes to a job and update available nodes."""
+        if len(self.available_nodes) < job.nodes_required:
+            # If there are not enough nodes, return or raise an error (handle as needed)
+            raise ValueError(f"Not enough available nodes to schedule job {job.id}")
+
+        if job.requested_nodes: # Telemetry replay
+            # If the job has requested specific nodes, assign them
+            job.scheduled_nodes = job.requested_nodes
+            mask = ~np.isin(self.available_nodes, job.scheduled_nodes)
+            self.available_nodes = np.array(self.available_nodes)
+            self.available_nodes = self.available_nodes[mask]
+            self.available_nodes = self.available_nodes.tolist()
+        else: # Synthetic
+            # Assign the nodes from available pool
+            job.scheduled_nodes = self.available_nodes[:job.nodes_required]
+            self.available_nodes = self.available_nodes[job.nodes_required:]
+
+        # Set job start and end times
+        job.start_time = self.current_time
+        job.end_time = self.current_time + job.wall_time
+
+        # Mark the job as running
+        job.state = JobState.RUNNING
+        self.running.append(job)
+        if job.id == 22: print('***', job.nodes_required, self.available_nodes, job.scheduled_nodes)
+
+
     def schedule(self, jobs):
-        """Schedule jobs."""
+        """Schedule jobs"""
         for job_info in jobs:
             job = Job(job_info, self.current_time)
             self.add_job(job)
 
         while self.queue:
 
+            # Try scheduling the first job in the queue
             job = self.queue.pop(0)
             synthetic_bool = len(self.available_nodes) >= job.nodes_required
             telemetry_bool = job.requested_nodes and job.requested_nodes[0] in self.available_nodes
 
             if synthetic_bool or telemetry_bool:
 
-                if job.requested_nodes:
-                    job.scheduled_nodes = job.requested_nodes
-                    mask = ~np.isin(self.available_nodes, job.scheduled_nodes)
-                    self.available_nodes = np.array(self.available_nodes)
-                    self.available_nodes = self.available_nodes[mask]
-                    self.available_nodes = self.available_nodes.tolist()
-
-                else:
-                    # Assign the nodes to this job and remove them from the available pool
-                    job.scheduled_nodes = self.available_nodes[:job.nodes_required]
-                    self.available_nodes = self.available_nodes[job.nodes_required:]
-
-                job.start_time = self.current_time
-                job.end_time = self.current_time + job.wall_time
-
-                # Add the job to running jobs list
-                job.state = JobState.RUNNING
-                self.running.append(job)
+                # Schedule job
+                self.assign_nodes_to_job(job)
 
                 if self.debug:
                     scheduled_nodes = summarize_ranges(job.scheduled_nodes)
-                    print(f"t={self.current_time}: Scheduled job with wall time {job.wall_time} on nodes {scheduled_nodes}")
+                    print(f"t={self.current_time}: Scheduled job with wall time",
+                          f"{job.wall_time} on nodes {scheduled_nodes}")
 
             else:
-                self.queue.append(job)
+
+                # If the job cannot be scheduled, either try backfilling or requeue it
+                if self.queue and self.policy == "backfill":
+                    self.queue.insert(0, job)
+                    backfill_job = find_backfill_job(self.queue, len(self.available_nodes), self.current_time)
+                    if backfill_job:
+                        self.assign_nodes_to_job(backfill_job)
+                        self.queue.remove(backfill_job)
+                        if self.debug:
+                            scheduled_nodes = summarize_ranges(backfill_job.scheduled_nodes)
+                            print(backfill_job)
+                            print(f"t={self.current_time}: Backfilling job {backfill_job.id} with wall time",
+                                  f"{job.wall_time} on nodes {scheduled_nodes}")
+                else:
+                    self.queue.append(job)
                 break
+
 
     def tick(self):
         """Simulate a timestep."""
@@ -310,15 +342,16 @@ class Scheduler:
                 # FMU inputs are N powers and the wetbulb temp
                 fmu_inputs = self.cooling_model.generate_fmu_inputs(runtime_values, \
                              uncertainties=self.power_manager.uncertainties)
-                cooling_inputs, datacenter_outputs, cep_outputs, pue = self.cooling_model.step(self.current_time,
-                                                           fmu_inputs, FMU_UPDATE_FREQ)
+                cooling_inputs, datacenter_outputs, cep_outputs, pue = \
+                    self.cooling_model.step(self.current_time, fmu_inputs, FMU_UPDATE_FREQ)
                 
                 # Get a dataframe of the power data
                 power_df = self.power_manager.get_power_df(rack_power, rack_loss)
 
                 if self.layout_manager:
-                    self.layout_manager.update_powertemp_array(power_df, datacenter_outputs, pue, pflops, gflop_per_watt,\
-                                system_util, uncertainties=self.power_manager.uncertainties)
+                    self.layout_manager.update_powertemp_array(power_df, \
+                               datacenter_outputs, pue, pflops, gflop_per_watt, \
+                               system_util, uncertainties=self.power_manager.uncertainties)
                     self.layout_manager.update_pressflow_array(datacenter_outputs)
 
         if self.current_time % UI_UPDATE_FREQ == 0:
@@ -378,10 +411,10 @@ class Scheduler:
             while self.current_time >= time_to_next_job and jobs:
                 job = jobs.pop(0)
                 self.schedule([job])
-                if jobs:
-                    time_to_next_job = job['submit_time']  # Update time to next job based on the next job's scheduled time
-                else:
-                    time_to_next_job = float('inf')  # No more jobs, set to infinity or some large number to avoid triggering again
+                if jobs: # Update time to next job based on the next job's scheduled time
+                    time_to_next_job = job['submit_time']
+                else: # No more jobs, set to infinity or some large number to avoid triggering again
+                    time_to_next_job = float('inf')
             yield self.tick()
 
             # Stop the simulation if no more jobs running or are in the queue
