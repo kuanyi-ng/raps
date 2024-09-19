@@ -216,7 +216,7 @@ def power_to_utilization(power, pmin, pmax):
     float
         Utilization value.
     """
-    return (power - pmin) / (pmax - pmin)
+    return (np.maximum(pmin,power) - pmin) / (np.minimum(power,pmax) - pmin)
 
 
 def create_binary_array_numpy(max_time, trace_quanta, util):
