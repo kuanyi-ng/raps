@@ -48,7 +48,7 @@ import pandas as pd
 
 from .config import load_config_variables
 from .job import Job, JobState
-from .policy import find_backfill_job
+from .policy import Policy, PolicyType
 from .utils import summarize_ranges, expand_ranges
 
 load_config_variables([
@@ -134,23 +134,14 @@ class Scheduler:
         self.debug = kwargs.get('debug')
         self.output = kwargs.get('output')
         self.replay = kwargs.get('replay')
-        self.policy = kwargs.get('schedule')
+        self.policy = Policy(strategy=kwargs.get('schedule'))
         self.sys_util_history = []
 
 
     def add_job(self, job):
-        # add job to queue
         self.queue.append(job)
-        # sort queue
-        if self.policy == 'fcfs' or self.policy == 'backfill':
-            self.queue.sort(key=lambda job: job.submit_time)
-        elif self.policy == 'sjf':
-            self.queue.sort(key=lambda job: job.wall_time)
-        elif self.policy == 'prq':
-            self.queue.sort(key=lambda job: -job.priority)
-        else:
-            raise ValueError(f"The scheduling policy {self.policy} is not supported.")
-    
+        self.queue = self.policy.sort_jobs(self.queue)
+
 
     def assign_nodes_to_job(self, job):
         """Helper function to assign nodes to a job and update available nodes."""
@@ -158,14 +149,14 @@ class Scheduler:
             # If there are not enough nodes, return or raise an error (handle as needed)
             raise ValueError(f"Not enough available nodes to schedule job {job.id}")
 
-        if job.requested_nodes: # Telemetry replay
+        if job.requested_nodes: # replay case
             # If the job has requested specific nodes, assign them
             job.scheduled_nodes = job.requested_nodes
             mask = ~np.isin(self.available_nodes, job.scheduled_nodes)
             self.available_nodes = np.array(self.available_nodes)
             self.available_nodes = self.available_nodes[mask]
             self.available_nodes = self.available_nodes.tolist()
-        else: # Synthetic
+        else: # synthetic or reschedule case
             # Assign the nodes from available pool
             job.scheduled_nodes = self.available_nodes[:job.nodes_required]
             self.available_nodes = self.available_nodes[job.nodes_required:]
@@ -206,15 +197,15 @@ class Scheduler:
             else:
 
                 # If the job cannot be scheduled, either try backfilling or requeue it
-                if self.queue and self.policy == "backfill":
+                if self.queue and self.policy == PolicyType.BACKFILL:
                     self.queue.insert(0, job)
-                    backfill_job = find_backfill_job(self.queue, len(self.available_nodes), self.current_time)
+                    backfill_job = self.policy.find_backfill_job(self.queue, len(self.available_nodes), self.current_time)
                     if backfill_job:
+                        print('here')
                         self.assign_nodes_to_job(backfill_job)
                         self.queue.remove(backfill_job)
                         if self.debug:
                             scheduled_nodes = summarize_ranges(backfill_job.scheduled_nodes)
-                            print(backfill_job)
                             print(f"t={self.current_time}: Backfilling job {backfill_job.id} with wall time",
                                   f"{backfill_job.wall_time} on nodes {scheduled_nodes}")
                 else:
