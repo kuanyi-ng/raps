@@ -206,7 +206,7 @@ class Scheduler:
                             print(f"t={self.current_time}: Backfilling job {backfill_job.id} with wall time",
                                   f"{backfill_job.wall_time} on nodes {scheduled_nodes}")
                 else:
-                    self.queue.append(job)
+                    self.queue.append(job) # Note, this should be fixed. It shouldn't go to the end of the queue.
                 break
 
 
