@@ -10,6 +10,8 @@ import re
 import sys
 import time
 
+from raps.policy import PolicyType
+
 # Check for the required Python version
 required_major, required_minor = 3, 9
 
@@ -42,7 +44,7 @@ parser.add_argument('-p', '--plot', nargs='+', choices=['power', 'loss', 'pue', 
 choices = ['png', 'svg', 'jpg', 'pdf', 'eps']
 parser.add_argument('--imtype', type=str, choices=choices, default=choices[0], help='Plot image type')
 parser.add_argument('--system', type=str, default='frontier', help='System config to use')
-choices = ['fcfs', 'sjf', 'priority', 'backfill']
+choices = [policy.value for policy in PolicyType]
 parser.add_argument('-s', '--schedule', type=str, choices=choices, default=choices[0], help='Schedule policy to use')
 choices = ['random', 'benchmark', 'peak', 'idle']
 parser.add_argument('-w', '--workload', type=str, choices=choices, default=choices[0], help='Type of synthetic workload')
