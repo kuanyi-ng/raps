@@ -216,7 +216,7 @@ class Scheduler:
                             scheduled_nodes = summarize_ranges(backfill_job.scheduled_nodes)
                             print(backfill_job)
                             print(f"t={self.current_time}: Backfilling job {backfill_job.id} with wall time",
-                                  f"{job.wall_time} on nodes {scheduled_nodes}")
+                                  f"{backfill_job.wall_time} on nodes {scheduled_nodes}")
                 else:
                     self.queue.append(job)
                 break
