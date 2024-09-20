@@ -168,7 +168,6 @@ class Scheduler:
         # Mark the job as running
         job.state = JobState.RUNNING
         self.running.append(job)
-        if job.id == 22: print('***', job.nodes_required, self.available_nodes, job.scheduled_nodes)
 
 
     def schedule(self, jobs):
@@ -195,13 +194,11 @@ class Scheduler:
                           f"{job.wall_time} on nodes {scheduled_nodes}")
 
             else:
-
                 # If the job cannot be scheduled, either try backfilling or requeue it
-                if self.queue and self.policy == PolicyType.BACKFILL:
+                if self.queue and self.policy.strategy == PolicyType.BACKFILL:
                     self.queue.insert(0, job)
                     backfill_job = self.policy.find_backfill_job(self.queue, len(self.available_nodes), self.current_time)
                     if backfill_job:
-                        print('here')
                         self.assign_nodes_to_job(backfill_job)
                         self.queue.remove(backfill_job)
                         if self.debug:
@@ -233,7 +230,6 @@ class Scheduler:
                 job.state = JobState.COMPLETED
 
             if job.state == JobState.RUNNING:
-
                 # Deal with node that fails during the course of a running job
                 #if any(node in job.scheduled_nodes for node in newly_downed_nodes):
                 if False: # currently disabled b/c not working correctly

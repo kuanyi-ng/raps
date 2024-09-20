@@ -5,16 +5,16 @@ class PolicyType(Enum):
     BACKFILL = 'backfill'
     DEADLINE = 'deadline'
     PRIORITY = 'priority'
-    SJF = 'sfj'
+    SJF = 'sjf'
     
 
 class Policy:
 
     def __init__(self, strategy):
-        self.strategy = strategy
+        self.strategy = PolicyType(strategy)
 
     def sort_jobs(self, jobs):
-        if self.strategy == PolicyType.FCFS or PolicyType.BACKFILL:
+        if self.strategy == PolicyType.FCFS or self.strategy == PolicyType.BACKFILL:
             return sorted(jobs, key=lambda job: job.submit_time)
         elif self.strategy == PolicyType.SJF:
             return sorted(jobs, key=lambda job: job.wall_time)
