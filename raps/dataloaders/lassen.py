@@ -95,10 +95,11 @@ def load_data_from_df(allocation_df, node_df, step_df, **kwargs):
         gpu_min_power = nodes_required * POWER_GPU_IDLE
         gpu_max_power = nodes_required * POWER_GPU_MAX
         gpu_util = power_to_utilization(gpu_power_array, gpu_min_power, gpu_max_power)
+
         # Utilization is defined in the range of [0 to 1].
         # gpu_util will be negative if power reports 0, which is smaller than POWER_GPU_IDLE
         # Therefore: gpu_util should be set to zero if it is smaller than 0.
-        gpu_trace = max(0,gpu_util) * GPUS_PER_NODE
+        gpu_trace = np.maximum(0,gpu_util) * GPUS_PER_NODE
 
         # Compute CPU power from GPU usage time
         # Only Node Power and GPU power is reported!
