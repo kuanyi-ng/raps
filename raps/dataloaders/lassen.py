@@ -36,14 +36,15 @@ from tqdm import tqdm
 
 load_config_variables(['TRACE_QUANTA', 'CPUS_PER_NODE', 'GPUS_PER_NODE', 
                        'POWER_GPU_IDLE', 'POWER_GPU_MAX', 'POWER_CPU_IDLE',
-                       'POWER_CPU_MAX', 'POWER_MEM', 'POWER_NIC', 'POWER_NVME',
+                       'POWER_CPU_MAX', 'POWER_MEM', 'POWER_NIC',
+                       'POWER_NVME', 'POWER_CDU', 'POWER_SWITCH', 'CORES_PER_CPU',
                        'NICS_PER_NODE'], globals())
 
 def load_data(path, **kwargs):
     """
     Loads data from the given file paths and returns job info.
     """
-    nrows = 1E4
+    nrows = None # 1E4
     alloc_df = pd.read_csv(os.path.join(path[0], 'final_csm_allocation_history_hashed.csv'), nrows=nrows)
     node_df = pd.read_csv(os.path.join(path[0], 'final_csm_allocation_node_history.csv'), nrows=nrows)
     step_df = pd.read_csv(os.path.join(path[0], 'final_csm_step_history.csv'), nrows=nrows)
@@ -83,34 +84,33 @@ def load_data_from_df(allocation_df, node_df, step_df, **kwargs):
         samples = math.ceil(wall_time / TRACE_QUANTA)
 
         # Compute GPU power
-        gpu_energy = node_data['gpu_energy'].sum() # Joules
+        gpu_energy = node_data['gpu_energy'].sum()  # Joules
         # divide by nodes_required to get average gpu_usage per node
-        gpu_usage = node_data['gpu_usage'].sum() / 1E6 / nodes_required # seconds
+        gpu_usage = node_data['gpu_usage'].sum() / 1E6 / nodes_required  # seconds
         gpu_power = gpu_energy / gpu_usage if gpu_usage > 0 else 0
         #gpu_power = gpu_energy / wall_time
         gpu_power_array = np.array([gpu_power] * samples)
 
+        #GPU power can be 0:
         gpu_min_power = nodes_required * POWER_GPU_IDLE
         gpu_max_power = nodes_required * POWER_GPU_MAX
         gpu_util = power_to_utilization(gpu_power_array, gpu_min_power, gpu_max_power)
-        gpu_trace = gpu_util * GPUS_PER_NODE
+        # Utilization is defined in the range of [0 to 1].
+        # gpu_util will be negative if power reports 0, which is smaller than POWER_GPU_IDLE
+        # Therefore: gpu_util should be set to zero if it is smaller than 0.
+        gpu_trace = max(0,gpu_util) * GPUS_PER_NODE
 
-        # Compute CPU power (assuming total energy minus gpu_energy is cpu_energy)
-        total_energy = node_data['energy'].sum() # Joules
-        cpu_energy = total_energy - gpu_energy 
-
-        cpu_usage = node_data['cpu_usage'].sum() / 1E9 / nodes_required # seconds
-        cpu_power = cpu_energy / cpu_usage if cpu_usage > 0 else 0
-        #cpu_power = cpu_energy / wall_time 
-        cpu_power -= nodes_required * (POWER_MEM + NICS_PER_NODE * POWER_NIC + POWER_NVME)
-        cpu_power_array = np.array([cpu_power] * samples)
-
-        cpu_min_power = nodes_required * POWER_CPU_IDLE
-        cpu_max_power = nodes_required * POWER_CPU_MAX
-        cpu_util = power_to_utilization(cpu_power_array, cpu_min_power, cpu_max_power)
+        # Compute CPU power from GPU usage time
+        # Only Node Power and GPU power is reported!
+        cpu_usage = node_data['cpu_usage'].sum() / 1E9 / nodes_required / CORES_PER_CPU  # seconds
+        cpu_usage_array = np.array([cpu_usage] * samples)
+        cpu_util = cpu_usage_array / wall_time
         cpu_trace = cpu_util * CPUS_PER_NODE
 
-        if reschedule: # Let the scheduler reschedule the jobs
+        # TODO use total energy for validation
+        # total_energy = node_data['energy'].sum() # Joules
+
+        if reschedule:  # Let the scheduler reschedule the jobs
             scheduled_nodes = None
             time_offset = next_arrival()
         else:
