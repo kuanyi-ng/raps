@@ -78,11 +78,11 @@ if __name__ == "__main__":
         job = Job(job_vector, 0)
         wt_list.append(job.wall_time)
         nr_list.append(job.nodes_required)
+        submit_times.append(job.submit_time)
         if job.submit_time > 0:
             dt = job.submit_time - last
             dt_list.append(dt)
             last = job.submit_time
-            submit_times.append(job.submit_time)
         if args.verbose: print(job)
 
     print(f'Simulation will run for {timesteps} seconds')
