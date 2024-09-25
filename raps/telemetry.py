@@ -15,8 +15,7 @@ if __name__ == "__main__":
     parser.add_argument('-f', '--replay', nargs='+', type=str, 
                         help='Either: path/to/joblive path/to/jobprofile' + \
                              ' -or- filename.npz (overrides --workload option)')
-    parser.add_argument('-p', '--plot', action='store_true', help='Output plots')
-                        help='Specify one or more types of plots to generate: power, loss, pue, temp')
+    parser.add_argument('-p', '--plot', action='store_true', help='Output plots') 
     parser.add_argument('--system', type=str, default='frontier', help='System config to use')
     parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose output')
     args = parser.parse_args()
@@ -94,13 +93,14 @@ if __name__ == "__main__":
 
     if args.plot:
 
+        import matplotlib.pyplot as plt
+
         # Define the number of bins you want
         num_bins = 25
         data = nr_list
         # Create logarithmically spaced bins
-        #bins = np.logspace(np.log10(min(data)), np.log10(max(data)), num_bins)
         bins = np.logspace(np.log2(min(data)), np.log2(max(data)), num=num_bins, base=2)
-        # Set up the figure with the desired dimensions
+        # Set up the figure 
         plt.figure(figsize=(10, 3))
         # Create the histogram
         plt.hist(nr_list, bins=bins, edgecolor='black')
@@ -108,9 +108,8 @@ if __name__ == "__main__":
         plt.xlabel('Number of Nodes')
         plt.ylabel('Frequency')
         # Set the axes to logarithmic scale
-        #plt.xscale('log', base=10)
         plt.xscale('log', base=2)
-        #plt.yscale('log')
+        plt.yscale('log')
         # Customize the x-ticks: Choose the positions (1, 8, 64, etc.)
         ticks = [2**i for i in range(0, 14)]
         plt.xticks(ticks, labels=[str(tick) for tick in ticks])
@@ -118,19 +117,20 @@ if __name__ == "__main__":
         plt.xlim(1, max(data))
         # Save the histogram to a file
         plt.savefig('histogram.png', dpi=300, bbox_inches='tight')
+
         # Plot number of nodes over time
-        plt.clf()
-        plt.figure(figsize=(10, 2))
-        # Create a bar chart
-        plt.bar(submit_times, nr_list, width=10.0, color='blue', edgecolor='black', alpha=0.7)
+        #plt.clf()
+        #plt.figure(figsize=(10, 2))
+        ## Create a bar chart
+        #plt.bar(submit_times, nr_list, width=10.0, color='blue', edgecolor='black', alpha=0.7)
         # Add labels and title
-        plt.xlabel('Allocation Time (s)')
-        plt.ylabel('Number of Nodes')
+        #plt.xlabel('Allocation Time (s)')
+        #plt.ylabel('Number of Nodes')
         # Set min-max axix bounds
-        plt.xlim(1, max(submit_times))
+        #plt.xlim(1, max(submit_times))
         # Set the y-axis to logarithmic scale with base 2
         #plt.yscale('log', base=2)
         #y_ticks = [2**i for i in range(0, 14)]
         #plt.yticks(y_ticks, labels=[str(tick) for tick in y_ticks])
         # Save the plot to a file
-        plt.savefig('nodes_time.png', dpi=300, bbox_inches='tight')
+        #plt.savefig('nodes_time.png', dpi=300, bbox_inches='tight')
