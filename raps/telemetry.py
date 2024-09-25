@@ -72,6 +72,7 @@ if __name__ == "__main__":
     dt_list = []
     wt_list = []
     nr_list = []
+    submit_times = []
     last = 0
     for job_vector in jobs:
         job = Job(job_vector, 0)
@@ -81,6 +82,7 @@ if __name__ == "__main__":
             dt = job.submit_time - last
             dt_list.append(dt)
             last = job.submit_time
+            submit_times.append(job.submit_time)
         if args.verbose: print(job)
 
     print(f'Simulation will run for {timesteps} seconds')
@@ -95,6 +97,7 @@ if __name__ == "__main__":
 
         import matplotlib.pyplot as plt
 
+        print("plotting nodes required histogram...")
         # Define the number of bins you want
         num_bins = 25
         data = nr_list
@@ -118,19 +121,21 @@ if __name__ == "__main__":
         # Save the histogram to a file
         plt.savefig('histogram.png', dpi=300, bbox_inches='tight')
 
+        print("plotting submit times...")
         # Plot number of nodes over time
-        #plt.clf()
-        #plt.figure(figsize=(10, 2))
-        ## Create a bar chart
-        #plt.bar(submit_times, nr_list, width=10.0, color='blue', edgecolor='black', alpha=0.7)
+        plt.clf()
+        plt.figure(figsize=(10, 2))
+        # Create a bar chart
+        plt.bar(submit_times, nr_list, width=10.0, color='blue', edgecolor='black', alpha=0.7)
         # Add labels and title
-        #plt.xlabel('Allocation Time (s)')
-        #plt.ylabel('Number of Nodes')
+        plt.xlabel('Submit Time (s)')
+        plt.ylabel('Number of Nodes')
         # Set min-max axix bounds
-        #plt.xlim(1, max(submit_times))
+        plt.xlim(1, max(submit_times))
         # Set the y-axis to logarithmic scale with base 2
-        #plt.yscale('log', base=2)
-        #y_ticks = [2**i for i in range(0, 14)]
-        #plt.yticks(y_ticks, labels=[str(tick) for tick in y_ticks])
+        plt.yscale('log', base=2)
+        y_ticks = [2**i for i in range(0, 14)]
+        plt.yticks(y_ticks, labels=[str(tick) for tick in y_ticks])
         # Save the plot to a file
-        #plt.savefig('nodes_time.png', dpi=300, bbox_inches='tight')
+        plt.savefig('nodes_time.png', dpi=300, bbox_inches='tight')
+
