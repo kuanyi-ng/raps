@@ -101,7 +101,7 @@ def load_data_from_df(allocation_df, node_df, step_df, **kwargs):
         # Utilization is defined in the range of [0 to GPUS_PER_NODE].
         # gpu_util will be negative if power reports 0, which is smaller than POWER_GPU_IDLE
         # Therefore: gpu_util should be set to zero if it is smaller than 0.
-        gpu_trace = np.maximum(0,gpu_util)
+        gpu_trace = np.maximum(0, gpu_util)
 
         # Compute CPU power from CPU usage time
         # CPU usage is reported per core, while we need it in the range [0 to CPUS_PER_NODE]
