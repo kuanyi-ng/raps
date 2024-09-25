@@ -16,6 +16,6 @@
     "GPUS_PER_NODE": 4,
     "CPU_PEAK_FLOPS": 396.8E9,
     "GPU_PEAK_FLOPS": 7.8E12,
-    "CPU_FP_RATIO": 0.69,
-    "GPU_FP_RATIO": 0.69
+    "CPU_FP_RATIO": 0.72,
+    "GPU_FP_RATIO": 0.72
 }

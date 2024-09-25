@@ -17,6 +17,7 @@ if __name__ == "__main__":
                              ' -or- filename.npz (overrides --workload option)')
     parser.add_argument('-p', '--plot', action='store_true', help='Output plots') 
     parser.add_argument('--system', type=str, default='frontier', help='System config to use')
+    parser.add_argument('--reschedule', action='store_true', help='Reschedule the telemetry workload')
     parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose output')
     args = parser.parse_args()
 
@@ -28,7 +29,9 @@ import importlib
 import numpy as np
 import re
 from datetime import datetime
+from tqdm import tqdm
 from .scheduler import Job
+from .utils import next_arrival
 
 
 class Telemetry:
@@ -66,7 +69,17 @@ if __name__ == "__main__":
 
     args_dict = vars(args)
     td = Telemetry(**args_dict)
-    jobs = td.load_data(args.replay)
+
+    if args.replay[0].endswith(".npz"):
+        print(f"Loading {args.replay[0]}...")
+        jobs = td.load_snapshot(args.replay[0])
+        if args.reschedule:
+            for job in tqdm(jobs, desc="Updating requested_nodes"):
+                job['requested_nodes'] = None
+                job['submit_time'] = next_arrival()
+    else:
+        jobs = td.load_data(args.replay)
+
     timesteps = int(max(job['wall_time'] + job['submit_time'] for job in jobs))
 
     dt_list = []
