@@ -10,6 +10,7 @@ import re
 import sys
 import time
 
+from tqdm import tqdm
 from raps.policy import PolicyType
 
 # Check for the required Python version
@@ -68,7 +69,7 @@ from raps.scheduler import Scheduler, Job
 from raps.telemetry import Telemetry
 from raps.workload import Workload
 from raps.weather import Weather
-from raps.utils import create_casename, convert_to_seconds, write_dict_to_file
+from raps.utils import create_casename, convert_to_seconds, write_dict_to_file, next_arrival
 
 load_config_variables([
     'SC_SHAPE',
@@ -126,7 +127,12 @@ if args.replay:
 
     # Read either npz file or telemetry parquet files
     if args.replay[0].endswith(".npz"):
+        print(f"Loading {args.replay[0]}...")
         jobs = td.load_snapshot(args.replay[0])
+        if args.reschedule:
+            for job in tqdm(jobs, desc="Updating requested_nodes"):
+                job['requested_nodes'] = None
+                job['submit_time'] = next_arrival()
     else:
         print(*args.replay)
         jobs = td.load_data(args.replay)

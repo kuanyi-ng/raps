@@ -46,7 +46,7 @@ class Telemetry:
 
     def load_snapshot(self, snapshot: str) -> list:
         """Reads a snapshot from a compressed file and returns the jobs."""
-        jobs = np.load(snapshot, allow_pickle=True)
+        jobs = np.load(snapshot, allow_pickle=True, mmap_mode='r')
         return jobs['jobs'].tolist()
 
 
