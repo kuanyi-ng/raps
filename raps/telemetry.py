@@ -150,5 +150,5 @@ if __name__ == "__main__":
         y_ticks = [2**i for i in range(0, 14)]
         plt.yticks(y_ticks, labels=[str(tick) for tick in y_ticks])
         # Save the plot to a file
-        plt.savefig('nodes_time.png', dpi=300, bbox_inches='tight')
+        plt.savefig('submit_times.png', dpi=300, bbox_inches='tight')
 
