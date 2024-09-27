@@ -112,7 +112,6 @@ class LayoutManager:
                 convert_seconds(job.running_time)
             ]
             # Add the row with the 'white' style applied to the whole row
-            print(row)
             table.add_row(*row, style="white")
 
         # Update the layout

@@ -254,9 +254,6 @@ def extract_data_csv(fileName, skiprows, header):
     df = pd.read_csv(fileName, skiprows=skiprows, header=header)
     df = df.rename(columns={df.columns[0]: 'time'})
     df = df.dropna()
-    #print("Column headings:")
-    #print(df.columns.tolist())
-    #print(df.head())
     return df
 
 def resampledf(df, time_resampled):
