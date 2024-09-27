@@ -86,6 +86,15 @@ class TickData:
     pue: Optional[float]
 
 
+def get_utilization(trace, time_quanta_index):
+    if isinstance(trace, (list, np.ndarray)):
+        return trace[time_quanta_index]
+    elif isinstance(trace, (int, float)):
+        return float(trace)
+    else:
+        raise TypeError(f"Invalid type for utilization: {type(trace)}.")
+
+
 class Scheduler:
     """Job scheduler and simulation manager."""
     def __init__(self, total_nodes, down_nodes, power_manager, flops_manager, \
@@ -249,8 +258,9 @@ class Scheduler:
                 job.running_time = self.current_time - job.start_time
 
                 time_quanta_index = (self.current_time - job.start_time) // TRACE_QUANTA
-                cpu_util = job.cpu_trace[time_quanta_index]
-                gpu_util = job.gpu_trace[time_quanta_index]
+
+                cpu_util = get_utilization(job.cpu_trace, time_quanta_index)
+                gpu_util = get_utilization(job.gpu_trace, time_quanta_index)
 
                 self.flops_manager.update_flop_state(job.scheduled_nodes, cpu_util, gpu_util)
                 job.power = self.power_manager.update_power_state(job.scheduled_nodes,
