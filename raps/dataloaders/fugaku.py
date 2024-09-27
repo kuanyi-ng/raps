@@ -1,5 +1,22 @@
+"""
+    Download parquet files from https://zenodo.org/records/11467483
+
+    Note that F-Data doesn't give a list of nodes used, so we set 'scheduled_nodes' to None 
+    which triggers the scheduler to schedule the nodes itself.
+
+    Also, power in F-Data is only given at node-level. We can use node-level power by 
+    adding the --validate option.
+
+    The --reschedule will compute submit times from Poisson distribution, instead of using
+    the submit times given in F-Data.
+
+    python main.py --system fugaku -f /path/to/21_04.parquet --reschedule --validate --reschedule
+
+"""
 import pandas as pd
+from tqdm import tqdm
 from ..job import job_dict
+from ..utils import next_arrival
 
 
 def load_data(path, **kwargs):
@@ -31,6 +48,14 @@ def load_data_from_df(df, **kwargs):
     Returns:
     list: List of job dictionaries.
     """
+    encrypt_bool = kwargs.get('encrypt')
+    fastforward = kwargs.get('fastforward')
+    reschedule = kwargs.get('reschedule')
+    validate = kwargs.get('validate')
+    jid = kwargs.get('jid', '*')
+
+    if fastforward: print(f"fast-forwarding {fastforward} seconds")
+
     job_list = []
     
     # Convert 'adt' (submit time) to datetime and find the earliest submission time
@@ -38,16 +63,28 @@ def load_data_from_df(df, **kwargs):
     earliest_submit_time = df['adt'].min()
 
     # Loop through the DataFrame rows to extract job information
-    for _, row in df.iterrows():
+    for _, row in tqdm(df.iterrows(), total=len(df), desc="Processing Jobs"):
         nodes_required = row['nnumr'] if 'nnumr' in df.columns else 0
         name = row['jnam'] if 'jnam' in df.columns else 'unknown'
-        cpu_trace = row['perf1'] if 'perf1' in df.columns else 0  # Assuming some performance metric as cpu_trace
-        gpu_trace = 0  # Set to 0 as GPU trace is not explicitly provided
+
+        if validate:
+            cpu_trace = row['avgpcon']
+            gpu_trace = cpu_trace
+
+        else:
+            cpu_trace = row['perf1'] if 'perf1' in df.columns else 0  # Assuming some performance metric as cpu_trace
+            gpu_trace = 0  # Set to 0 as GPU trace is not explicitly provided
+
         wall_time = row['duration'] if 'duration' in df.columns else 0
         end_state = row['exit state'] if 'exit state' in df.columns else 'unknown'
-        scheduled_nodes = row['nnuma'] if 'nnuma' in df.columns else 0
+        #scheduled_nodes = row['nnuma'] if 'nnuma' in df.columns else 0
+        scheduled_nodes = None
         submit_time = row['adt'] if 'adt' in df.columns else earliest_submit_time
-        time_offset = (submit_time - earliest_submit_time).total_seconds()  # Compute time offset in seconds
+        if reschedule: # Let the scheduler reschedule the jobs
+            time_offset = next_arrival()
+        else:
+            time_offset = (submit_time - earliest_submit_time).total_seconds()  # Compute time offset in seconds
+
         job_id = row['jid'] if 'jid' in df.columns else 'unknown'
         priority = row['pri'] if 'pri' in df.columns else 0
         

@@ -1,7 +1,7 @@
 {
-    "NUM_CDUS": 50,
-    "RACKS_PER_CDU": 2,
-    "NODES_PER_RACK": 384,
+    "NUM_CDUS": 24,
+    "RACKS_PER_CDU": 18,
+    "NODES_PER_RACK": 368,
     "RECTIFIERS_PER_RACK": 8,
     "CHASSIS_PER_RACK": 8,
     "NODES_PER_BLADE": 1,
@@ -13,8 +13,8 @@
     "DOWN_NODES": [],
     "CPUS_PER_NODE": 1,
     "GPUS_PER_NODE": 0, 
-    "CPU_PEAK_FLOPS": 3.072E12,
+    "CPU_PEAK_FLOPS": 3.379E12,
     "GPU_PEAK_FLOPS": 0,
-    "CPU_FP_RATIO": 1.0,
+    "CPU_FP_RATIO": 0.82,
     "GPU_FP_RATIO": 0.0
 }
