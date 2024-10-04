@@ -163,10 +163,10 @@ class LayoutManager:
         # Update the layout
         self.layout["status"].update(Panel(Align(table, align="center"), title="Scheduler Stats"))
 
-    def update_pressflow_array(self, datacenter_outputs):
+    def update_pressflow_array(self, cooling_outputs):
         columns = ["Output", "Average Value"]
 
-        datacenter_df = self.get_datacenter_df(datacenter_outputs)
+        datacenter_df = self.get_datacenter_df(cooling_outputs)
 
         # List of keys to include in the table
         relevant_keys = [
@@ -187,7 +187,7 @@ class LayoutManager:
         self.add_table_rows(table, data)
         self.layout["pressflow"].update(Panel(table))
 
-    def get_datacenter_df(self, datacenter_outputs):
+    def get_datacenter_df(self, cooling_outputs):
         # Initialize data dictionary with keys from FMU_COLUMN_MAPPING
         data = {key: [] for key in FMU_COLUMN_MAPPING.keys()}
         
@@ -197,7 +197,7 @@ class LayoutManager:
             
             # Append data to the corresponding lists dynamically using FMU_COLUMN_MAPPING keys
             for key in FMU_COLUMN_MAPPING.keys():
-                data[key].append(datacenter_outputs.get(compute_block_key + key))
+                data[key].append(cooling_outputs.get(compute_block_key + key))
         
         # Convert to DataFrame
         df = pd.DataFrame(data)
@@ -205,7 +205,7 @@ class LayoutManager:
         return df
 
 
-    def update_powertemp_array(self, power_df, datacenter_outputs, pue, pflops, gflop_per_watt, system_util, uncertainties=False):
+    def update_powertemp_array(self, power_df, cooling_outputs, pflops, gflop_per_watt, system_util, uncertainties=False):
         """
         Updates the displayed power and temperature table with the provided data.
 
@@ -222,7 +222,7 @@ class LayoutManager:
         # Updated cooling keys to include temperature instead of pressure
         cooling_keys = ["T_prim_s_C", "T_prim_r_C", "T_sec_s_C", "T_sec_r_C"]
 
-        datacenter_df = self.get_datacenter_df(datacenter_outputs)
+        datacenter_df = self.get_datacenter_df(cooling_outputs)
 
         # Create column headers with appropriate styles
         columns = [f"{col} (kW)" if col != "CDU" else col for col in power_columns]
@@ -278,7 +278,7 @@ class LayoutManager:
             str(f"{pflops:.2f}"),
             str(f"{gflop_per_watt:.1f}"),
             total_loss_str + " (" + percent_loss_str+ ")",
-            f"{pue:.2f}",
+            f"{cooling_outputs['pue']:.2f}",
             style="white"  # Apply white style to all elements in the row
         )
 

@@ -206,7 +206,7 @@ class ThermoFluidsModel:
         return fmu_inputs
 
 
-    def calculate_pue(self, cooling_input, datacenter_output, cep_output):
+    def calculate_pue(self, cooling_input, cooling_output):
         """
         Calculate the Power Usage Effectiveness (PUE) of the data center.
 
@@ -230,13 +230,13 @@ class ThermoFluidsModel:
             return np.array(value_in_kw) * 1e3 if value_in_kw is not None else 0.0
 
         # Convert values from kW to Watts using the utility function
-        W_HTWPs = convert_to_watts(cep_output.get(W_HTWPs_KEY))
-        W_CTWPs = convert_to_watts(cep_output.get(W_CTWPs_KEY))
-        W_CTs = convert_to_watts(cep_output.get(W_CTs_KEY))
+        W_HTWPs = convert_to_watts(cooling_output.get(W_HTWPs_KEY))
+        W_CTWPs = convert_to_watts(cooling_output.get(W_CTWPs_KEY))
+        W_CTs = convert_to_watts(cooling_output.get(W_CTs_KEY))
 
         # Get the sum of the work done by all CDU pumps
         W_CDUPs = sum(
-            convert_to_watts(datacenter_output.get(f'simulator[1].datacenter[1].computeBlock[{idx+1}].cdu[1].summary.W_flow_CDUP_kW'))
+            convert_to_watts(cooling_output.get(f'simulator[1].datacenter[1].computeBlock[{idx+1}].cdu[1].summary.W_flow_CDUP_kW'))
             for idx in range(NUM_CDUS)
         )
 
@@ -283,22 +283,20 @@ class ThermoFluidsModel:
         self.fmu.doStep(currentCommunicationPoint=current_time, communicationStepSize=step_size)
 
         # Initialize dictionaries for cooling input, datacenter output, and CEP output
-        cooling_input = {v.name: self.fmu.getReal([v.valueReference])[0] for v in self.inputs}
-        datacenter_output = {v.name: self.fmu.getReal([v.valueReference])[0] for v in self.outputs if "datacenter" in v.name}
-        cep_output = {v.name: self.fmu.getReal([v.valueReference])[0] for v in self.outputs if "centralEnergyPlant" in v.name}
+        cooling_inputs = {v.name: self.fmu.getReal([v.valueReference])[0] for v in self.inputs}
+        cooling_outputs = {v.name: self.fmu.getReal([v.valueReference])[0] for v in self.outputs}
 
         # Calculate PUE
-        pue = self.calculate_pue(cooling_input, datacenter_output, cep_output)
+        pue = self.calculate_pue(cooling_inputs, cooling_outputs)
 
         # Append time to each dictionary
-        cooling_input['time'] = current_time
-        datacenter_output['time'] = current_time
-        cep_output['time'] = current_time
+        cooling_inputs['time'] = current_time
+        cooling_outputs['pue'] = pue
 
         # Append the combined results to the history
-        self.fmu_history.append({**cooling_input, **datacenter_output, **cep_output})
+        self.fmu_history.append({**cooling_inputs, **cooling_outputs})
 
-        return cooling_input, datacenter_output, cep_output, pue
+        return cooling_inputs, cooling_outputs
 
     def terminate(self):
         """

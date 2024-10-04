@@ -81,9 +81,7 @@ class TickData:
     g_flops_w: float
     system_util: float
     fmu_inputs: Optional[dict]
-    fmu_datacenter_outputs: Optional[dict]
-    fmu_cep_outputs: Optional[dict]
-    pue: Optional[float]
+    fmu_outputs: Optional[dict]
 
 
 def get_utilization(trace, time_quanta_index):
@@ -315,7 +313,7 @@ class Scheduler:
 
         # Render the updated layout
         power_df = None
-        cooling_inputs, datacenter_outputs, cep_outputs, pue = None, None, None, None
+        cooling_inputs, cooling_outputs = None, None
 
         # Update power history every 15s
         if self.current_time % POWER_UPDATE_FREQ == 0:
@@ -339,7 +337,7 @@ class Scheduler:
                 # FMU inputs are N powers and the wetbulb temp
                 fmu_inputs = self.cooling_model.generate_fmu_inputs(runtime_values, \
                              uncertainties=self.power_manager.uncertainties)
-                cooling_inputs, datacenter_outputs, cep_outputs, pue = \
+                cooling_inputs, cooling_outputs =\
                     self.cooling_model.step(self.current_time, fmu_inputs, FMU_UPDATE_FREQ)
                 
                 # Get a dataframe of the power data
@@ -347,9 +345,9 @@ class Scheduler:
 
                 if self.layout_manager:
                     self.layout_manager.update_powertemp_array(power_df, \
-                               datacenter_outputs, pue, pflops, gflop_per_watt, \
+                               cooling_outputs, pflops, gflop_per_watt, \
                                system_util, uncertainties=self.power_manager.uncertainties)
-                    self.layout_manager.update_pressflow_array(datacenter_outputs)
+                    self.layout_manager.update_pressflow_array(cooling_outputs)
 
         if self.current_time % UI_UPDATE_FREQ == 0:
             # Get a dataframe of the power data
@@ -373,9 +371,7 @@ class Scheduler:
             g_flops_w = gflop_per_watt,
             system_util = system_util,
             fmu_inputs = cooling_inputs,
-            fmu_datacenter_outputs = datacenter_outputs,
-            fmu_cep_outputs = cep_outputs,
-            pue = pue
+            fmu_outputs = cooling_outputs,
         )
 
         self.current_time += 1
