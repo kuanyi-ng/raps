@@ -12,8 +12,8 @@ run:
 IMAGE_NAME = raps
 
 docker_build:
-	docker build -t $(IMAGE_NAME) .
+	docker build --platform linux/amd64 -t $(IMAGE_NAME) .
 
 docker_run:
-	docker run -it $(IMAGE_NAME)
+	docker run --platform linux/amd64 -it $(IMAGE_NAME)
 
