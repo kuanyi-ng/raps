@@ -394,20 +394,20 @@ class Scheduler:
 
     def run_simulation(self, jobs, timesteps):
         """ Generator that yields after each simulation tick """
-        time_to_next_job = 0
+        last_submit_time = 0
         self.timesteps = timesteps
         if self.debug: 
             limits = self.get_gauge_limits()
             print(limits)
         
         for _ in range(timesteps):
-            while self.current_time >= time_to_next_job and jobs:
+            while self.current_time >= last_submit_time and jobs:
                 job = jobs.pop(0)
                 self.schedule([job])
-                if jobs: # Update time to next job based on the next job's scheduled time
-                    time_to_next_job = job['submit_time']
-                else: # No more jobs, set to infinity or some large number to avoid triggering again
-                    time_to_next_job = float('inf')
+                if jobs:
+                    last_submit_time = job['submit_time']
+                else: # No more jobs, set to infinity to avoid triggering again
+                    last_submit_time = float('inf')
             yield self.tick()
 
             # Stop the simulation if no more jobs running or are in the queue
