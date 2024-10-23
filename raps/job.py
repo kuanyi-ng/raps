@@ -8,6 +8,8 @@ def job_dict(nodes_required, name, cpu_trace, gpu_trace, wall_time, \
         'name': name,
         'cpu_trace': cpu_trace,
         'gpu_trace': gpu_trace,
+        'ntx_trace': net_trace,
+        'nrx_trace': net_trace,
         'wall_time': wall_time,
         'end_state': end_state,
         'requested_nodes': scheduled_nodes,
