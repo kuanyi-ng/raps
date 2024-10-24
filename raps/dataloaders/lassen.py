@@ -118,11 +118,10 @@ def load_data_from_df(allocation_df, node_df, step_df, **kwargs):
         # total_energy = node_data['energy'].sum() # Joules
 
         # Network utilization
-        lambda_poisson = 0.3
-        ib_tx, ib_rx = node_data['ib_tx'], node_data['ib_rx']
-        net_tx, net_rx = generate_network_sequences(ib_tx, ib_rx, samples, lambda_poisson)
-        print(net_tx)
-        print(net_rx)
+        ib_tx = node_data['ib_tx'].values[0] if node_data['ib_tx'].values.size > 0 else []
+        ib_rx = node_data['ib_rx'].values[0] if node_data['ib_rx'].values.size > 0 else []
+
+        net_tx, net_rx = generate_network_sequences(ib_tx, ib_rx, samples, lambda_poisson=0.3)
 
         if reschedule:  # Let the scheduler reschedule the jobs
             scheduled_nodes = None
@@ -177,9 +176,11 @@ def compute_time_offset(begin_time, reference_time):
 
 
 def generate_network_sequences(total_tx, total_rx, intervals, lambda_poisson):
+
+    if not total_tx or not total_rx: return [], []
+
     # Generate sporadic bursts using a Poisson distribution (shared for both tx and rx)
     burst_intervals = np.random.poisson(lam=lambda_poisson, size=intervals)
-    print('**', burst_intervals)
 
     # Ensure some intervals have no traffic (both tx and rx will share zero intervals)
     burst_intervals = np.where(burst_intervals > 0, burst_intervals, 0)

@@ -1,15 +1,15 @@
 from enum import Enum
 
-def job_dict(nodes_required, name, cpu_trace, gpu_trace, wall_time, \
-             end_state, scheduled_nodes, time_offset, job_id, priority=0):
+def job_dict(nodes_required, name, cpu_trace, gpu_trace, ntx_trace, nrx_trace, \
+             wall_time, end_state, scheduled_nodes, time_offset, job_id, priority=0):
     """ Return job info dictionary """
     return {
         'nodes_required': nodes_required,
         'name': name,
         'cpu_trace': cpu_trace,
         'gpu_trace': gpu_trace,
-        'ntx_trace': net_trace,
-        'nrx_trace': net_trace,
+        'ntx_trace': ntx_trace,
+        'nrx_trace': nrx_trace,
         'wall_time': wall_time,
         'end_state': end_state,
         'requested_nodes': scheduled_nodes,
