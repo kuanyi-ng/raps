@@ -194,6 +194,7 @@ def adjust_bursts(burst_intervals, total, intervals):
 
     return bursts
 
+
 def generate_network_sequences(total_tx, total_rx, intervals, lambda_poisson):
     
     if not total_tx or not total_rx: 
