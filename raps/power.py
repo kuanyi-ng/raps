@@ -37,7 +37,8 @@ load_config_variables([
     'POWER_CPU_UNCERTAINTY',
     'POWER_MEM',
     'POWER_MEM_UNCERTAINTY',
-    'POWER_NIC',
+    'POWER_NIC_IDLE',
+    'POWER_NIC_MAX',
     'POWER_NIC_UNCERTAINTY',
     'POWER_NVME',
     'POWER_NVME_UNCERTAINTY',
@@ -90,7 +91,7 @@ def rectifier_loss(p_out):
     return p_in
 
 
-def compute_node_power(cpu_util, gpu_util, verbose=False):
+def compute_node_power(cpu_util, gpu_util, net_util, verbose=False):
     """
     Calculate the total power consumption for given CPU and GPU utilization.
 
@@ -101,8 +102,9 @@ def compute_node_power(cpu_util, gpu_util, verbose=False):
     """
     power_cpu = cpu_util * POWER_CPU_MAX + (CPUS_PER_NODE - cpu_util) * POWER_CPU_IDLE
     power_gpu = gpu_util * POWER_GPU_MAX + (GPUS_PER_NODE - gpu_util) * POWER_GPU_IDLE
+    power_nic = POWER_NIC_IDLE + (POWER_NIC_MAX - POWER_NIC_IDLE) * net_util
 
-    power_total = power_cpu + power_gpu + POWER_MEM + NICS_PER_NODE * POWER_NIC + POWER_NVME
+    power_total = power_cpu + power_gpu + POWER_MEM + NICS_PER_NODE * power_nic + POWER_NVME
 
     # Apply power loss due to Sivoc and Rectifier
     power_with_sivoc_loss = sivoc_loss(power_total)
@@ -259,17 +261,17 @@ class PowerManager:
 
     def initialize_power_state(self):
         """Initialize the power state array with idle power consumption values."""
-        initial_power, _ = self.power_func(0, 0)
+        initial_power, _ = self.power_func(0, 0, 0)
         return np.full(self.sc_shape, initial_power)
 
     def initialize_sivoc_loss(self):
         """Initialize the Sivoc loss array with idle power consumption values."""
-        _, initial_sivoc_loss = self.power_func(0, 0)
+        _, initial_sivoc_loss = self.power_func(0, 0, 0)
         return np.full(self.sc_shape, initial_sivoc_loss)
 
     def initialize_rectifier_loss(self):
         """ Initialize the power state array """
-        initial_power, _ = self.power_func(0, 0)
+        initial_power, _ = self.power_func(0, 0, 0)
         # Rectifier loss curvefit is done at rectifier level, so we simply
         # approximate by scaling up to number of rectifiers, applying loss
         # and then dividing by number of rectifiers.
@@ -295,9 +297,9 @@ class PowerManager:
         """
         node_indices = linear_to_3d_index(node_indices, self.sc_shape)
         self.power_state[node_indices], self.sivoc_loss[node_indices] \
-            = compute_node_power(0, 0)
+            = compute_node_power(0, 0, 0)
 
-    def update_power_state(self, scheduled_nodes, cpu_util, gpu_util):
+    def update_power_state(self, scheduled_nodes, cpu_util, gpu_util, net_util):
         """
         Update the power state of scheduled nodes based on CPU and GPU utilization.
         Note: this is only used to test smart load-sharing "what-if" scenario
@@ -315,7 +317,7 @@ class PowerManager:
             Total power consumption of the scheduled nodes.
         """
         node_indices = linear_to_3d_index(scheduled_nodes, self.sc_shape)
-        power_value, sivoc_loss = self.power_func(cpu_util, gpu_util)
+        power_value, sivoc_loss = self.power_func(cpu_util, gpu_util, net_util)
         self.power_state[node_indices] = power_value
         self.sivoc_loss[node_indices] = sivoc_loss
         return power_value * len(scheduled_nodes)

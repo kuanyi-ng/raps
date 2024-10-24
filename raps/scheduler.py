@@ -48,6 +48,7 @@ import pandas as pd
 
 from .config import load_config_variables
 from .job import Job, JobState
+from .network import network_utilization
 from .policy import Policy, PolicyType
 from .utils import summarize_ranges, expand_ranges
 
@@ -260,9 +261,16 @@ class Scheduler:
                 cpu_util = get_utilization(job.cpu_trace, time_quanta_index)
                 gpu_util = get_utilization(job.gpu_trace, time_quanta_index)
 
+                if len(job.ntx_trace) and len(job.nrx_trace):
+                    net_tx = get_utilization(job.ntx_trace, time_quanta_index)
+                    net_rx = get_utilization(job.nrx_trace, time_quanta_index)
+                    net_util = network_utilization(net_tx, net_rx)
+                else:
+                    net_util = 0
+
                 self.flops_manager.update_flop_state(job.scheduled_nodes, cpu_util, gpu_util)
                 job.power = self.power_manager.update_power_state(job.scheduled_nodes,
-                                                                  cpu_util, gpu_util)
+                                                                  cpu_util, gpu_util, net_util)
 
                 if job.running_time % TRACE_QUANTA == 0:
                     job.power_history.append(job.power)

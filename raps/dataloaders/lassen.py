@@ -49,7 +49,7 @@ def load_data(path, **kwargs):
     """
     Loads data from the given file paths and returns job info.
     """
-    nrows = 1E5
+    nrows = 1E4
     alloc_df = pd.read_csv(os.path.join(path[0], 'final_csm_allocation_history_hashed.csv'), nrows=nrows)
     node_df = pd.read_csv(os.path.join(path[0], 'final_csm_allocation_node_history.csv'), nrows=nrows)
     step_df = pd.read_csv(os.path.join(path[0], 'final_csm_step_history.csv'), nrows=nrows)
