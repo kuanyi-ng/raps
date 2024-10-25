@@ -94,6 +94,8 @@ def load_data_from_df(df, **kwargs):
             name=name,
             cpu_trace=cpu_trace,
             gpu_trace=gpu_trace,
+            ntx_trace=[], 
+            nrx_trace=[], 
             wall_time=wall_time,
             end_state=end_state,
             scheduled_nodes=scheduled_nodes,

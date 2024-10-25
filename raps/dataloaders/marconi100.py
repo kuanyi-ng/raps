@@ -163,7 +163,7 @@ def load_data_from_df(jobs_df: pd.DataFrame, **kwargs):
             scheduled_nodes = (jobs_df.loc[jidx, 'nodes']).tolist()
             
         if gpu_trace.size > 0 and time_offset >= 0:
-            job_info = job_dict(nodes_required, name, cpu_trace, gpu_trace, wall_time,
+            job_info = job_dict(nodes_required, name, cpu_trace, gpu_trace, [], [], wall_time,
                                 end_state, scheduled_nodes, time_offset, job_id, priority)
             jobs.append(job_info)
 

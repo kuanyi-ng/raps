@@ -37,6 +37,7 @@ load_config_variables([
     'POWER_CPU_UNCERTAINTY',
     'POWER_MEM',
     'POWER_MEM_UNCERTAINTY',
+    'POWER_NIC',
     'POWER_NIC_IDLE',
     'POWER_NIC_MAX',
     'POWER_NIC_UNCERTAINTY',
@@ -102,7 +103,11 @@ def compute_node_power(cpu_util, gpu_util, net_util, verbose=False):
     """
     power_cpu = cpu_util * POWER_CPU_MAX + (CPUS_PER_NODE - cpu_util) * POWER_CPU_IDLE
     power_gpu = gpu_util * POWER_GPU_MAX + (GPUS_PER_NODE - gpu_util) * POWER_GPU_IDLE
-    power_nic = POWER_NIC_IDLE + (POWER_NIC_MAX - POWER_NIC_IDLE) * net_util
+
+    try: 
+        power_nic = POWER_NIC_IDLE + (POWER_NIC_MAX - POWER_NIC_IDLE) * net_util
+    except:
+        power_nic = POWER_NIC
 
     power_total = power_cpu + power_gpu + POWER_MEM + NICS_PER_NODE * power_nic + POWER_NVME
 
