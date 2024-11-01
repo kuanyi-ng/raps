@@ -123,10 +123,6 @@ def load_data_from_df(allocation_df, node_df, step_df, **kwargs):
         ib_rx = 4 * node_data['ib_rx'].values[0] if node_data['ib_rx'].values.size > 0 else []
 
         net_tx, net_rx = generate_network_sequences(ib_tx, ib_rx, samples, lambda_poisson=0.3)
-        if verbose:
-            print('ib_tx, ib_rx, samples:', ib_tx, ib_rx, samples)
-            print('tx:', net_tx)
-            print('rx:', net_rx)
 
         if reschedule:  # Let the scheduler reschedule the jobs
             scheduled_nodes = None
@@ -136,6 +132,12 @@ def load_data_from_df(allocation_df, node_df, step_df, **kwargs):
             time_offset = compute_time_offset(row['begin_time'], earliest_begin_time)
             if fastforward:
                 time_offset -= fastforward
+
+        if verbose:
+            print('ib_tx, ib_rx, samples:', ib_tx, ib_rx, samples)
+            print('tx:', net_tx)
+            print('rx:', net_rx)
+            print('scheduled_nodes:', nodes_required, scheduled_nodes)
 
         if time_offset >= 0:
 
