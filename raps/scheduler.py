@@ -83,9 +83,7 @@ class Scheduler:
         self.down_nodes = summarize_ranges(DOWN_NODES)
         self.available_nodes = list(set(range(TOTAL_NODES)) - set(DOWN_NODES))
         self.num_free_nodes = len(self.available_nodes)
-        print(TOTAL_NODES)
-        print(DOWN_NODES)
-        self.num_active_nodes = TOTAL_NODES - self.num_free_nodes - len(DOWN_NODES) #len(expand_ranges(self.down_nodes))
+        self.num_active_nodes = TOTAL_NODES - self.num_free_nodes - len(DOWN_NODES)
         self.running = []
         self.queue = []
         self.jobs_completed = 0
