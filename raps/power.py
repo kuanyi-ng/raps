@@ -16,50 +16,6 @@ import numpy as np
 import pandas as pd
 import uncertainties as uf
 from .utils import linear_to_3d_index
-from .config import load_config_variables
-
-
-load_config_variables([
-    'AVAILABLE_NODES',
-    'BLADES_PER_CHASSIS',
-    'CHASSIS_PER_RACK',
-    'NUM_CDUS',
-    'NUM_RACKS',
-    'POWER_CDU',
-    'POWER_GPU_IDLE',
-    'POWER_GPU_MAX',
-    'POWER_GPU_UNCERTAINTY',
-    'CPUS_PER_NODE',
-    'GPUS_PER_NODE',
-    'NICS_PER_NODE',
-    'POWER_CPU_IDLE',
-    'POWER_CPU_MAX',
-    'POWER_CPU_UNCERTAINTY',
-    'POWER_MEM',
-    'POWER_MEM_UNCERTAINTY',
-    'POWER_NIC',
-    'POWER_NIC_IDLE',
-    'POWER_NIC_MAX',
-    'POWER_NIC_UNCERTAINTY',
-    'POWER_NVME',
-    'POWER_NVME_UNCERTAINTY',
-    'POWER_SWITCH',
-    'POWER_SWITCH_UNCERTAINTY',
-    'RACKS_PER_CDU',
-    'SIVOC_LOSS_CONSTANT',
-    'SIVOC_EFFICIENCY',
-    'NODES_PER_BLADE',
-    'NODES_PER_RACK',
-    'NODES_PER_RECTIFIER',
-    'NODE_POWER_UNCERTAINTY',
-    'RECTIFIER_PEAK_THRESHOLD',
-    'RECTIFIERS_PER_CHASSIS',
-    'RECTIFIER_LOSS_CONSTANT',
-    'RECTIFIER_EFFICIENCY',
-    'SWITCHES_PER_CHASSIS',
-    'POWER_DF_HEADER',
-    'MISSING_RACKS'
-], globals())
 
 
 def custom_str_uncertainties(self):
@@ -226,7 +182,7 @@ class PowerManager:
     - down_nodes: Nodes that are currently down.
     - down_rack: Rack number of down nodes.
     """
-    def __init__(self, sc_shape, down_nodes, power_func=compute_node_power):
+    def __init__(self, power_func, **config):
         """
         Initialize the PowerManager object.
 
@@ -238,14 +194,15 @@ class PowerManager:
         - power_func: function, optional
             Function for calculating power consumption. Default is compute_node_power.
         """
-        self.sc_shape = sc_shape
+        self.sc_shape = config.get('SC_SHAPE')
+        self.down_nodes = config.get('DOWN_NODES')
+        globals().update(config)
         self.power_func = power_func
         self.power_state = self.initialize_power_state()
         self.rectifier_loss = self.initialize_rectifier_loss()
         self.sivoc_loss = self.initialize_sivoc_loss()
         self.history = []
         self.loss_history = []
-        self.down_nodes = down_nodes
         self.uncertainties = False
         if power_func in [compute_node_power_uncertainties, \
                           compute_node_power_validate_uncertainties]:

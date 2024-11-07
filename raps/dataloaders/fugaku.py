@@ -81,7 +81,7 @@ def load_data_from_df(df, **kwargs):
         scheduled_nodes = None
         submit_time = row['adt'] if 'adt' in df.columns else earliest_submit_time
         if reschedule: # Let the scheduler reschedule the jobs
-            time_offset = next_arrival()
+            time_offset = next_arrival(1/JOB_ARRIVAL_TIME)
         else:
             time_offset = (submit_time - earliest_submit_time).total_seconds()  # Compute time offset in seconds
 

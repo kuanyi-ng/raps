@@ -14,11 +14,7 @@ from uncertainties.core import AffineScalarFunc
 
 from fmpy import read_model_description, extract
 from fmpy.fmi2 import FMU2Slave
-from .config import load_config_variables
 from datetime import timedelta
-
-load_config_variables(['NUM_CDUS', 'COOLING_EFFICIENCY','WET_BULB_TEMP', 'RACKS_PER_CDU', 'ZIP_CODE', 'COUNTRY_CODE', \
-                       'TEMPERATURE_KEY', 'W_HTWPs_KEY', 'W_CTWPs_KEY', 'W_CTs_KEY'], globals())
 
 def get_matching_variables(variables, pattern):
     # Regex pattern to match strings containing .summary

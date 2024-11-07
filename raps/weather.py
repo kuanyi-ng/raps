@@ -5,8 +5,7 @@ from datetime import datetime, timedelta
 
 # Disable SSL warnings when verify=False is used (temporary debugging purpose)
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-from .config import load_config_variables
-load_config_variables(['ZIP_CODE', 'COUNTRY_CODE'], globals())
+
 
 class Weather:
     def __init__(self, iso_string=None):
