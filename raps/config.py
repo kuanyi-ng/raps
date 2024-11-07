@@ -5,6 +5,7 @@ from pathlib import Path
 
 CONFIG_PATH = Path(os.environ.get("RAPS_CONFIG", 'config')).resolve()
 
+
 class ConfigManager:
     def __init__(self, system_name: str):
         self.config: Dict[str, Any] = {}
@@ -67,17 +68,6 @@ class ConfigManager:
     def get(self, key: str) -> Any:
         return self.config.get(key)
 
-config_manager = None # Placeholder for global ConfigManager instance
-
-def initialize_config(system_name: str) -> None:
-    global config_manager
-    config_manager = ConfigManager(system_name=system_name)
-
-def is_config_initialized() -> bool:
-    return config_manager is not None
-
-def get_config() -> ConfigManager:
-    return config_manager
-
-def load_config_variables(variable_names: list[str], namespace: dict[str, Any]) -> None:
-    namespace.update({var: config_manager.get(var) for var in variable_names})
+    def get_config(self) -> Dict[str, Any]:
+        # Return the complete config dictionary
+        return self.config

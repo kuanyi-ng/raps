@@ -16,9 +16,6 @@ import random
 import sys
 import uuid
 
-from .config import load_config_variables
-load_config_variables(['JOB_ARRIVAL_TIME'], globals())
-
 
 def convert_seconds(seconds):
     """Convert seconds to time format: 3661s -> 01:01"""
@@ -301,7 +298,7 @@ def create_casename(prefix=''):
     return prefix + str(uuid.uuid4())[:7]
 
 
-def next_arrival(lambda_rate=1/JOB_ARRIVAL_TIME):
+def next_arrival(lambda_rate):
     if not hasattr(next_arrival, 'next_time'):
         # Initialize the first time it's called
         next_arrival.next_time = 0  

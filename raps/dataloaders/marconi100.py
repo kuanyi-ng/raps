@@ -25,23 +25,8 @@ import uuid
 import pandas as pd
 from tqdm import tqdm
 
-from ..config import load_config_variables
 from ..job import job_dict
 from ..utils import power_to_utilization, next_arrival
-
-load_config_variables([
-    'CPUS_PER_NODE',
-    'GPUS_PER_NODE',
-    'NICS_PER_NODE',
-    'TRACE_QUANTA',
-    'POWER_GPU_IDLE',
-    'POWER_GPU_MAX',
-    'POWER_CPU_IDLE',
-    'POWER_CPU_MAX',
-    'POWER_NIC',
-    'POWER_NVME', 
-    'UI_UPDATE_FREQ'
-], globals())
 
 
 def load_data(jobs_path, **kwargs):
@@ -71,6 +56,8 @@ def load_data_from_df(jobs_df: pd.DataFrame, **kwargs):
     list
         The list of parsed jobs.
     """
+    config = kwargs.get('config')
+    globals().update(config)
     min_time = kwargs.get('min_time', None)
     reschedule = kwargs.get('reschedule')
     fastforward = kwargs.get('fastforward')
@@ -158,7 +145,7 @@ def load_data_from_df(jobs_df: pd.DataFrame, **kwargs):
 
         if reschedule: # Let the scheduler reschedule the jobs
             scheduled_nodes = None
-            time_offset = next_arrival()
+            time_offset = next_arrival(1/JOB_ARRIVAL_TIME)
         else: # Prescribed replay
             scheduled_nodes = (jobs_df.loc[jidx, 'nodes']).tolist()
             

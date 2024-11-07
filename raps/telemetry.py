@@ -41,6 +41,8 @@ class Telemetry:
     def __init__(self, **kwargs):
         self.kwargs = kwargs
         self.system = kwargs.get('system')
+        config = kwargs.get('config')
+        globals().update(config)
 
 
     def save_snapshot(self, jobs: list, filename: str):
@@ -77,7 +79,7 @@ if __name__ == "__main__":
         if args.reschedule:
             for job in tqdm(jobs, desc="Updating requested_nodes"):
                 job['requested_nodes'] = None
-                job['submit_time'] = next_arrival()
+                job['submit_time'] = next_arrival(1/JOB_ARRIVAL_TIME)
     else:
         jobs = td.load_data(args.replay)
 

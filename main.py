@@ -55,9 +55,7 @@ args = parser.parse_args()
 args_dict = vars(args)
 print(args_dict)
 
-from raps.config import initialize_config, load_config_variables
-initialize_config(args.system)
-
+from raps.config import ConfigManager
 from raps.constants import OUTPUT_PATH
 from raps.cooling import ThermoFluidsModel
 from raps.ui import LayoutManager
@@ -71,14 +69,7 @@ from raps.workload import Workload
 from raps.weather import Weather
 from raps.utils import create_casename, convert_to_seconds, write_dict_to_file, next_arrival
 
-load_config_variables([
-    'SC_SHAPE',
-    'TOTAL_NODES',
-    'DOWN_NODES',
-    'SEED',
-    'FMU_PATH',
-    'MAX_TIME'
-], globals())
+config = ConfigManager(system_name=args.system).get_config()
 
 if args.seed:
     random.seed(SEED)
@@ -96,19 +87,19 @@ else:
 
 if args.validate:
     if args.uncertainties:
-        power_manager = PowerManager(SC_SHAPE, DOWN_NODES, power_func=compute_node_power_validate_uncertainties)
+        power_manager = PowerManager(compute_node_power_validate_uncertainties, **config)
     else:
-        power_manager = PowerManager(SC_SHAPE, DOWN_NODES, power_func=compute_node_power_validate)
+        power_manager = PowerManager(compute_node_power_validate, **config)
 else:
     if args.uncertainties:
-        power_manager = PowerManager(SC_SHAPE, DOWN_NODES, power_func=compute_node_power_uncertainties)
+        power_manager = PowerManager(compute_node_power_uncertainties, **config)
     else:
-        power_manager = PowerManager(SC_SHAPE, DOWN_NODES, power_func=compute_node_power)
+        power_manager = PowerManager(compute_node_power, **config)
 
-flops_manager = FLOPSManager(SC_SHAPE)
-layout_manager = LayoutManager(args.layout, args.debug)
-sc = Scheduler(TOTAL_NODES, DOWN_NODES, power_manager, flops_manager, layout_manager,
-               cooling_model, **args_dict)
+flops_manager = FLOPSManager(**config)
+layout_manager = LayoutManager(args.layout, args.debug, **config)
+args_dict['config'] = config
+sc = Scheduler(power_manager, flops_manager, layout_manager, cooling_model, **args_dict)
 
 if args.replay:
 
@@ -149,7 +140,7 @@ if args.replay:
     time.sleep(1)
 
 else:
-    wl = Workload()
+    wl = Workload(**config)
     jobs = getattr(wl, args.workload)(num_jobs=args.numjobs)
 
     if args.verbose:
@@ -161,7 +152,7 @@ else:
     if args.time:
         timesteps = convert_to_seconds(args.time)
     else:
-        timesteps = MAX_TIME
+        timesteps = 88200 # 24 hours
 
     DIR_NAME = create_casename()
 

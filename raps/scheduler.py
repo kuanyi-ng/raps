@@ -23,7 +23,7 @@ Dependencies:
 - scipy.stats: For statistical distributions and random number generation.
 - typing: For type hints and annotations.
 
-Constants:
+Config parameters used:
 - TRACE_QUANTA: The quantum of time for tracing job CPU and GPU utilization.
 - MTBF: Mean Time Between Failures, used for node failure simulation.
 - POWER_COST: Cost of power consumption per unit, used for calculating total cost.
@@ -46,29 +46,10 @@ import numpy as np
 from scipy.stats import weibull_min
 import pandas as pd
 
-from .config import load_config_variables
 from .job import Job, JobState
 from .network import network_utilization
 from .policy import Policy, PolicyType
 from .utils import summarize_ranges, expand_ranges
-
-load_config_variables([
-    'TRACE_QUANTA',
-    'MTBF',
-    'POWER_COST',
-    'UI_UPDATE_FREQ',
-    'MAX_TIME',
-    'POWER_UPDATE_FREQ',
-    'FMU_UPDATE_FREQ',
-    'POWER_CDU',
-    'TOTAL_NODES',
-    'COOLING_EFFICIENCY',
-    'WET_BULB_TEMP',
-    'NUM_CDUS',
-    'POWER_DF_HEADER',
-    'AVAILABLE_NODES',
-    'TOTAL_NODES'
-], globals())
 
 
 @dataclasses.dataclass
@@ -96,41 +77,13 @@ def get_utilization(trace, time_quanta_index):
 
 class Scheduler:
     """Job scheduler and simulation manager."""
-    def __init__(self, total_nodes, down_nodes, power_manager, flops_manager, \
-                 layout_manager, cooling_model=None, **kwargs):
-        """Initialize the scheduler.
-
-        Args:
-            total_nodes: Total number of nodes in the system.
-            down_nodes: Nodes that are already down.
-            power_manager: Instance of the PowerManager class.
-            layout_manager: Instance of the LayoutManager class.
-            cooling_model: Cooling model for the system.
-            debug: Flag for enabling debug mode.
-            output: Flag for enabling output.
-
-        Attributes:
-            total_nodes: Total number of nodes in the system.
-            available_nodes: Nodes available for scheduling.
-            down_nodes: Nodes that are down.
-            num_free_nodes: Number of free nodes.
-            num_active_nodes: Number of active nodes.
-            debug: Flag for debug mode.
-            running: List of running jobs.
-            queue: Queue of pending jobs.
-            jobs_completed: Number of jobs completed.
-            current_time: Current simulation time.
-            cooling_model: Cooling model for the system.
-            layout_manager: Layout manager for rendering.
-            power_manager: Power manager instance.
-            fmu_results: Results from the FMU model.
-            output: Flag for enabling output.
-        """
-        self.total_nodes = total_nodes
-        self.available_nodes = list(set(range(total_nodes)) - set(down_nodes))
-        self.down_nodes = summarize_ranges(down_nodes)
+    def __init__(self, power_manager, flops_manager, layout_manager, cooling_model=None, **kwargs):
+        config = kwargs.get('config')
+        globals().update(config)
+        self.down_nodes = summarize_ranges(DOWN_NODES)
+        self.available_nodes = list(set(range(TOTAL_NODES)) - set(DOWN_NODES))
         self.num_free_nodes = len(self.available_nodes)
-        self.num_active_nodes = TOTAL_NODES - self.num_free_nodes - len(expand_ranges(self.down_nodes))
+        self.num_active_nodes = TOTAL_NODES - self.num_free_nodes - len(DOWN_NODES)
         self.running = []
         self.queue = []
         self.jobs_completed = 0
@@ -482,7 +435,7 @@ class Scheduler:
 
         # Create a NumPy array of node indices, excluding down nodes
         down_nodes = expand_ranges(self.down_nodes)
-        all_nodes = np.setdiff1d(np.arange(self.total_nodes), np.array(down_nodes, dtype=int))
+        all_nodes = np.setdiff1d(np.arange(TOTAL_NODES), np.array(down_nodes, dtype=int))
 
         # Sample the Weibull distribution for all nodes at once
         random_values = weibull_min.rvs(shape_parameter, scale=scale_parameter, size=all_nodes.size)

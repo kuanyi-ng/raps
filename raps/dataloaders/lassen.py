@@ -32,15 +32,9 @@ import pandas as pd
 from tqdm import tqdm
 
 try:
-    from ..config import load_config_variables
     from ..job import job_dict
     from ..utils import power_to_utilization, next_arrival
 
-    load_config_variables(['TRACE_QUANTA', 'CPUS_PER_NODE', 'GPUS_PER_NODE',
-                           'POWER_GPU_IDLE', 'POWER_GPU_MAX', 'POWER_CPU_IDLE',
-                           'POWER_CPU_MAX', 'POWER_MEM', 'POWER_NIC',
-                           'POWER_NVME', 'POWER_CDU', 'POWER_SWITCH', 'CORES_PER_CPU',
-                           'NICS_PER_NODE'], globals())
 except:
     pass
 
@@ -60,6 +54,8 @@ def load_data_from_df(allocation_df, node_df, step_df, **kwargs):
     """
     Loads data from pandas DataFrames and returns the extracted job info.
     """
+    config = kwargs.get('config')
+    globals().update(config)
     jid = kwargs.get('jid', '*')
     reschedule = kwargs.get('reschedule')
     fastforward = kwargs.get('fastforward')
@@ -126,7 +122,7 @@ def load_data_from_df(allocation_df, node_df, step_df, **kwargs):
 
         if reschedule:  # Let the scheduler reschedule the jobs
             scheduled_nodes = None
-            time_offset = next_arrival()
+            time_offset = next_arrival(1/JOB_ARRIVAL_TIME)
         else:
             scheduled_nodes = get_scheduled_nodes(row['allocation_id'], node_df)
             time_offset = compute_time_offset(row['begin_time'], earliest_begin_time)

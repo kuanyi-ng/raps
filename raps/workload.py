@@ -29,13 +29,7 @@ import math
 import random
 import numpy as np
 
-from .config import load_config_variables
 from .job import job_dict
-
-load_config_variables([
-    'TRACE_QUANTA', 'MAX_NODES_PER_JOB', 'JOB_NAMES', 'CPUS_PER_NODE',\
-    'GPUS_PER_NODE', 'MAX_WALL_TIME', 'MIN_WALL_TIME', 'JOB_END_PROBS',\
-    'AVAILABLE_NODES' ], globals())
 
 JOB_NAMES = ["LAMMPS", "GROMACS", "VASP", "Quantum ESPRESSO", "NAMD",\
              "OpenFOAM", "WRF", "AMBER", "CP2K", "nek5000", "CHARMM",\
@@ -51,6 +45,9 @@ from .utils import truncated_normalvariate, determine_state, next_arrival
 
 class Workload(object):
     """ This class is responsible for generating random workload traces and jobs. """
+
+    def __init__(self, **config):
+        globals().update(config)
 
     def compute_traces(self, cpu_util: float, gpu_util: float, wall_time: int) -> tuple[np.ndarray, np.ndarray]:
         """ Compute CPU and GPU traces based on mean CPU & GPU utilizations and wall time. """
@@ -76,7 +73,7 @@ class Workload(object):
             net_tx, net_rx = [], []
 
             # Jobs arrive according to Poisson process
-            time_to_next_job = next_arrival()
+            time_to_next_job = next_arrival(1/JOB_ARRIVAL_TIME)
 
             jobs.append(job_dict(nodes_required, name, cpu_trace, gpu_trace, net_tx, net_rx, \
                         wall_time, end_state, None, time_to_next_job, None, priority))
