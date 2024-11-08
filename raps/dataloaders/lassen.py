@@ -16,7 +16,7 @@ Usage Instructions:
     # to analyze dataset
     python -m raps.telemetry -f /path/to/LAST/Lassen-Supercomputer-Job-Dataset --system lassen -v
 
-    # to simulate the dataset
+    # to simulate the dataset as submitted
     python main.py -f /path/to/LAST/Lassen-Supercomputer-Job-Dataset --system lassen
 
     # to reschedule
@@ -55,7 +55,6 @@ def load_data_from_df(allocation_df, node_df, step_df, **kwargs):
     Loads data from pandas DataFrames and returns the extracted job info.
     """
     config = kwargs.get('config')
-    globals().update(config)
     jid = kwargs.get('jid', '*')
     reschedule = kwargs.get('reschedule')
     fastforward = kwargs.get('fastforward')
@@ -85,7 +84,7 @@ def load_data_from_df(allocation_df, node_df, step_df, **kwargs):
         nodes_required = row['num_nodes']
 
         wall_time = compute_wall_time(row['begin_time'], row['end_time'])
-        samples = math.ceil(wall_time / TRACE_QUANTA)
+        samples = math.ceil(wall_time / config['TRACE_QUANTA'])
 
         # Compute GPU power
         gpu_energy = node_data['gpu_energy'].sum()  # Joules
@@ -95,8 +94,8 @@ def load_data_from_df(allocation_df, node_df, step_df, **kwargs):
         #gpu_power = gpu_energy / wall_time
         gpu_power_array = np.array([gpu_power] * samples)
 
-        gpu_min_power = nodes_required * POWER_GPU_IDLE
-        gpu_max_power = nodes_required * POWER_GPU_MAX
+        gpu_min_power = nodes_required * config['POWER_GPU_IDLE']
+        gpu_max_power = nodes_required * config['POWER_GPU_MAX']
         gpu_util = power_to_utilization(gpu_power_array, gpu_min_power, gpu_max_power)
         # GPU power can be 0:
         # Utilization is defined in the range of [0 to GPUS_PER_NODE].
@@ -106,7 +105,7 @@ def load_data_from_df(allocation_df, node_df, step_df, **kwargs):
 
         # Compute CPU power from CPU usage time
         # CPU usage is reported per core, while we need it in the range [0 to CPUS_PER_NODE]
-        cpu_usage = node_data['cpu_usage'].sum() / 1E9 / nodes_required / CORES_PER_CPU  # seconds
+        cpu_usage = node_data['cpu_usage'].sum() / 1E9 / nodes_required / config['CORES_PER_CPU'] # seconds
         cpu_usage_array = np.array([cpu_usage] * samples)
         cpu_util = cpu_usage_array / wall_time
         cpu_trace = cpu_util  # * CPUS_PER_NODE
@@ -122,7 +121,7 @@ def load_data_from_df(allocation_df, node_df, step_df, **kwargs):
 
         if reschedule:  # Let the scheduler reschedule the jobs
             scheduled_nodes = None
-            time_offset = next_arrival(1/JOB_ARRIVAL_TIME)
+            time_offset = next_arrival(1/config['JOB_ARRIVAL_TIME'])
         else:
             scheduled_nodes = get_scheduled_nodes(row['allocation_id'], node_df)
             time_offset = compute_time_offset(row['begin_time'], earliest_begin_time)

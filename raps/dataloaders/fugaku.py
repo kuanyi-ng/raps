@@ -10,7 +10,7 @@
     The --reschedule will compute submit times from Poisson distribution, instead of using
     the submit times given in F-Data.
 
-    python main.py --system fugaku -f /path/to/21_04.parquet --reschedule --validate --reschedule
+    python main.py --system fugaku -f /path/to/21_04.parquet --reschedule --validate
 
 """
 import pandas as pd
@@ -53,6 +53,7 @@ def load_data_from_df(df, **kwargs):
     reschedule = kwargs.get('reschedule')
     validate = kwargs.get('validate')
     jid = kwargs.get('jid', '*')
+    config = kwargs.get('config')
 
     if fastforward: print(f"fast-forwarding {fastforward} seconds")
 
@@ -81,7 +82,7 @@ def load_data_from_df(df, **kwargs):
         scheduled_nodes = None
         submit_time = row['adt'] if 'adt' in df.columns else earliest_submit_time
         if reschedule: # Let the scheduler reschedule the jobs
-            time_offset = next_arrival(1/JOB_ARRIVAL_TIME)
+            time_offset = next_arrival(1/config['JOB_ARRIVAL_TIME'])
         else:
             time_offset = (submit_time - earliest_submit_time).total_seconds()  # Compute time offset in seconds
 

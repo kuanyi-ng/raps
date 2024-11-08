@@ -57,7 +57,6 @@ def load_data_from_df(jobs_df: pd.DataFrame, **kwargs):
         The list of parsed jobs.
     """
     config = kwargs.get('config')
-    globals().update(config)
     min_time = kwargs.get('min_time', None)
     reschedule = kwargs.get('reschedule')
     fastforward = kwargs.get('fastforward')
@@ -104,10 +103,10 @@ def load_data_from_df(jobs_df: pd.DataFrame, **kwargs):
         else:                
             cpu_power = jobs_df.loc[jidx, 'cpu_power_consumption']
             cpu_power_array = cpu_power.tolist()
-            cpu_min_power = nodes_required * POWER_CPU_IDLE * CPUS_PER_NODE
-            cpu_max_power = nodes_required * POWER_CPU_MAX * CPUS_PER_NODE
+            cpu_min_power = nodes_required * config['POWER_CPU_IDLE'] * config['CPUS_PER_NODE']
+            cpu_max_power = nodes_required * config['POWER_CPU_MAX'] * config['CPUS_PER_NODE']
             cpu_util = power_to_utilization(cpu_power_array, cpu_min_power, cpu_max_power)
-            cpu_trace = cpu_util * CPUS_PER_NODE
+            cpu_trace = cpu_util * config['CPUS_PER_NODE']
                 
             node_power = (jobs_df.loc[jidx, 'node_power_consumption']).tolist()
             mem_power = (jobs_df.loc[jidx, 'mem_power_consumption']).tolist()
@@ -119,18 +118,18 @@ def load_data_from_df(jobs_df: pd.DataFrame, **kwargs):
             mem_power = mem_power[:min_length]
                 
             gpu_power = (node_power - cpu_power - mem_power
-                - ([nodes_required * NICS_PER_NODE * POWER_NIC] * len(node_power))
-                - ([nodes_required * POWER_NVME] * len(node_power)))
+                - ([nodes_required * config['NICS_PER_NODE'] * config['POWER_NIC']] * len(node_power))
+                - ([nodes_required * config['POWER_NVME']] * len(node_power)))
             gpu_power_array = gpu_power.tolist()
-            gpu_min_power = nodes_required * POWER_GPU_IDLE * GPUS_PER_NODE
-            gpu_max_power = nodes_required * POWER_GPU_MAX * GPUS_PER_NODE
+            gpu_min_power = nodes_required * config['POWER_GPU_IDLE'] * config['GPUS_PER_NODE']
+            gpu_max_power = nodes_required * config['POWER_GPU_MAX'] * config['GPUS_PER_NODE']
             gpu_util = power_to_utilization(gpu_power_array, gpu_min_power, gpu_max_power)
-            gpu_trace = gpu_util * GPUS_PER_NODE
+            gpu_trace = gpu_util * config['GPUS_PER_NODE']
             
         priority = int(jobs_df.loc[jidx, 'priority'])
             
         # wall_time = jobs_df.loc[i, 'run_time']
-        wall_time = gpu_trace.size * TRACE_QUANTA # seconds
+        wall_time = gpu_trace.size * config['TRACE_QUANTA'] # seconds
         end_state = jobs_df.loc[jidx, 'job_state']
         time_start = jobs_df.loc[jidx+1, 'start_time']
         diff = time_start - time_zero
@@ -139,13 +138,13 @@ def load_data_from_df(jobs_df: pd.DataFrame, **kwargs):
             time_offset = max(diff.total_seconds(), 0)
         else:
             # When extracting out a single job, run one iteration past the end of the job
-            time_offset = UI_UPDATE_FREQ
+            time_offset = config['UI_UPDATE_FREQ']
 
         if fastforward: time_offset -= fastforward
 
         if reschedule: # Let the scheduler reschedule the jobs
             scheduled_nodes = None
-            time_offset = next_arrival(1/JOB_ARRIVAL_TIME)
+            time_offset = next_arrival(1/config['JOB_ARRIVAL_TIME'])
         else: # Prescribed replay
             scheduled_nodes = (jobs_df.loc[jidx, 'nodes']).tolist()
             
