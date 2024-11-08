@@ -148,7 +148,7 @@ def load_data_from_df(jobs_df: pd.DataFrame, jobprofile_df: pd.DataFrame, **kwar
     return jobs
 
 
-def xname_to_index(xname: str):
+def xname_to_index(xname: str, config: dict):
     """
     Converts an xname string to an index value based on system configuration.
 
@@ -167,11 +167,11 @@ def xname_to_index(xname: str):
     if row == 6:
         col -= 9
     rack_index = row * 12 + col
-    node_index = chassis * BLADES_PER_CHASSIS * NODES_PER_BLADE + slot * NODES_PER_BLADE + node
-    return rack_index * SC_SHAPE[2] + node_index
+    node_index = chassis * config['BLADES_PER_CHASSIS'] * config['NODES_PER_BLADE'] + slot * config['NODES_PER_BLADE'] + node
+    return rack_index * config['SC_SHAPE'][2] + node_index
 
 
-def index_to_xname(index: int):
+def index_to_xname(index: int, config: dict):
     """
     Converts an index value back to an xname string based on system configuration.
 
@@ -185,17 +185,17 @@ def index_to_xname(index: int):
     str
         The xname string corresponding to the index.
     """
-    rack_index = index // SC_SHAPE[2]
-    node_index = index % SC_SHAPE[2]
+    rack_index = index // config['SC_SHAPE'][2]
+    node_index = index % config['SC_SHAPE'][2]
 
     row = rack_index // 12
     col = rack_index % 12
     if row == 6:
         col += 9
 
-    chassis = node_index // (BLADES_PER_CHASSIS * NODES_PER_BLADE)
-    remaining = node_index % (BLADES_PER_CHASSIS * NODES_PER_BLADE)
-    slot = remaining // NODES_PER_BLADE
-    node = remaining % NODES_PER_BLADE
+    chassis = node_index // (config['BLADES_PER_CHASSIS'] * config['NODES_PER_BLADE'])
+    remaining = node_index % (config['BLADES_PER_CHASSIS'] * config['NODES_PER_BLADE'])
+    slot = remaining // config['NODES_PER_BLADE']
+    node = remaining % config['NODES_PER_BLADE']
 
     return f"x2{row}{col:02}c{chassis}s{slot}b{node}"
