@@ -47,7 +47,6 @@ def load_data_from_df(jobs_df: pd.DataFrame, jobprofile_df: pd.DataFrame, **kwar
         The list of parsed jobs.
     """
     config = kwargs.get('config')
-    globals().update(config)
     encrypt_bool = kwargs.get('encrypt')
     fastforward = kwargs.get('fastforward')
     reschedule = kwargs.get('reschedule')
@@ -101,25 +100,25 @@ def load_data_from_df(jobs_df: pd.DataFrame, jobprofile_df: pd.DataFrame, **kwar
             cpu_power = jobprofile_df[jobprofile_df['allocation_id']
                                       == allocation_id]['sum_cpu0_power']
             cpu_power_array = cpu_power.values
-            cpu_min_power = nodes_required * POWER_CPU_IDLE * CPUS_PER_NODE
-            cpu_max_power = nodes_required * POWER_CPU_MAX * CPUS_PER_NODE
+            cpu_min_power = nodes_required * config['POWER_CPU_IDLE'] * config['CPUS_PER_NODE']
+            cpu_max_power = nodes_required * config['POWER_CPU_MAX'] * config['CPUS_PER_NODE']
             cpu_util = power_to_utilization(cpu_power_array, cpu_min_power, cpu_max_power)
-            cpu_trace = cpu_util * CPUS_PER_NODE
+            cpu_trace = cpu_util * config['CPUS_PER_NODE']
 
             gpu_power = jobprofile_df[jobprofile_df['allocation_id']
                                       == allocation_id]['sum_gpu_power']
             gpu_power_array = gpu_power.values
 
-            gpu_min_power = nodes_required * POWER_GPU_IDLE * GPUS_PER_NODE
-            gpu_max_power = nodes_required * POWER_GPU_MAX * GPUS_PER_NODE
+            gpu_min_power = nodes_required * config['POWER_GPU_IDLE'] * config['GPUS_PER_NODE']
+            gpu_max_power = nodes_required * config['POWER_GPU_MAX'] * config['GPUS_PER_NODE']
             gpu_util = power_to_utilization(gpu_power_array, gpu_min_power, gpu_max_power)
-            gpu_trace = gpu_util * GPUS_PER_NODE
+            gpu_trace = gpu_util * config['GPUS_PER_NODE']
 
         # Set any NaN values in cpu_trace and/or gpu_trace to zero
         cpu_trace[np.isnan(cpu_trace)] = 0
         gpu_trace[np.isnan(gpu_trace)] = 0
 
-        wall_time = gpu_trace.size * TRACE_QUANTA # seconds
+        wall_time = gpu_trace.size * config['TRACE_QUANTA'] # seconds
 
         time_start = jobs_df.loc[jidx+1, 'time_start']
         diff = time_start - time_zero
@@ -133,11 +132,11 @@ def load_data_from_df(jobs_df: pd.DataFrame, jobprofile_df: pd.DataFrame, **kwar
 
         if reschedule: # Let the scheduler reschedule the jobs
             scheduled_nodes = None
-            time_offset = next_arrival(1/JOB_ARRIVAL_TIME)
+            time_offset = next_arrival(1/config['JOB_ARRIVAL_TIME'])
         else: # Prescribed replay
             scheduled_nodes = []
             for xname in xnames:
-                indices = xname_to_index(xname)
+                indices = xname_to_index(xname, config)
                 scheduled_nodes.append(indices)
 
         if gpu_trace.size > 0 and (jid == job_id or jid == '*') and time_offset > 0:
