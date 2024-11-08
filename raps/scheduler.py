@@ -77,8 +77,8 @@ def get_utilization(trace, time_quanta_index):
 
 class Scheduler:
     """Job scheduler and simulation manager."""
-    def __init__(self, power_manager, flops_manager, layout_manager, cooling_model=None, **kwargs):
-        self.config = kwargs.get('config')
+    def __init__(self, *, power_manager, flops_manager, layout_manager, cooling_model=None, config, **kwargs):
+        self.config = config
         self.down_nodes = summarize_ranges(self.config['DOWN_NODES'])
         self.available_nodes = list(set(range(self.config['TOTAL_NODES'])) - set(self.config['DOWN_NODES']))
         self.num_free_nodes = len(self.available_nodes)

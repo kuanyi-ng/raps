@@ -73,7 +73,7 @@ class ThermoFluidsModel:
     cleanup():
         Cleans up the extracted FMU directory, ensuring no temporary files are left behind.
     """
-    def __init__(self, FMU_PATH):
+    def __init__(self, **config):
         """
         Constructs all the necessary attributes for the ThermoFluidsModel object.
 
@@ -82,7 +82,7 @@ class ThermoFluidsModel:
         FMU_PATH : str
             The file path to the FMU file.
         """
-        self.FMU_PATH = FMU_PATH
+        self.config = config
         self.fmu_history = []
         self.inputs = None
         self.outputs = None
@@ -102,8 +102,8 @@ class ThermoFluidsModel:
         print('Initializing FMU...')
 
         # Unzip the FMU file and get the unzip directory
-        self.unzipdir = extract(self.FMU_PATH)
-        model_description = read_model_description(self.FMU_PATH)
+        self.unzipdir = extract(self.config['FMU_PATH'])
+        model_description = read_model_description(self.config['FMU_PATH'])
 
         # Add to list of variable names
         var_model = []
@@ -139,12 +139,12 @@ class ThermoFluidsModel:
         """
         # Dynamically generate the power inputs
         runtime_values = {
-        f"simulator_1_datacenter_1_computeBlock_{i+1}_cabinet_1_sources_Q_flow_total": cdu_power[i] * COOLING_EFFICIENCY / RACKS_PER_CDU
-        for i in range(NUM_CDUS)
+        f"simulator_1_datacenter_1_computeBlock_{i+1}_cabinet_1_sources_Q_flow_total": cdu_power[i] * self.config['COOLING_EFFICIENCY'] / self.config['RACKS_PER_CDU']
+        for i in range(self.config['NUM_CDUS'])
         }
 
         # Default temperature is from the config
-        temperature = WET_BULB_TEMP
+        temperature = self.config['WET_BULB_TEMP']
 
         # If replay mode is on and weather data is available
         if sc.replay and self.weather and self.weather.start is not None and self.weather.has_coords:
@@ -153,10 +153,10 @@ class ThermoFluidsModel:
             target_datetime = self.weather.start + delta
 
             # Get temperature from weather data
-            temperature = self.weather.get_temperature(target_datetime) or WET_BULB_TEMP
+            temperature = self.weather.get_temperature(target_datetime) or self.config['WET_BULB_TEMP']
 
         # Set the temperature value
-        runtime_values[TEMPERATURE_KEY] = temperature
+        runtime_values[self.config['TEMPERATURE_KEY']] = temperature
 
         return runtime_values
     
@@ -226,14 +226,14 @@ class ThermoFluidsModel:
             return np.array(value_in_kw) * 1e3 if value_in_kw is not None else 0.0
 
         # Convert values from kW to Watts using the utility function
-        W_HTWPs = convert_to_watts(cooling_output.get(W_HTWPs_KEY))
-        W_CTWPs = convert_to_watts(cooling_output.get(W_CTWPs_KEY))
-        W_CTs = convert_to_watts(cooling_output.get(W_CTs_KEY))
+        W_HTWPs = convert_to_watts(cooling_output.get(self.config['W_HTWPs_KEY']))
+        W_CTWPs = convert_to_watts(cooling_output.get(self.config['W_CTWPs_KEY']))
+        W_CTs = convert_to_watts(cooling_output.get(self.config['W_CTs_KEY']))
 
         # Get the sum of the work done by all CDU pumps
         W_CDUPs = sum(
             convert_to_watts(cooling_output.get(f'simulator[1].datacenter[1].computeBlock[{idx+1}].cdu[1].summary.W_flow_CDUP_kW'))
-            for idx in range(NUM_CDUS)
+            for idx in range(self.config['NUM_CDUS'])
         )
 
         # Sum all values in the cooling_input dictionary

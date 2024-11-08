@@ -76,7 +76,7 @@ if args.seed:
     np.random.seed(SEED)
 
 if args.cooling:
-    cooling_model = ThermoFluidsModel(FMU_PATH)
+    cooling_model = ThermoFluidsModel(**config)
     cooling_model.initialize()
     args.layout = "layout2"
 
@@ -99,7 +99,11 @@ else:
 flops_manager = FLOPSManager(**config)
 layout_manager = LayoutManager(args.layout, args.debug, **config)
 args_dict['config'] = config
-sc = Scheduler(power_manager, flops_manager, layout_manager, cooling_model, **args_dict)
+sc = Scheduler(
+    power_manager = power_manager, flops_manager = flops_manager, layout_manager = layout_manager,
+    cooling_model = cooling_model,
+    **args_dict,
+)
 
 if args.replay:
 

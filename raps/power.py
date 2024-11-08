@@ -161,7 +161,7 @@ class PowerManager:
     - down_nodes: Nodes that are currently down.
     - down_rack: Rack number of down nodes.
     """
-    def __init__(self, power_func, **config):
+    def __init__(self, power_func=compute_node_power, **config):
         """
         Initialize the PowerManager object.
 
