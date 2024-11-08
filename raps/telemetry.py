@@ -21,15 +21,13 @@ if __name__ == "__main__":
     parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose output')
     args = parser.parse_args()
 
-    from .config import is_config_initialized, initialize_config
-    if not is_config_initialized():
-        initialize_config(args.system)
-
 import importlib
 import numpy as np
 import re
 from datetime import datetime
 from tqdm import tqdm
+
+from .config import ConfigManager
 from .scheduler import Job
 from .plotting import plot_submit_times, plot_nodes_histogram
 from .utils import next_arrival
@@ -42,7 +40,6 @@ class Telemetry:
         self.kwargs = kwargs
         self.system = kwargs.get('system')
         config = kwargs.get('config')
-        globals().update(config)
 
 
     def save_snapshot(self, jobs: list, filename: str):
@@ -71,7 +68,9 @@ class Telemetry:
 if __name__ == "__main__":
 
     args_dict = vars(args)
+    args_dict['config'] = ConfigManager(system_name=args.system).get_config()
     td = Telemetry(**args_dict)
+    JOB_ARRIVAL_TIME = 900
 
     if args.replay[0].endswith(".npz"):
         print(f"Loading {args.replay[0]}...")
@@ -79,7 +78,7 @@ if __name__ == "__main__":
         if args.reschedule:
             for job in tqdm(jobs, desc="Updating requested_nodes"):
                 job['requested_nodes'] = None
-                job['submit_time'] = next_arrival(1/JOB_ARRIVAL_TIME)
+                job['submit_time'] = next_arrival(1/config['JOB_ARRIVAL_TIME'])
     else:
         jobs = td.load_data(args.replay)
 

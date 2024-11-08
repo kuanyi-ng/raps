@@ -47,12 +47,12 @@ class Workload(object):
     """ This class is responsible for generating random workload traces and jobs. """
 
     def __init__(self, **config):
-        globals().update(config)
+        self.config = config
 
     def compute_traces(self, cpu_util: float, gpu_util: float, wall_time: int) -> tuple[np.ndarray, np.ndarray]:
         """ Compute CPU and GPU traces based on mean CPU & GPU utilizations and wall time. """
-        cpu_trace = cpu_util * np.ones(int(wall_time) // TRACE_QUANTA)
-        gpu_trace = gpu_util * np.ones(int(wall_time) // TRACE_QUANTA)
+        cpu_trace = cpu_util * np.ones(int(wall_time) // self.config['TRACE_QUANTA'])
+        gpu_trace = gpu_util * np.ones(int(wall_time) // self.config['TRACE_QUANTA'])
         return (cpu_trace, gpu_trace)
 
 
@@ -60,20 +60,20 @@ class Workload(object):
         """ Generate random jobs with specified number of jobs. """
         jobs = []
         for job_index in range(num_jobs):
-            nodes_required = random.randint(1, MAX_NODES_PER_JOB)
+            nodes_required = random.randint(1, self.config['MAX_NODES_PER_JOB'])
             name = random.choice(JOB_NAMES)
-            cpu_util = random.random()*CPUS_PER_NODE
-            gpu_util = random.random()*GPUS_PER_NODE
-            mu = (MAX_WALL_TIME + MIN_WALL_TIME) / 2
-            sigma = (MAX_WALL_TIME - MIN_WALL_TIME) / 6
-            wall_time = truncated_normalvariate(mu, sigma, MIN_WALL_TIME, MAX_WALL_TIME) // 3600 * 3600
-            end_state = determine_state(JOB_END_PROBS)
+            cpu_util = random.random() * self.config['CPUS_PER_NODE']
+            gpu_util = random.random() * self.config['GPUS_PER_NODE']
+            mu = (self.config['MAX_WALL_TIME'] + self.config['MIN_WALL_TIME']) / 2
+            sigma = (self.config['MAX_WALL_TIME'] - self.config['MIN_WALL_TIME']) / 6
+            wall_time = truncated_normalvariate(mu, sigma, self.config['MIN_WALL_TIME'], self.config['MAX_WALL_TIME']) // 3600 * 3600
+            end_state = determine_state(self.config['JOB_END_PROBS'])
             cpu_trace, gpu_trace = self.compute_traces(cpu_util, gpu_util, wall_time)
             priority = random.randint(0, MAX_PRIORITY)
             net_tx, net_rx = [], []
 
             # Jobs arrive according to Poisson process
-            time_to_next_job = next_arrival(1/JOB_ARRIVAL_TIME)
+            time_to_next_job = next_arrival(1 / self.config['JOB_ARRIVAL_TIME'])
 
             jobs.append(job_dict(nodes_required, name, cpu_trace, gpu_trace, net_tx, net_rx, \
                         wall_time, end_state, None, time_to_next_job, None, priority))
@@ -90,11 +90,12 @@ class Workload(object):
     def peak(self, **kwargs):
         """Peak power test"""
         jobs = self.generate_random_jobs(num_jobs=0)
-        cpu_util, gpu_util = CPUS_PER_NODE, GPUS_PER_NODE
+        cpu_util = self.config['CPUS_PER_NODE'], 
+        gpu_util = self.config['GPUS_PER_NODE']
         cpu_trace, gpu_trace = self.compute_traces(cpu_util, gpu_util, 10800)
         net_tx, net_rx = [], []
-        job_info = job_dict(AVAILABLE_NODES, "Max Test", cpu_trace, gpu_trace, net_tx, net_rx, \
-                    len(gpu_trace)*TRACE_QUANTA, 'COMPLETED', None, 100, None)
+        job_info = job_dict(self.config['AVAILABLE_NODES'], "Max Test", cpu_trace, gpu_trace, net_tx, net_rx, \
+                    len(gpu_trace)*self.config['TRACE_QUANTA'], 'COMPLETED', None, 100, None)
         jobs.insert(0, job_info)
         return jobs
 
@@ -105,8 +106,8 @@ class Workload(object):
         cpu_util, gpu_util = 0, 0
         cpu_trace, gpu_trace = self.compute_traces(cpu_util, gpu_util, 43200)
         net_tx, net_rx = [], []
-        job_info = job_dict(AVAILABLE_NODES, "Idle Test", cpu_trace, gpu_trace, net_tx, net_rx, \
-                    len(gpu_trace)*TRACE_QUANTA, 'COMPLETED', None, 0, None)
+        job_info = job_dict(self.config['AVAILABLE_NODES'], "Idle Test", cpu_trace, gpu_trace, net_tx, net_rx, \
+                    len(gpu_trace)*self.config['TRACE_QUANTA'], 'COMPLETED', None, 0, None)
         jobs.insert(0, job_info)
         return jobs
 
@@ -120,26 +121,26 @@ class Workload(object):
         # Max test
         cpu_util, gpu_util = 1, 4
         cpu_trace, gpu_trace = self.compute_traces(cpu_util, gpu_util, 10800)
-        job_info = jobs_dict(AVAILABLE_NODES, "Max Test", cpu_trace, gpu_trace, net_tx, net_rx, \
-                    len(gpu_trace)*TRACE_QUANTA, 'COMPLETED', None, 100, None)
+        job_info = job_dict(self.config['AVAILABLE_NODES'], "Max Test", cpu_trace, gpu_trace, net_tx, net_rx, \
+                    len(gpu_trace)*self.config['TRACE_QUANTA'], 'COMPLETED', None, 100, None)
         jobs.insert(0, job_info)
         # OpenMxP run
         cpu_util, gpu_util = 0, 4
         cpu_trace, gpu_trace = self.compute_traces(cpu_util, gpu_util, 3600)
-        job_info = jobs_dict(AVAILABLE_NODES, "OpenMxP", cpu_trace, gpu_trace, net_tx, net_rx, \
-                    len(gpu_trace)*TRACE_QUANTA, 'COMPLETED', None, 300, None)
+        job_info = job_dict(self.config['AVAILABLE_NODES'], "OpenMxP", cpu_trace, gpu_trace, net_tx, net_rx, \
+                    len(gpu_trace)*self.config['TRACE_QUANTA'], 'COMPLETED', None, 300, None)
         jobs.insert(0, job_info)
         # HPL run
         cpu_util, gpu_util = 0.33, 0.79 * 4 # based on 24-01-18 run
         cpu_trace, gpu_trace = self.compute_traces(cpu_util, gpu_util, 3600)
-        job_info = jobs_dict(AVAILABLE_NODES, "HPL", cpu_trace, gpu_trace, net_tx, net_rx, \
-                    len(gpu_trace)*TRACE_QUANTA, 'COMPLETED', None, 200, None)
+        job_info = job_dict(self.config['AVAILABLE_NODES'], "HPL", cpu_trace, gpu_trace, net_tx, net_rx, \
+                    len(gpu_trace)*self.config['TRACE_QUANTA'], 'COMPLETED', None, 200, None)
         jobs.insert(0, job_info)
         # Idle test
         cpu_util, gpu_util = 0, 0
         cpu_trace, gpu_trace = self.compute_traces(cpu_util, gpu_util, 3600)
-        job_info = jobs_dict(AVAILABLE_NODES, "Idle Test", cpu_trace, gpu_trace, net_tx, net_rx, \
-                    len(gpu_trace)*TRACE_QUANTA, 'COMPLETED', None, 0, None)
+        job_info = job_dict(self.config['AVAILABLE_NODES'], "Idle Test", cpu_trace, gpu_trace, net_tx, net_rx, \
+                    len(gpu_trace)*self.config['TRACE_QUANTA'], 'COMPLETED', None, 0, None)
         jobs.insert(0, job_info)
 
         return jobs

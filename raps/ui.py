@@ -11,15 +11,16 @@ from .constants import ELLIPSES
 
 class LayoutManager:
     def __init__(self, layout_type, debug, **config):
-        print(config)
-        globals().update(config)
+        self.config = config
         self.console = Console()
         self.layout = Layout()
         self.hascooling = layout_type == "layout2"
         self.debug = debug
         self.setup_layout(layout_type)
-        self.power_column = POWER_DF_HEADER[RACKS_PER_CDU + 1]
-        self.loss_column = POWER_DF_HEADER[-1]
+        self.power_df_header = self.config['POWER_DF_HEADER']
+        self.racks_per_cdu = self.config['RACKS_PER_CDU']
+        self.power_column = self.power_df_header[self.racks_per_cdu + 1]
+        self.loss_column = self.power_df_header[-1]
 
     def setup_layout(self, layout_type):
         if layout_type == "layout2":
@@ -65,7 +66,7 @@ class LayoutManager:
             table.add_row(*formatted_row)
 
     def calculate_totals(self, df): # 'Sum' and 'Loss' columns
-        total_power_kw = df[self.power_column].sum() + (NUM_CDUS * POWER_CDU / 1000.0)
+        total_power_kw = df[self.power_column].sum() + (self.config['NUM_CDUS'] * self.config['POWER_CDU'] / 1000.0)
         total_power_mw = total_power_kw / 1000.0
         total_loss_kw = df[self.loss_column].sum()
         total_loss_mw = total_loss_kw / 1000.0
@@ -219,7 +220,8 @@ class LayoutManager:
             DataFrame containing temperature and cooling data.
         """
         # Define the specific columns for power
-        power_columns = POWER_DF_HEADER[0:RACKS_PER_CDU + 2] + [POWER_DF_HEADER[-1]]  # "CDU", "Rack 1", "Rack 2", "Rack 3", "Sum", "Loss"
+        #power_columns = POWER_DF_HEADER[0:RACKS_PER_CDU + 2] + [POWER_DF_HEADER[-1]]  # "CDU", "Rack 1", "Rack 2", "Rack 3", "Sum", "Loss"
+        power_columns = self.power_df_header[0:self.racks_per_cdu + 2] + [self.power_df_header[-1]]  # "CDU", "Rack 1", "Rack 2", "Rack 3", "Sum", "Loss"
         
         # Updated cooling keys to include temperature instead of pressure
         cooling_keys = ["T_prim_s_C", "T_prim_r_C", "T_sec_s_C", "T_sec_r_C"]
@@ -303,7 +305,7 @@ class LayoutManager:
             DataFrame containing power and loss data for racks.
         """
         # Define the specific columns to display
-        display_columns = POWER_DF_HEADER[0:RACKS_PER_CDU + 2] + [POWER_DF_HEADER[-1]]  # "CDU", "Rack 1", "Rack 2", "Rack 3", "Sum", "Loss"
+        display_columns = self.power_df_header[0:self.racks_per_cdu + 2] + [self.power_df_header[-1]]
 
         # Extract only the relevant columns and round the values
         if uncertainties:

@@ -78,12 +78,11 @@ def get_utilization(trace, time_quanta_index):
 class Scheduler:
     """Job scheduler and simulation manager."""
     def __init__(self, power_manager, flops_manager, layout_manager, cooling_model=None, **kwargs):
-        config = kwargs.get('config')
-        globals().update(config)
-        self.down_nodes = summarize_ranges(DOWN_NODES)
-        self.available_nodes = list(set(range(TOTAL_NODES)) - set(DOWN_NODES))
+        self.config = kwargs.get('config')
+        self.down_nodes = summarize_ranges(self.config['DOWN_NODES'])
+        self.available_nodes = list(set(range(self.config['TOTAL_NODES'])) - set(self.config['DOWN_NODES']))
         self.num_free_nodes = len(self.available_nodes)
-        self.num_active_nodes = TOTAL_NODES - self.num_free_nodes - len(DOWN_NODES)
+        self.num_active_nodes = self.config['TOTAL_NODES'] - self.num_free_nodes - len(self.config['DOWN_NODES'])
         self.running = []
         self.queue = []
         self.jobs_completed = 0
@@ -177,11 +176,11 @@ class Scheduler:
                           is not None and job.end_time <= self.current_time]
 
         # Simulate node failure
-        newly_downed_nodes = self.node_failure(MTBF)
+        newly_downed_nodes = self.node_failure(self.config['MTBF'])
 
         # Update active/free nodes
         self.num_free_nodes = len(self.available_nodes)
-        self.num_active_nodes = TOTAL_NODES - self.num_free_nodes \
+        self.num_active_nodes = self.config['TOTAL_NODES'] - self.num_free_nodes \
                               - len(expand_ranges(self.down_nodes))
 
         # Update running time for all running jobs
@@ -209,7 +208,8 @@ class Scheduler:
 
                 job.running_time = self.current_time - job.start_time
 
-                time_quanta_index = (self.current_time - job.start_time) // TRACE_QUANTA
+                time_quanta_index = (self.current_time - job.start_time) \
+                                  // self.config['TRACE_QUANTA']
 
                 cpu_util = get_utilization(job.cpu_trace, time_quanta_index)
                 gpu_util = get_utilization(job.gpu_trace, time_quanta_index)
@@ -225,7 +225,7 @@ class Scheduler:
                 job.power = self.power_manager.update_power_state(job.scheduled_nodes,
                                                                   cpu_util, gpu_util, net_util)
 
-                if job.running_time % TRACE_QUANTA == 0:
+                if job.running_time % self.config['TRACE_QUANTA'] == 0:
                     job.power_history.append(job.power)
 
         for job in completed_jobs:
@@ -269,7 +269,7 @@ class Scheduler:
         rack_loss = rect_losses + sivoc_losses
 
         # Update system utilization
-        system_util = self.num_active_nodes / AVAILABLE_NODES * 100
+        system_util = self.num_active_nodes / self.config['AVAILABLE_NODES'] * 100
         self.sys_util_history.append((self.current_time, system_util))
 
         # Render the updated layout
@@ -277,8 +277,8 @@ class Scheduler:
         cooling_inputs, cooling_outputs = None, None
 
         # Update power history every 15s
-        if self.current_time % POWER_UPDATE_FREQ == 0:
-            total_power_kw = sum(row[-1] for row in rack_power) + NUM_CDUS * POWER_CDU / 1000.0
+        if self.current_time % self.config['POWER_UPDATE_FREQ'] == 0:
+            total_power_kw = sum(row[-1] for row in rack_power) + self.config['NUM_CDUS'] * self.config['POWER_CDU'] / 1000.0
             total_loss_kw = sum(row[-1] for row in rack_loss)
             self.power_manager.history.append((self.current_time, total_power_kw))
             self.power_manager.loss_history.append((self.current_time, total_loss_kw))
@@ -290,7 +290,7 @@ class Scheduler:
 
         if self.cooling_model:
 
-            if self.current_time % FMU_UPDATE_FREQ == 0:
+            if self.current_time % self.config['FMU_UPDATE_FREQ'] == 0:
                 # Power for NUM_CDUS (25 for Frontier)
                 cdu_power = rack_power.T[-1] * 1000
                 runtime_values = self.cooling_model.generate_runtime_values(cdu_power, self)
@@ -299,7 +299,7 @@ class Scheduler:
                 fmu_inputs = self.cooling_model.generate_fmu_inputs(runtime_values, \
                              uncertainties=self.power_manager.uncertainties)
                 cooling_inputs, cooling_outputs =\
-                    self.cooling_model.step(self.current_time, fmu_inputs, FMU_UPDATE_FREQ)
+                    self.cooling_model.step(self.current_time, fmu_inputs, self.config['FMU_UPDATE_FREQ'])
                 
                 # Get a dataframe of the power data
                 power_df = self.power_manager.get_power_df(rack_power, rack_loss)
@@ -310,7 +310,7 @@ class Scheduler:
                                system_util, uncertainties=self.power_manager.uncertainties)
                     self.layout_manager.update_pressflow_array(cooling_outputs)
 
-        if self.current_time % UI_UPDATE_FREQ == 0:
+        if self.current_time % self.config['UI_UPDATE_FREQ'] == 0:
             # Get a dataframe of the power data
             power_df = self.power_manager.get_power_df(rack_power, rack_loss)
 
@@ -376,7 +376,7 @@ class Scheduler:
                 print("stopping simulation at time", self.current_time)
                 break
             if self.debug:
-                if _ % UI_UPDATE_FREQ == 0:
+                if _ % self.config['UI_UPDATE_FREQ'] == 0:
                     print(".", end="", flush=True)
 
     def run_simulation_blocking(self, jobs, timesteps):
@@ -408,7 +408,7 @@ class Scheduler:
         # From https://www.epa.gov/energy/greenhouse-gases-equivalencies-\
         #      calculator-calculations-and-references
         emissions = total_energy_consumed * 852.3 / 2204.6 / efficiency
-        total_cost = total_energy_consumed * 1000 * POWER_COST # total cost in dollars
+        total_cost = total_energy_consumed * 1000 * self.config['POWER_COST'] # total cost in dollars
 
         stats = {
             'num_samples': num_samples,
@@ -435,10 +435,13 @@ class Scheduler:
 
         # Create a NumPy array of node indices, excluding down nodes
         down_nodes = expand_ranges(self.down_nodes)
-        all_nodes = np.setdiff1d(np.arange(TOTAL_NODES), np.array(down_nodes, dtype=int))
+        all_nodes = np.setdiff1d(np.arange(self.config['TOTAL_NODES']), 
+                                 np.array(down_nodes, dtype=int))
 
         # Sample the Weibull distribution for all nodes at once
-        random_values = weibull_min.rvs(shape_parameter, scale=scale_parameter, size=all_nodes.size)
+        random_values = weibull_min.rvs(shape_parameter, 
+                                        scale=scale_parameter, 
+                                        size=all_nodes.size)
 
         # Identify nodes that have failed
         failure_threshold = 0.1
