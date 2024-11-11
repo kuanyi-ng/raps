@@ -190,7 +190,7 @@ class PowerManager:
 
     def get_peak_power(self):
         """Estimate peak power of system for setting max value of gauges in dashboard"""
-        node_power = compute_node_power(self.config['CPUS_PER_NODE'], self.config['GPUS_PER_NODE'], net_util=0)[0]
+        node_power = compute_node_power(self.config['CPUS_PER_NODE'], self.config['GPUS_PER_NODE'], net_util=0, config=self.config)[0]
         blades_per_rectifier = self.config['BLADES_PER_CHASSIS'] / self.config['RECTIFIERS_PER_CHASSIS']
         rectifier_load = blades_per_rectifier * self.config['NODES_PER_BLADE'] * node_power
         rectifier_power = compute_loss(rectifier_load, self.config['RECTIFIER_LOSS_CONSTANT'], \
