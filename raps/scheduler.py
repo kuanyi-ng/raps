@@ -31,7 +31,6 @@ Config parameters used:
 - MAX_TIME: Maximum simulation time.
 - POWER_UPDATE_FREQ: Frequency of updating power-related metrics.
 - POWER_DF_HEADER: Header for the power related components of DataFrame.
-- FMU_UPDATE_FREQ: Frequency of updating the FMU model.
 - POWER_CDU: Power consumption of CDU.
 - TOTAL_NODES: Total number of nodes in the system.
 - COOLING_EFFICIENCY: Cooling efficiency factor.
@@ -290,7 +289,7 @@ class Scheduler:
 
         if self.cooling_model:
 
-            if self.current_time % self.config['FMU_UPDATE_FREQ'] == 0:
+            if self.current_time % self.config['POWER_UPDATE_FREQ'] == 0:
                 # Power for NUM_CDUS (25 for Frontier)
                 cdu_power = rack_power.T[-1] * 1000
                 runtime_values = self.cooling_model.generate_runtime_values(cdu_power, self)
@@ -299,7 +298,7 @@ class Scheduler:
                 fmu_inputs = self.cooling_model.generate_fmu_inputs(runtime_values, \
                              uncertainties=self.power_manager.uncertainties)
                 cooling_inputs, cooling_outputs =\
-                    self.cooling_model.step(self.current_time, fmu_inputs, self.config['FMU_UPDATE_FREQ'])
+                    self.cooling_model.step(self.current_time, fmu_inputs, self.config['POWER_UPDATE_FREQ'])
                 
                 # Get a dataframe of the power data
                 power_df = self.power_manager.get_power_df(rack_power, rack_loss)
