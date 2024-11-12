@@ -80,7 +80,7 @@ def get_utilization(trace, time_quanta_index):
 
 class Scheduler:
     """Job scheduler and simulation manager."""
-    def __init__(self, *, power_manager, flops_manager, layout_manager, cooling_model=None, config, **kwargs):
+    def __init__(self, *, power_manager, flops_manager, cooling_model=None, config, **kwargs):
         self.config = config
         self.down_nodes = summarize_ranges(self.config['DOWN_NODES'])
         self.available_nodes = list(set(range(self.config['TOTAL_NODES'])) - set(self.config['DOWN_NODES']))
@@ -91,7 +91,6 @@ class Scheduler:
         self.jobs_completed = 0
         self.current_time = 0
         self.cooling_model = cooling_model
-        self.layout_manager = layout_manager
         self.power_manager = power_manager
         self.flops_manager = flops_manager
         self.debug = kwargs.get('debug')
@@ -310,21 +309,6 @@ class Scheduler:
                 # Get a dataframe of the power data
                 power_df = self.power_manager.get_power_df(rack_power, rack_loss)
 
-        if self.current_time % self.config['UI_UPDATE_FREQ'] == 0 and self.layout_manager and not self.debug:
-            if self.cooling_model:
-                self.layout_manager.update_powertemp_array(power_df, \
-                            cooling_outputs, pflops, gflop_per_watt, \
-                            system_util, uncertainties=self.power_manager.uncertainties)
-                self.layout_manager.update_pressflow_array(cooling_outputs)
-
-            self.layout_manager.update_scheduled_jobs(self.running + self.queue)
-            self.layout_manager.update_status(self.current_time, len(self.running),
-                                            len(self.queue), self.num_active_nodes,
-                                            self.num_free_nodes, self.down_nodes[1:])
-            self.layout_manager.update_power_array(power_df, pflops, gflop_per_watt, \
-                                system_util, uncertainties=self.power_manager.uncertainties)
-            self.layout_manager.render()
-
         tick_data = TickData(
             current_time = self.current_time,
             completed = completed_jobs,
@@ -383,11 +367,6 @@ class Scheduler:
                 break
             if self.debug and timestep % self.config['UI_UPDATE_FREQ'] == 0:
                     print(".", end="", flush=True)
-
-    def run_simulation_blocking(self, jobs, timesteps):
-        """ Calls run_simulation and blocks until it is complete """
-        for _ in self.run_simulation(jobs, timesteps):
-            pass
 
     def get_stats(self):
         """ Return output statistics """

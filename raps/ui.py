@@ -7,10 +7,12 @@ from rich.panel import Panel
 from rich.table import Table
 from .utils import summarize_ranges, convert_seconds
 from .constants import ELLIPSES
+from .scheduler import TickData, Scheduler
 
 
 class LayoutManager:
-    def __init__(self, layout_type, debug, **config):
+    def __init__(self, layout_type, scheduler: Scheduler, debug, **config):
+        self.scheduler = scheduler
         self.config = config
         self.console = Console()
         self.layout = Layout()
@@ -369,7 +371,34 @@ class LayoutManager:
 
             self.layout["lower"].update(Panel(Align(total_table, align="center"), title="Power and Performance"))
 
+    def update(self, data: TickData):
+        uncertainties = self.scheduler.power_manager.uncertainties
+
+        if self.scheduler.cooling_model:
+            self.update_powertemp_array(
+                data.power_df, data.fmu_outputs, data.p_flops, data.g_flops_w, data.system_util,
+                uncertainties = uncertainties,
+            )
+            self.update_pressflow_array(data.fmu_outputs)
+
+        self.update_scheduled_jobs(data.running + data.queue)
+        self.update_status(
+            data.current_time, len(data.running), len(data.queue), data.num_active_nodes,
+            data.num_free_nodes, data.down_nodes,
+        )
+        self.update_power_array(
+            data.power_df, data.p_flops, data.g_flops_w,
+            data.system_util, uncertainties = uncertainties,
+        )
+
     def render(self):
         if not self.debug:
             self.console.clear()
             self.console.print(self.layout)
+
+    def run(self, jobs, timesteps):
+        """ Runs the UI, blocking until the simulation is complete """
+        for data in self.scheduler.run_simulation(jobs, timesteps):
+            if data.current_time % self.config['UI_UPDATE_FREQ'] == 0:
+                self.update(data)
+                self.render()

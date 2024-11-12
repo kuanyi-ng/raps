@@ -97,13 +97,13 @@ else:
         power_manager = PowerManager(compute_node_power, **config)
 
 flops_manager = FLOPSManager(**config)
-layout_manager = LayoutManager(args.layout, args.debug, **config)
 args_dict['config'] = config
 sc = Scheduler(
-    power_manager = power_manager, flops_manager = flops_manager, layout_manager = layout_manager,
+    power_manager = power_manager, flops_manager = flops_manager,
     cooling_model = cooling_model,
     **args_dict,
 )
+layout_manager = LayoutManager(args.layout, scheduler = sc, debug = args.debug, **config)
 
 if args.replay:
 
@@ -173,7 +173,8 @@ if args.plot or args.output:
 if args.verbose:
     print(jobs)
 
-sc.run_simulation_blocking(jobs, timesteps=timesteps)
+layout_manager.run(jobs, timesteps=timesteps)
+
 output_stats = sc.get_stats()
 # Following b/c we get the following error when we use PM100 telemetry dataset
 # TypeError: Object of type int64 is not JSON serializable
