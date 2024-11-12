@@ -287,40 +287,39 @@ class Scheduler:
         else:    
             pflops, gflop_per_watt = None, None
 
-        if self.cooling_model:
-
-            if self.current_time % self.config['POWER_UPDATE_FREQ'] == 0:
+        if self.current_time % self.config['POWER_UPDATE_FREQ'] == 0:
+            if self.cooling_model:
                 # Power for NUM_CDUS (25 for Frontier)
                 cdu_power = rack_power.T[-1] * 1000
                 runtime_values = self.cooling_model.generate_runtime_values(cdu_power, self)
                 
                 # FMU inputs are N powers and the wetbulb temp
-                fmu_inputs = self.cooling_model.generate_fmu_inputs(runtime_values, \
-                             uncertainties=self.power_manager.uncertainties)
-                cooling_inputs, cooling_outputs =\
+                fmu_inputs = self.cooling_model.generate_fmu_inputs(runtime_values,
+                                uncertainties=self.power_manager.uncertainties)
+                cooling_inputs, cooling_outputs = (
                     self.cooling_model.step(self.current_time, fmu_inputs, self.config['POWER_UPDATE_FREQ'])
+                )
                 
                 # Get a dataframe of the power data
                 power_df = self.power_manager.get_power_df(rack_power, rack_loss)
+            else:
+                # Get a dataframe of the power data
+                power_df = self.power_manager.get_power_df(rack_power, rack_loss)
 
-                if self.layout_manager:
-                    self.layout_manager.update_powertemp_array(power_df, \
-                               cooling_outputs, pflops, gflop_per_watt, \
-                               system_util, uncertainties=self.power_manager.uncertainties)
-                    self.layout_manager.update_pressflow_array(cooling_outputs)
+        if self.current_time % self.config['UI_UPDATE_FREQ'] == 0 and self.layout_manager and not self.debug:
+            if self.cooling_model:
+                self.layout_manager.update_powertemp_array(power_df, \
+                            cooling_outputs, pflops, gflop_per_watt, \
+                            system_util, uncertainties=self.power_manager.uncertainties)
+                self.layout_manager.update_pressflow_array(cooling_outputs)
 
-        if self.current_time % self.config['UI_UPDATE_FREQ'] == 0:
-            # Get a dataframe of the power data
-            power_df = self.power_manager.get_power_df(rack_power, rack_loss)
-
-            if self.layout_manager and not self.debug:
-                self.layout_manager.update_scheduled_jobs(self.running + self.queue)
-                self.layout_manager.update_status(self.current_time, len(self.running),
-                                              len(self.queue), self.num_active_nodes,
-                                              self.num_free_nodes, self.down_nodes[1:])
-                self.layout_manager.update_power_array(power_df, pflops, gflop_per_watt, \
-                                    system_util, uncertainties=self.power_manager.uncertainties)
-                self.layout_manager.render()
+            self.layout_manager.update_scheduled_jobs(self.running + self.queue)
+            self.layout_manager.update_status(self.current_time, len(self.running),
+                                            len(self.queue), self.num_active_nodes,
+                                            self.num_free_nodes, self.down_nodes[1:])
+            self.layout_manager.update_power_array(power_df, pflops, gflop_per_watt, \
+                                system_util, uncertainties=self.power_manager.uncertainties)
+            self.layout_manager.render()
 
         tick_data = TickData(
             current_time = self.current_time,
