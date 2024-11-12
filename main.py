@@ -81,7 +81,7 @@ if args.cooling:
     args.layout = "layout2"
 
     if args_dict['start']:
-        cooling_model.weather = Weather(args_dict['start'])
+        cooling_model.weather = Weather(args_dict['start'], config = config)
 else:
     cooling_model = None
 

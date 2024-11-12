@@ -8,14 +8,15 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 class Weather:
-    def __init__(self, iso_string=None):
+    def __init__(self, iso_string, config):
         """
         Initialize the Weather class with configuration loaded from a JSON file.
         If zip_code and country_code are provided, the coordinates (lat, lon)
         will be retrieved once and stored.
         """
-        self.zip_code = ZIP_CODE
-        self.country_code = COUNTRY_CODE
+        self.config = config
+        self.zip_code = config['ZIP_CODE']
+        self.country_code = config['COUNTRY_CODE']
         self.lat = None
         self.lon = None
         self.weather_cache = {}  # Cache for storing weather data for the entire day
@@ -24,11 +25,7 @@ class Weather:
 
         try:
             # Convert the ISO 8601 string to a datetime object
-            dt = datetime.fromisoformat(iso_string.replace("Z", "+00:00"))
-            
-            # Check if dt is a datetime object
-            if isinstance(dt, datetime):
-                self.start = dt
+            self.start = datetime.fromisoformat(iso_string.replace("Z", "+00:00"))
         except ValueError:
             print("Invalid ISO 8601 datetime string specified for --start. Using default temperature instead.")
 
