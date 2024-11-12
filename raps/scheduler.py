@@ -58,8 +58,8 @@ class TickData:
     jobs: list[Job]
     down_nodes: list[int]
     power_df: Optional[pd.DataFrame]
-    p_flops: float
-    g_flops_w: float
+    p_flops: Optional[float]
+    g_flops_w: Optional[float]
     system_util: float
     fmu_inputs: Optional[dict]
     fmu_outputs: Optional[dict]
