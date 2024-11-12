@@ -170,7 +170,7 @@ def xname_to_index(xname: str, config: dict):
     return rack_index * config['SC_SHAPE'][2] + node_index
 
 
-def index_to_xname(index: int, config: dict):
+def index_to_name(index: int, config: dict):
     """
     Converts an index value back to an xname string based on system configuration.
 

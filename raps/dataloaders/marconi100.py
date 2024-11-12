@@ -154,3 +154,8 @@ def load_data_from_df(jobs_df: pd.DataFrame, **kwargs):
             jobs.append(job_info)
 
     return jobs
+
+
+def index_to_name(index: int, config: dict):
+    """ Converts an index value back to an name string based on system configuration. """
+    return f"node{index:.04d}"
