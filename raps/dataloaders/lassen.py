@@ -210,9 +210,18 @@ def generate_network_sequences(total_tx, total_rx, intervals, lambda_poisson):
     return tx_bursts, rx_bursts
 
 
-def index_to_name(index: int, config: dict):
+def node_index_to_name(index: int, config: dict):
     """ Converts an index value back to an name string based on system configuration. """
-    return f"node{index:.04d}"
+    return f"node{index:04d}"
+
+
+def cdu_index_to_name(index: int, config: dict):
+    return f"cdu{index:02d}"
+
+
+def cdu_pos(index: int, config: dict) -> tuple[int, int]:
+    """ Return (row, col) tuple for a cdu index """
+    return (0, index) # TODO
 
 
 if __name__ == "__main__":

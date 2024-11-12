@@ -170,7 +170,7 @@ def xname_to_index(xname: str, config: dict):
     return rack_index * config['SC_SHAPE'][2] + node_index
 
 
-def index_to_name(index: int, config: dict):
+def node_index_to_name(index: int, config: dict):
     """
     Converts an index value back to an xname string based on system configuration.
 
@@ -198,3 +198,21 @@ def index_to_name(index: int, config: dict):
     node = remaining % config['NODES_PER_BLADE']
 
     return f"x2{row}{col:02}c{chassis}s{slot}b{node}"
+
+
+CDU_NAMES = [
+    'x2002c1', 'x2003c1', 'x2006c1', 'x2009c1', 'x2102c1', 'x2103c1', 'x2106c1', 'x2109c1',
+    'x2202c1', 'x2203c1', 'x2206c1', 'x2209c1', 'x2302c1', 'x2303c1', 'x2306c1', 'x2309c1',
+    'x2402c1', 'x2403c1', 'x2406c1', 'x2409c1', 'x2502c1', 'x2503c1', 'x2506c1', 'x2509c1',
+    'x2609c1',
+]
+
+def cdu_index_to_name(index: int, config: dict):
+    return CDU_NAMES[index - 1]
+
+
+def cdu_pos(index: int, config: dict) -> tuple[int, int]:
+    """ Return (row, col) tuple for a cdu index """
+    name = CDU_NAMES[index - 1]
+    row, col = int(name[2]), int(name[3:5])
+    return (row, col)

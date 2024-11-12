@@ -39,7 +39,8 @@ class Telemetry:
     def __init__(self, **kwargs):
         self.kwargs = kwargs
         self.system = kwargs.get('system')
-        config = kwargs.get('config')
+        self.config = kwargs.get('config')
+        self.dataloader = importlib.import_module(f".dataloaders.{self.system}", package = __package__)
 
 
     def save_snapshot(self, jobs: list, filename: str):
@@ -55,20 +56,34 @@ class Telemetry:
 
     def load_data(self, files):
         """Load telemetry data using custom data loaders."""
-        module = importlib.import_module(f".dataloaders.{self.system}", package=__package__)
-        return module.load_data(files, **self.kwargs)
+        return self.dataloader.load_data(files, **self.kwargs)
 
 
     def load_data_from_df(self, *args, **kwargs):
         """Load telemetry data using custom data loaders."""
-        module = importlib.import_module(f".dataloaders.{self.system}", package=__package__)
-        return module.load_data_from_df(*args, **kwargs)
+        return self.dataloader.load_data_from_df(*args, **kwargs)
+
+
+    def node_index_to_name(self, index: int):
+        """ Convert node index into a name"""
+        return self.dataloader.node_index_to_name(index, config = self.config)
+
+
+    def cdu_index_to_name(self, index: int):
+        """ Convert cdu index into a name"""
+        return self.dataloader.cdu_index_to_name(index, config = self.config)
+
+    
+    def cdu_pos(self, index: int) -> tuple[int, int]:
+        """ Return (row, col) tuple for a cdu index """
+        return self.dataloader.cdu_pos(index, config = self.config)
 
 
 if __name__ == "__main__":
 
     args_dict = vars(args)
-    args_dict['config'] = ConfigManager(system_name=args.system).get_config()
+    config = ConfigManager(system_name=args.system).get_config()
+    args_dict['config'] = config
     td = Telemetry(**args_dict)
     JOB_ARRIVAL_TIME = 900
 
@@ -78,7 +93,7 @@ if __name__ == "__main__":
         if args.reschedule:
             for job in tqdm(jobs, desc="Updating requested_nodes"):
                 job['requested_nodes'] = None
-                job['submit_time'] = next_arrival(1/config['JOB_ARRIVAL_TIME'])
+                job['submit_time'] = next_arrival(1 / config['JOB_ARRIVAL_TIME'])
     else:
         jobs = td.load_data(args.replay)
 
