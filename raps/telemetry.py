@@ -4,7 +4,7 @@ index conversion, and job data parsing. It supports reading and saving snapshots
 parsing parquet files, and generating job state information.
 
 The module defines a `Telemetry` class for managing telemetry data and several
-helper functions for data encryption and conversion between xname and index formats.
+helper functions for data encryption and conversion between node name and index formats.
 """
 
 import argparse

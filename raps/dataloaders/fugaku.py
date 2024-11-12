@@ -110,5 +110,6 @@ def load_data_from_df(df, **kwargs):
     return job_list
 
 
-# Sample usage:
-# fugaku_jobs = load_data(['/path/to/21_04.parquet'])
+def index_to_name(index: int, config: dict):
+    """ Converts an index value back to an name string based on system configuration. """
+    return f"node{index:.04d}"

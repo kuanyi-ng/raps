@@ -210,6 +210,10 @@ def generate_network_sequences(total_tx, total_rx, intervals, lambda_poisson):
     return tx_bursts, rx_bursts
 
 
+def index_to_name(index: int, config: dict):
+    """ Converts an index value back to an name string based on system configuration. """
+    return f"node{index:.04d}"
+
 
 if __name__ == "__main__":
 
