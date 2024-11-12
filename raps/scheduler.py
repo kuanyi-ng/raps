@@ -55,7 +55,9 @@ from .utils import summarize_ranges, expand_ranges
 class TickData:
     """ Represents the state output from the simulation each tick """
     current_time: int
-    jobs: list[Job]
+    completed: list[Job]
+    running: list[Job]
+    queue: list[Job]
     down_nodes: list[int]
     power_df: Optional[pd.DataFrame]
     p_flops: Optional[float]
@@ -63,6 +65,8 @@ class TickData:
     system_util: float
     fmu_inputs: Optional[dict]
     fmu_outputs: Optional[dict]
+    num_active_nodes: int
+    num_free_nodes: int
 
 
 def get_utilization(trace, time_quanta_index):
@@ -323,7 +327,9 @@ class Scheduler:
 
         tick_data = TickData(
             current_time = self.current_time,
-            jobs = completed_jobs + self.running + self.queue,
+            completed = completed_jobs,
+            running = self.running,
+            queue =  self.queue,
             down_nodes = expand_ranges(self.down_nodes[1:]),
             power_df = power_df,
             p_flops = pflops,
@@ -331,6 +337,8 @@ class Scheduler:
             system_util = system_util,
             fmu_inputs = cooling_inputs,
             fmu_outputs = cooling_outputs,
+            num_active_nodes =  self.num_active_nodes,
+            num_free_nodes = self.num_free_nodes,
         )
 
         self.current_time += 1
@@ -359,7 +367,7 @@ class Scheduler:
             limits = self.get_gauge_limits()
             print(limits)
         
-        for _ in range(timesteps):
+        for timestep in range(timesteps):
             while self.current_time >= last_submit_time and jobs:
                 job = jobs.pop(0)
                 self.schedule([job])
@@ -373,8 +381,7 @@ class Scheduler:
             if not self.queue and not self.running and not self.replay:
                 print("stopping simulation at time", self.current_time)
                 break
-            if self.debug:
-                if _ % self.config['UI_UPDATE_FREQ'] == 0:
+            if self.debug and timestep % self.config['UI_UPDATE_FREQ'] == 0:
                     print(".", end="", flush=True)
 
     def run_simulation_blocking(self, jobs, timesteps):
