@@ -31,7 +31,6 @@ Config parameters used:
 - MAX_TIME: Maximum simulation time.
 - POWER_UPDATE_FREQ: Frequency of updating power-related metrics.
 - POWER_DF_HEADER: Header for the power related components of DataFrame.
-- FMU_UPDATE_FREQ: Frequency of updating the FMU model.
 - POWER_CDU: Power consumption of CDU.
 - TOTAL_NODES: Total number of nodes in the system.
 - COOLING_EFFICIENCY: Cooling efficiency factor.
@@ -56,14 +55,18 @@ from .utils import summarize_ranges, expand_ranges
 class TickData:
     """ Represents the state output from the simulation each tick """
     current_time: int
-    jobs: list[Job]
+    completed: list[Job]
+    running: list[Job]
+    queue: list[Job]
     down_nodes: list[int]
     power_df: Optional[pd.DataFrame]
-    p_flops: float
-    g_flops_w: float
+    p_flops: Optional[float]
+    g_flops_w: Optional[float]
     system_util: float
     fmu_inputs: Optional[dict]
     fmu_outputs: Optional[dict]
+    num_active_nodes: int
+    num_free_nodes: int
 
 
 def get_utilization(trace, time_quanta_index):
@@ -77,7 +80,7 @@ def get_utilization(trace, time_quanta_index):
 
 class Scheduler:
     """Job scheduler and simulation manager."""
-    def __init__(self, *, power_manager, flops_manager, layout_manager, cooling_model=None, config, **kwargs):
+    def __init__(self, *, power_manager, flops_manager, cooling_model=None, config, **kwargs):
         self.config = config
         self.down_nodes = summarize_ranges(self.config['DOWN_NODES'])
         self.available_nodes = list(set(range(self.config['TOTAL_NODES'])) - set(self.config['DOWN_NODES']))
@@ -88,7 +91,6 @@ class Scheduler:
         self.jobs_completed = 0
         self.current_time = 0
         self.cooling_model = cooling_model
-        self.layout_manager = layout_manager
         self.power_manager = power_manager
         self.flops_manager = flops_manager
         self.debug = kwargs.get('debug')
@@ -288,44 +290,30 @@ class Scheduler:
         else:    
             pflops, gflop_per_watt = None, None
 
-        if self.cooling_model:
-
-            if self.current_time % self.config['FMU_UPDATE_FREQ'] == 0:
+        if self.current_time % self.config['POWER_UPDATE_FREQ'] == 0:
+            if self.cooling_model:
                 # Power for NUM_CDUS (25 for Frontier)
                 cdu_power = rack_power.T[-1] * 1000
                 runtime_values = self.cooling_model.generate_runtime_values(cdu_power, self)
                 
                 # FMU inputs are N powers and the wetbulb temp
-                fmu_inputs = self.cooling_model.generate_fmu_inputs(runtime_values, \
-                             uncertainties=self.power_manager.uncertainties)
-                cooling_inputs, cooling_outputs =\
-                    self.cooling_model.step(self.current_time, fmu_inputs, self.config['FMU_UPDATE_FREQ'])
+                fmu_inputs = self.cooling_model.generate_fmu_inputs(runtime_values,
+                                uncertainties=self.power_manager.uncertainties)
+                cooling_inputs, cooling_outputs = (
+                    self.cooling_model.step(self.current_time, fmu_inputs, self.config['POWER_UPDATE_FREQ'])
+                )
                 
                 # Get a dataframe of the power data
                 power_df = self.power_manager.get_power_df(rack_power, rack_loss)
-
-                if self.layout_manager:
-                    self.layout_manager.update_powertemp_array(power_df, \
-                               cooling_outputs, pflops, gflop_per_watt, \
-                               system_util, uncertainties=self.power_manager.uncertainties)
-                    self.layout_manager.update_pressflow_array(cooling_outputs)
-
-        if self.current_time % self.config['UI_UPDATE_FREQ'] == 0:
-            # Get a dataframe of the power data
-            power_df = self.power_manager.get_power_df(rack_power, rack_loss)
-
-            if self.layout_manager and not self.debug:
-                self.layout_manager.update_scheduled_jobs(self.running + self.queue)
-                self.layout_manager.update_status(self.current_time, len(self.running),
-                                              len(self.queue), self.num_active_nodes,
-                                              self.num_free_nodes, self.down_nodes[1:])
-                self.layout_manager.update_power_array(power_df, pflops, gflop_per_watt, \
-                                    system_util, uncertainties=self.power_manager.uncertainties)
-                self.layout_manager.render()
+            else:
+                # Get a dataframe of the power data
+                power_df = self.power_manager.get_power_df(rack_power, rack_loss)
 
         tick_data = TickData(
             current_time = self.current_time,
-            jobs = completed_jobs + self.running + self.queue,
+            completed = completed_jobs,
+            running = self.running,
+            queue =  self.queue,
             down_nodes = expand_ranges(self.down_nodes[1:]),
             power_df = power_df,
             p_flops = pflops,
@@ -333,6 +321,8 @@ class Scheduler:
             system_util = system_util,
             fmu_inputs = cooling_inputs,
             fmu_outputs = cooling_outputs,
+            num_active_nodes =  self.num_active_nodes,
+            num_free_nodes = self.num_free_nodes,
         )
 
         self.current_time += 1
@@ -361,7 +351,7 @@ class Scheduler:
             limits = self.get_gauge_limits()
             print(limits)
         
-        for _ in range(timesteps):
+        for timestep in range(timesteps):
             while self.current_time >= last_submit_time and jobs:
                 job = jobs.pop(0)
                 self.schedule([job])
@@ -375,14 +365,8 @@ class Scheduler:
             if not self.queue and not self.running and not self.replay:
                 print("stopping simulation at time", self.current_time)
                 break
-            if self.debug:
-                if _ % self.config['UI_UPDATE_FREQ'] == 0:
+            if self.debug and timestep % self.config['UI_UPDATE_FREQ'] == 0:
                     print(".", end="", flush=True)
-
-    def run_simulation_blocking(self, jobs, timesteps):
-        """ Calls run_simulation and blocks until it is complete """
-        for _ in self.run_simulation(jobs, timesteps):
-            pass
 
     def get_stats(self):
         """ Return output statistics """
