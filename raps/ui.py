@@ -21,7 +21,6 @@ class LayoutManager:
         self.setup_layout(layout_type)
         self.power_df_header = self.config['POWER_DF_HEADER']
         self.racks_per_cdu = self.config['RACKS_PER_CDU']
-        self.fmu_cols = self.config['FMU_COLUMN_MAPPING']
         self.power_column = self.power_df_header[self.racks_per_cdu + 1]
         self.loss_column = self.power_df_header[-1]
 
@@ -170,6 +169,7 @@ class LayoutManager:
         self.layout["status"].update(Panel(Align(table, align="center"), title="Scheduler Stats"))
 
     def update_pressflow_array(self, cooling_outputs):
+        fmu_cols = self.config['FMU_COLUMN_MAPPING']
         columns = ["Output", "Average Value"]
 
         datacenter_df = self.get_datacenter_df(cooling_outputs)
@@ -184,8 +184,8 @@ class LayoutManager:
 
         data = []
         for key in relevant_keys:
-            if key in datacenter_df and key in self.fmu_cols:
-                label = self.fmu_cols[key]
+            if key in datacenter_df and key in fmu_cols:
+                label = fmu_cols[key]
                 average_value = round(datacenter_df[key].mean(), 1)
                 data.append((label, average_value))
 
@@ -196,14 +196,15 @@ class LayoutManager:
 
     def get_datacenter_df(self, cooling_outputs):
         # Initialize data dictionary with keys from FMU_COLUMN_MAPPING
-        data = {key: [] for key in self.fmu_cols.keys()}
+        fmu_cols = self.config['FMU_COLUMN_MAPPING']
+        data = {key: [] for key in fmu_cols.keys()}
         
         # Loop over each compute block in the datacenter_outputs dictionary
         for i in range(1, self.config['NUM_CDUS'] + 1):
             compute_block_key = f"simulator[1].datacenter[1].computeBlock[{i}].cdu[1].summary."
             
             # Append data to the corresponding lists dynamically using FMU_COLUMN_MAPPING keys
-            for key in self.fmu_cols.keys():
+            for key in fmu_cols.keys():
                 data[key].append(cooling_outputs.get(compute_block_key + key))
         
         # Convert to DataFrame
@@ -226,6 +227,7 @@ class LayoutManager:
         # Define the specific columns for power
         #power_columns = POWER_DF_HEADER[0:RACKS_PER_CDU + 2] + [POWER_DF_HEADER[-1]]  # "CDU", "Rack 1", "Rack 2", "Rack 3", "Sum", "Loss"
         power_columns = self.power_df_header[0:self.racks_per_cdu + 2] + [self.power_df_header[-1]]  # "CDU", "Rack 1", "Rack 2", "Rack 3", "Sum", "Loss"
+        fmu_cols = self.config['FMU_COLUMN_MAPPING']
         
         # Updated cooling keys to include temperature instead of pressure
         cooling_keys = ["T_prim_s_C", "T_prim_r_C", "T_sec_s_C", "T_sec_r_C"]
@@ -234,12 +236,12 @@ class LayoutManager:
 
         # Create column headers with appropriate styles
         columns = [f"{col} (kW)" if col != "CDU" else col for col in power_columns]
-        columns += [self.fmu_cols[key] for key in cooling_keys]
+        columns += [fmu_cols[key] for key in cooling_keys]
 
         # Define styles for data values
         data_styles = ["bold cyan"] + ["bold green"] * (len(power_columns) - 1)
         data_styles += [
-            "bold blue" if "Supply" in self.fmu_cols[key] else "bold red" for key in cooling_keys
+            "bold blue" if "Supply" in fmu_cols[key] else "bold red" for key in cooling_keys
         ]
 
         # Initialize the table with header styles
