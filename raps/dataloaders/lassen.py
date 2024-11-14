@@ -59,6 +59,7 @@ def load_data_from_df(allocation_df, node_df, step_df, **kwargs):
     reschedule = kwargs.get('reschedule')
     fastforward = kwargs.get('fastforward')
     verbose = kwargs.get('verbose')
+    min_time = kwargs.get('min_time', None)
 
     if fastforward:
         print(f"fast-forwarding {fastforward} seconds")
@@ -66,8 +67,9 @@ def load_data_from_df(allocation_df, node_df, step_df, **kwargs):
     allocation_df['begin_time'] = pd.to_datetime(allocation_df['begin_time'], format='mixed', errors='coerce')
     allocation_df['end_time'] = pd.to_datetime(allocation_df['end_time'], format='mixed', errors='coerce')
 
-    earliest_begin_time = pd.to_datetime(allocation_df['begin_time']).min()
-    print(earliest_begin_time)
+    if not min_time:
+        min_time = pd.to_datetime(allocation_df['begin_time']).min()
+
     job_list = []
 
     for _, row in tqdm(allocation_df.iterrows(), total=len(allocation_df), desc="Processing Jobs"):
@@ -124,7 +126,7 @@ def load_data_from_df(allocation_df, node_df, step_df, **kwargs):
             time_offset = next_arrival(1/config['JOB_ARRIVAL_TIME'])
         else:
             scheduled_nodes = get_scheduled_nodes(row['allocation_id'], node_df)
-            time_offset = compute_time_offset(row['begin_time'], earliest_begin_time)
+            time_offset = compute_time_offset(row['begin_time'], min_time)
             if fastforward:
                 time_offset -= fastforward
 
