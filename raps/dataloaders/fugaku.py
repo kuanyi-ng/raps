@@ -54,6 +54,7 @@ def load_data_from_df(df, **kwargs):
     validate = kwargs.get('validate')
     jid = kwargs.get('jid', '*')
     config = kwargs.get('config')
+    min_time = kwargs.get('min_time', None)
 
     if fastforward: print(f"fast-forwarding {fastforward} seconds")
 
@@ -61,7 +62,8 @@ def load_data_from_df(df, **kwargs):
     
     # Convert 'adt' (submit time) to datetime and find the earliest submission time
     df['adt'] = pd.to_datetime(df['adt'], errors='coerce')
-    earliest_submit_time = df['adt'].min()
+    if not min_time:
+        min_time = df['adt'].min()
 
     # Loop through the DataFrame rows to extract job information
     for _, row in tqdm(df.iterrows(), total=len(df), desc="Processing Jobs"):
@@ -80,11 +82,11 @@ def load_data_from_df(df, **kwargs):
         end_state = row['exit state'] if 'exit state' in df.columns else 'unknown'
         #scheduled_nodes = row['nnuma'] if 'nnuma' in df.columns else 0
         scheduled_nodes = None
-        submit_time = row['adt'] if 'adt' in df.columns else earliest_submit_time
+        submit_time = row['adt'] if 'adt' in df.columns else min_time
         if reschedule: # Let the scheduler reschedule the jobs
             time_offset = next_arrival(1/config['JOB_ARRIVAL_TIME'])
         else:
-            time_offset = (submit_time - earliest_submit_time).total_seconds()  # Compute time offset in seconds
+            time_offset = (submit_time - min_time).total_seconds()  # Compute time offset in seconds
 
         job_id = row['jid'] if 'jid' in df.columns else 'unknown'
         priority = row['pri'] if 'pri' in df.columns else 0
