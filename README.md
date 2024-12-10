@@ -34,10 +34,15 @@ Note: Requires python3.9 or greater.
 
 ## Open Telemetry dataset
 
-Download `job_table.parquet` from https://zenodo.org/records/10127767
+For Marconi supercomputer, download `job_table.parquet` from https://zenodo.org/records/10127767
 
     # Marconi100
     python main.py --system marconi100 -f ~/data/marconi100/job_table.parquet 
+
+For Adastra MI250 supercomputer, download 'AdastaJobsMI250_15days.parquet' from https://zenodo.org/records/14007065
+    # Adastra MI250
+    python main.py --system adastraMI250 -f AdastaJobsMI250_15days.parquet 
+
 
 ## Snapshot of extracted workload data
 
