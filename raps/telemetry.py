@@ -38,6 +38,8 @@ class Telemetry:
 
     def __init__(self, **kwargs):
         self.kwargs = kwargs
+        global telemetry_args
+        telemetry_args= kwargs
         self.system = kwargs.get('system')
         self.config = kwargs.get('config')
         self.dataloader = importlib.import_module(f".dataloaders.{self.system}", package = __package__)
@@ -85,7 +87,7 @@ if __name__ == "__main__":
     config = ConfigManager(system_name=args.system).get_config()
     args_dict['config'] = config
     td = Telemetry(**args_dict)
-    JOB_ARRIVAL_TIME = 900
+    
 
     if args.replay[0].endswith(".npz"):
         print(f"Loading {args.replay[0]}...")
