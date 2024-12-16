@@ -21,6 +21,7 @@ def run_command(command):
     result = subprocess.run(command, shell=True)
     if result.returncode != 0:
         print(f"Error: Command failed with return code {result.returncode}")
+        exit(-1)
 
 def build_command(system, file_paths, additional_args=""):
     """Build the command string for the given system and file paths."""
@@ -36,7 +37,7 @@ def execute_system_tests():
 def synthetic_workload_tests():
     """Run synthetic workload tests."""
     print("Starting synthetic workload tests...")
-    run_command("python main.py -t {DEFAULT_TIME}")
+    run_command(f"python main.py -t {DEFAULT_TIME}")
     run_command(f"python main.py -w benchmark -t {DEFAULT_TIME}")
     run_command(f"python main.py -w peak -t {DEFAULT_TIME}")
     run_command(f"python main.py -w idle -t {DEFAULT_TIME}")
