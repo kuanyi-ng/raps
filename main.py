@@ -95,9 +95,9 @@ else:
         power_manager = PowerManager(compute_node_power_uncertainties, **config)
     else:
         power_manager = PowerManager(compute_node_power, **config)
-
-flops_manager = FLOPSManager(**config)
 args_dict['config'] = config
+flops_manager = FLOPSManager(**args_dict)
+
 sc = Scheduler(
     power_manager = power_manager, flops_manager = flops_manager,
     cooling_model = cooling_model,
