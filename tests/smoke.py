@@ -12,7 +12,8 @@ SYSTEMS = {
     "frontier": "frontier/slurm/joblive/date=2024-01-18 frontier/jobprofile/date=2024-01-18",
     "fugaku": "fugaku/21_04.parquet",
     "marconi100": "marconi100/job_table.parquet",
-    "lassen": "lassen/Lassen-Supercomputer-Job-Dataset"
+    "lassen": "lassen/Lassen-Supercomputer-Job-Dataset",
+    "adastraMI250": "adastra/AdastaJobsMI250_15days.parquet"
 }
 
 def run_command(command):
