@@ -9,7 +9,7 @@ the FMU cooling model by providing CDU-level power inputs to the cooling model,
 and reporting the statistics back to the user. RAPS also has built-in plotting
 capabilities to generate plots of power and cooling at the end of simulation runs.
 An optional RAPS dashboard is also provided, which requires also running the RAPS server.
-Instructions for setup and usage are given below. 
+Instructions for setup and usage are given below. An online documentation of ExaDigiT with a sub part concerning RAPS is also available [here](https://exadigit.readthedocs.io/en/latest/).
 
 ## Setup environment
 
