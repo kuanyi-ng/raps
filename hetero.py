@@ -38,8 +38,14 @@ layout_manager2 = LayoutManager(args.layout, scheduler=sc2, debug=args.debug, **
 
 wl = Workload(**config1)
 jobs = getattr(wl, args.workload)(num_jobs=args.numjobs)
-#print(jobs)
-#exit()
+
+# Separate jobs based on partition
+jobs1 = [job for job in jobs if job['partition'] == 'setonix-cpu']
+jobs2 = [job for job in jobs if job['partition'] == 'setonix-gpu']
+
+# Print counts for verification
+print(f"Jobs for setonix-cpu: {len(jobs1)}")
+print(f"Jobs for setonix-gpu: {len(jobs2)}")
 
 if args.time:
     timesteps = convert_to_seconds(args.time)
@@ -50,8 +56,8 @@ if args.verbose:
     print(jobs)
 
 # Create generator objects for both partitions
-gen1 = layout_manager1.run_nonblocking(jobs, timesteps=timesteps)
-gen2 = layout_manager2.run_nonblocking(jobs, timesteps=timesteps)
+gen1 = layout_manager1.run_nonblocking(jobs1, timesteps=timesteps)
+gen2 = layout_manager2.run_nonblocking(jobs2, timesteps=timesteps)
 
 # Step through both generators in lockstep
 for _ in range(timesteps):

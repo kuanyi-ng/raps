@@ -354,7 +354,8 @@ class Scheduler:
         for timestep in range(timesteps):
             # Print the current timestep for this partition
             if timestep % self.config['UI_UPDATE_FREQ'] == 0:
-                print(f"[DEBUG] {self.config['system_name']} - Timestep {timestep} - Jobs in queue: {len(self.queue)}")
+                sys_util = self.sys_util_history[-1][1] if self.sys_util_history else 0
+                print(f"[DEBUG] {self.config['system_name']} - Timestep {timestep} - Jobs in queue: {len(self.queue)} - Utilization: {sys_util:.1f}%")
 
             while self.current_time >= last_submit_time and jobs:
                 job = jobs.pop(0)
