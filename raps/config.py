@@ -10,6 +10,7 @@ class ConfigManager:
     def __init__(self, system_name: str):
         self.config: Dict[str, Any] = {}
         self.load_system_config(system_name)
+        self.system_name = system_name
         self.derive_values()
 
     def load_system_config(self, system_name: str) -> None:
@@ -45,6 +46,7 @@ class ConfigManager:
         self.config['SC_SHAPE'] = [num_cdus, racks_per_cdu, nodes_per_rack]
         self.config['TOTAL_NODES'] = num_cdus * racks_per_cdu * nodes_per_rack
         self.config['BLADES_PER_CHASSIS'] = int(nodes_per_rack / chassis_per_rack / nodes_per_blade)
+        self.config['system_name'] = self.system_name
 
         # Generate POWER_DF_HEADER
         power_df_header = ["CDU"]

@@ -349,11 +349,16 @@ class Scheduler:
         self.timesteps = timesteps
         if self.debug: 
             limits = self.get_gauge_limits()
-            print(limits)
+            print(f"[DEBUG] Limits for {self.config['system_name']}:", limits)
         
         for timestep in range(timesteps):
+            # Print the current timestep for this partition
+            if timestep % self.config['UI_UPDATE_FREQ'] == 0:
+                print(f"[DEBUG] {self.config['system_name']} - Timestep {timestep} - Jobs in queue: {len(self.queue)}")
+
             while self.current_time >= last_submit_time and jobs:
                 job = jobs.pop(0)
+                print(f"[DEBUG] {self.config['system_name']} - Scheduling job {job['id']} at timestep {timestep}")
                 self.schedule([job])
                 if jobs:
                     last_submit_time = job['submit_time']
@@ -363,7 +368,7 @@ class Scheduler:
 
             # Stop the simulation if no more jobs running or are in the queue
             if not self.queue and not self.running and not self.replay:
-                print("stopping simulation at time", self.current_time)
+                print(f"[DEBUG] {self.config['system_name']} - Stopping simulation at time {self.current_time}")
                 break
             if self.debug and timestep % self.config['UI_UPDATE_FREQ'] == 0:
                     print(".", end="", flush=True)
