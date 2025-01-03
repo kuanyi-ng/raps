@@ -53,10 +53,10 @@ parser.add_argument('-w', '--workload', type=str, choices=choices, default=choic
 choices = ['layout1', 'layout2']
 parser.add_argument('--layout', type=str, choices=choices, default=choices[0], help='Layout of UI')
 args = parser.parse_args()
-cpu_args_dict = vars(args)
-gpu_args_dict = vars(args)
-print(cpu_args_dict)
-print(gpu_args_dict)
+args_dict1 = vars(args)
+args_dict2 = vars(args)
+print(args_dict1)
+print(args_dict2)
 
 from raps.config import ConfigManager
 from raps.constants import OUTPUT_PATH
@@ -73,8 +73,8 @@ from raps.weather import Weather
 from raps.utils import create_casename, convert_to_seconds, write_dict_to_file, next_arrival
 
 #config = ConfigManager(system_name=args.system).get_config()
-cpu_config = ConfigManager(system_name='setonix-cpu').get_config()
-gpu_config = ConfigManager(system_name='setonix-gpu').get_config()
+config1 = ConfigManager(system_name='setonix-cpu').get_config()
+config2 = ConfigManager(system_name='setonix-gpu').get_config()
 
 
 if args.seed:
@@ -91,24 +91,20 @@ if args.cooling:
 else:
     cooling_model = None
 
-cpu_power_manager = PowerManager(compute_node_power, **cpu_config)
-gpu_power_manager = PowerManager(compute_node_power, **gpu_config)
+cpu_power_manager = PowerManager(compute_node_power, **config1)
+gpu_power_manager = PowerManager(compute_node_power, **config2)
 
-cpu_args_dict['config'] = cpu_config
-gpu_args_dict['config'] = gpu_config
+args_dict1['config'] = config1
+args_dict2['config'] = config2
 
-cpu_flops_manager = FLOPSManager(**cpu_args_dict)
-gpu_flops_manager = FLOPSManager(**gpu_args_dict)
+cpu_flops_manager = FLOPSManager(**args_dict1)
+gpu_flops_manager = FLOPSManager(**args_dict2)
 
-#sc = Scheduler(
-#    power_manager = power_manager, flops_manager = flops_manager,
-#    cooling_model = cooling_model,
-#    **args_dict,
-#)
-cpu_scheduler = Scheduler(power_manager=cpu_power_manager, flops_manager=cpu_flops_manager, config=cpu_config)
-gpu_scheduler = Scheduler(power_manager=gpu_power_manager, flops_manager=gpu_flops_manager, config=gpu_config)
+sc1 = Scheduler(power_manager=cpu_power_manager, flops_manager=cpu_flops_manager, cooling_model=None, **args_dict1)
+sc2 = Scheduler(power_manager=gpu_power_manager, flops_manager=gpu_flops_manager, cooling_model=None, **args_dict2)
 
-layout_manager = LayoutManager(args.layout, scheduler=sc, debug=args.debug, **config)
+layout_manager1 = LayoutManager(args.layout, scheduler=sc1, debug=args.debug, **config1)
+layout_manager2 = LayoutManager(args.layout, scheduler=sc2, debug=args.debug, **config2)
 
 if args.replay:
 
@@ -149,7 +145,7 @@ if args.replay:
     time.sleep(1)
 
 else:
-    wl = Workload(**config)
+    wl = Workload(**config1)
     jobs = getattr(wl, args.workload)(num_jobs=args.numjobs)
 
     if args.verbose:
@@ -167,7 +163,8 @@ else:
 
 OPATH = OUTPUT_PATH / DIR_NAME
 print("Output directory is: ", OPATH)
-sc.opath = OPATH
+sc1.opath = OPATH
+sc2.opath = OPATH
 
 if args.plot or args.output:
     try:
@@ -178,7 +175,8 @@ if args.plot or args.output:
 if args.verbose:
     print(jobs)
 
-layout_manager.run(jobs, timesteps=timesteps)
+layout_manager1.run(jobs, timesteps=timesteps)
+layout_manager2.run(jobs, timesteps=timesteps)
 
 output_stats = sc.get_stats()
 # Following b/c we get the following error when we use PM100 telemetry dataset

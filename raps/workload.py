@@ -79,7 +79,7 @@ class Workload(object):
             partition = random.choice(VALID_PARTITIONS)
 
             jobs.append(job_dict(nodes_required, name, cpu_trace, gpu_trace, net_tx, net_rx, \
-                        wall_time, end_state, None, time_to_next_job, None, priority, partion))
+                        wall_time, end_state, None, time_to_next_job, None, priority, partition))
 
         return jobs
 
