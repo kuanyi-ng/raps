@@ -106,7 +106,7 @@ if args.replay:
     time.sleep(1)
 
 else:
-    wl = Workload(**config)
+    wl = Workload(config)
     jobs = getattr(wl, args.workload)(num_jobs=args.numjobs)
 
     if args.verbose:

@@ -17,9 +17,7 @@ from raps.workload import Workload
 from raps.utils import convert_to_seconds
 
 config1 = ConfigManager(system_name='setonix-cpu').get_config()
-print(config1['system_name'])
 config2 = ConfigManager(system_name='setonix-gpu').get_config()
-print(config2['system_name'])
 
 pm1 = PowerManager(compute_node_power, **config1)
 pm2 = PowerManager(compute_node_power, **config2)
@@ -36,8 +34,13 @@ sc2 = Scheduler(power_manager=pm1, flops_manager=fm2, cooling_model=None, **args
 layout_manager1 = LayoutManager(args.layout, scheduler=sc1, debug=args.debug, **config1)
 layout_manager2 = LayoutManager(args.layout, scheduler=sc2, debug=args.debug, **config2)
 
-wl = Workload(**config1)
+print(config1)
+print(config2)
+configs = [config1, config2]
+wl = Workload(*configs)
+
 jobs = getattr(wl, args.workload)(num_jobs=args.numjobs)
+print(jobs)
 
 # Separate jobs based on partition
 jobs1 = [job for job in jobs if job['partition'] == 'setonix-cpu']
@@ -52,8 +55,7 @@ if args.time:
 else:
     timesteps = 88200 # 24 hours
 
-if args.verbose:
-    print(jobs)
+if args.verbose: print(jobs)
 
 # Create generator objects for both partitions
 gen1 = layout_manager1.run_nonblocking(jobs1, timesteps=timesteps)
