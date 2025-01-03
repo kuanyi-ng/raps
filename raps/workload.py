@@ -45,13 +45,7 @@ from .utils import truncated_normalvariate, determine_state, next_arrival
 
 class Workload:
     def __init__(self, *configs):
-        """
-        Initialize Workload with multiple configurations.
-        Args:
-            *configs: Variable number of configurations for each partition.
-        """
-        #self.partitions = [config['system_name'] for config in configs]  # Extract system names
-        #self.configs = configs
+        """ Initialize Workload with multiple configurations.  """
         self.partitions = [config['system_name'] for config in configs]
         self.config_map = {config['system_name']: config for config in configs}
 
@@ -90,7 +84,6 @@ class Workload:
 
         return jobs
 
-
     def random(self, **kwargs):
         """ Generate random workload """
         num_jobs = kwargs.get('num_jobs', 0)
@@ -123,7 +116,7 @@ class Workload:
                 'COMPLETED',                     # End state
                 None,                            # Scheduled nodes
                 0,                               # Time to next job
-                1234,                            # Job ID
+                None,                            # Job ID
                 100,                             # Priority
                 partition                        # Partition name
             )
@@ -133,47 +126,96 @@ class Workload:
         return jobs
 
     def idle(self, **kwargs):
-        """Idle power test"""
-        jobs = self.generate_random_jobs(num_jobs=0)
-        cpu_util, gpu_util = 0, 0
-        cpu_trace, gpu_trace = self.compute_traces(cpu_util, gpu_util, 43200)
-        net_tx, net_rx = [], []
-        job_info = job_dict(self.config['AVAILABLE_NODES'], "Idle Test", cpu_trace, gpu_trace, net_tx, net_rx, \
-                    len(gpu_trace)*self.config['TRACE_QUANTA'], 'COMPLETED', None, 0, None)
-        jobs.insert(0, job_info)
-        return jobs
+        """Idle power test for multiple partitions"""
 
+        # List to hold jobs for all partitions
+        jobs = []
+
+        # Iterate through each partition and get its configuration
+        for partition in self.partitions:
+            # Fetch partition-specific configuration
+            config = self.config_map[partition]
+
+            # Generate traces based on partition-specific configuration
+            cpu_util, gpu_util = 0, 0  # Idle test has zero utilization
+            cpu_trace, gpu_trace = self.compute_traces(cpu_util, gpu_util, 43200, config['TRACE_QUANTA'])  # 12 hours
+            net_tx, net_rx = [], []
+
+            # Create job info for this partition
+            job_info = job_dict(
+                config['AVAILABLE_NODES'],       # Nodes required
+                f"Idle Test {partition}",        # Name with partition label
+                cpu_trace,                       # CPU trace
+                gpu_trace,                       # GPU trace
+                net_tx,                          # Network transmit trace
+                net_rx,                          # Network receive trace
+                len(gpu_trace) * config['TRACE_QUANTA'],  # Wall time
+                'COMPLETED',                     # End state
+                None,                            # Scheduled nodes
+                0,                               # Time to next job
+                None,                            # Job ID
+                100,                             # Priority
+                partition                        # Partition name
+            )
+            jobs.append(job_info)  # Add job to the list
+
+        return jobs
 
     def benchmark(self, **kwargs):
-        """Benchmark tests"""
+        """Benchmark tests for multiple partitions"""
 
-        jobs = self.generate_random_jobs(num_jobs=0)
-        net_tx, net_rx = [], []
+        # List to hold jobs for all partitions
+        jobs = []
 
-        # Max test
-        cpu_util, gpu_util = 1, 4
-        cpu_trace, gpu_trace = self.compute_traces(cpu_util, gpu_util, 10800)
-        job_info = job_dict(self.config['AVAILABLE_NODES'], "Max Test", cpu_trace, gpu_trace, net_tx, net_rx, \
-                    len(gpu_trace)*self.config['TRACE_QUANTA'], 'COMPLETED', None, 100, None)
-        jobs.insert(0, job_info)
-        # OpenMxP run
-        cpu_util, gpu_util = 0, 4
-        cpu_trace, gpu_trace = self.compute_traces(cpu_util, gpu_util, 3600)
-        job_info = job_dict(self.config['AVAILABLE_NODES'], "OpenMxP", cpu_trace, gpu_trace, net_tx, net_rx, \
-                    len(gpu_trace)*self.config['TRACE_QUANTA'], 'COMPLETED', None, 300, None)
-        jobs.insert(0, job_info)
-        # HPL run
-        cpu_util, gpu_util = 0.33, 0.79 * 4 # based on 24-01-18 run
-        cpu_trace, gpu_trace = self.compute_traces(cpu_util, gpu_util, 3600)
-        job_info = job_dict(self.config['AVAILABLE_NODES'], "HPL", cpu_trace, gpu_trace, net_tx, net_rx, \
-                    len(gpu_trace)*self.config['TRACE_QUANTA'], 'COMPLETED', None, 200, None)
-        jobs.insert(0, job_info)
-        # Idle test
-        cpu_util, gpu_util = 0, 0
-        cpu_trace, gpu_trace = self.compute_traces(cpu_util, gpu_util, 3600)
-        job_info = job_dict(self.config['AVAILABLE_NODES'], "Idle Test", cpu_trace, gpu_trace, net_tx, net_rx, \
-                    len(gpu_trace)*self.config['TRACE_QUANTA'], 'COMPLETED', None, 0, None)
-        jobs.insert(0, job_info)
+        # Iterate through each partition and its config
+        for partition in self.partitions:
+            # Fetch partition-specific configuration
+            config = self.config_map[partition]
+            net_tx, net_rx = [], []
+
+            # Max test
+            cpu_util, gpu_util = 1, 4
+            cpu_trace, gpu_trace = self.compute_traces(cpu_util, gpu_util, 10800, config['TRACE_QUANTA'])
+            job_info = job_dict(
+                config['AVAILABLE_NODES'], 
+                f"Max Test {partition}", 
+                cpu_trace, gpu_trace, net_tx, net_rx,
+                len(gpu_trace) * config['TRACE_QUANTA'], 'COMPLETED', None, 100, None, 0, partition
+            )
+            jobs.append(job_info)
+
+            # OpenMxP run
+            cpu_util, gpu_util = 0, 4
+            cpu_trace, gpu_trace = self.compute_traces(cpu_util, gpu_util, 3600, config['TRACE_QUANTA'])
+            job_info = job_dict(
+                config['AVAILABLE_NODES'], 
+                f"OpenMxP {partition}", 
+                cpu_trace, gpu_trace, net_tx, net_rx,
+                len(gpu_trace) * config['TRACE_QUANTA'], 'COMPLETED', None, 300, None, 0, partition
+            )
+            jobs.append(job_info)
+
+            # HPL run
+            cpu_util, gpu_util = 0.33, 0.79 * 4  # based on 24-01-18 run
+            cpu_trace, gpu_trace = self.compute_traces(cpu_util, gpu_util, 3600, config['TRACE_QUANTA'])
+            job_info = job_dict(
+                config['AVAILABLE_NODES'], 
+                f"HPL {partition}", 
+                cpu_trace, gpu_trace, net_tx, net_rx,
+                len(gpu_trace) * config['TRACE_QUANTA'], 'COMPLETED', None, 200, None, 0, partition
+            )
+            jobs.append(job_info)
+
+            # Idle test
+            cpu_util, gpu_util = 0, 0
+            cpu_trace, gpu_trace = self.compute_traces(cpu_util, gpu_util, 3600, config['TRACE_QUANTA'])
+            job_info = job_dict(
+                config['AVAILABLE_NODES'], 
+                f"Idle Test {partition}", 
+                cpu_trace, gpu_trace, net_tx, net_rx,
+                len(gpu_trace) * config['TRACE_QUANTA'], 'COMPLETED', None, 0, None, 0, partition
+            )
+            jobs.append(job_info)
 
         return jobs
-    
+
