@@ -75,8 +75,11 @@ class Workload(object):
             # Jobs arrive according to Poisson process
             time_to_next_job = next_arrival(1 / self.config['JOB_ARRIVAL_TIME'])
 
+            VALID_PARTITIONS = ['setonix-cpu', 'setonix-gpu']
+            partition = random.choice(VALID_PARTITIONS)
+
             jobs.append(job_dict(nodes_required, name, cpu_trace, gpu_trace, net_tx, net_rx, \
-                        wall_time, end_state, None, time_to_next_job, None, priority))
+                        wall_time, end_state, None, time_to_next_job, None, priority, partion))
 
         return jobs
 
