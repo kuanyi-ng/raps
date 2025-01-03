@@ -19,17 +19,17 @@ from raps.utils import convert_to_seconds
 config1 = ConfigManager(system_name='setonix-cpu').get_config()
 config2 = ConfigManager(system_name='setonix-gpu').get_config()
 
-pm1 = PowerManager(compute_node_power, **config1)
-pm2 = PowerManager(compute_node_power, **config2)
-
 args_dict1['config'] = config1
 args_dict2['config'] = config2
+
+pm1 = PowerManager(compute_node_power, **config1)
+pm2 = PowerManager(compute_node_power, **config2)
 
 fm1 = FLOPSManager(**args_dict1)
 fm2 = FLOPSManager(**args_dict2)
 
 sc1 = Scheduler(power_manager=pm1, flops_manager=fm1, cooling_model=None, **args_dict1)
-sc2 = Scheduler(power_manager=pm1, flops_manager=fm2, cooling_model=None, **args_dict2)
+sc2 = Scheduler(power_manager=pm2, flops_manager=fm2, cooling_model=None, **args_dict2)
 
 layout_manager1 = LayoutManager(args.layout, scheduler=sc1, debug=args.debug, **config1)
 layout_manager2 = LayoutManager(args.layout, scheduler=sc2, debug=args.debug, **config2)
