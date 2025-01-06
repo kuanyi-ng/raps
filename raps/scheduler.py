@@ -351,17 +351,14 @@ class Scheduler:
         self.timesteps = timesteps
         if self.debug: 
             limits = self.get_gauge_limits()
-            print(f"[DEBUG] Limits for {self.config['system_name']}:", limits)
         
         for timestep in range(timesteps):
             # Print the current timestep for this partition
             if timestep % self.config['UI_UPDATE_FREQ'] == 0:
                 sys_util = self.sys_util_history[-1][1] if self.sys_util_history else 0
-                print(f"[DEBUG] {self.config['system_name']} - Timestep {timestep} - Jobs in queue: {len(self.queue)} - Utilization: {sys_util:.1f}% - Power: {self.sys_power:.1f} kW")
 
             while self.current_time >= last_submit_time and jobs:
                 job = jobs.pop(0)
-                print(f"[DEBUG] {self.config['system_name']} - Scheduling job {job['id']} at timestep {timestep}")
                 self.schedule([job])
                 if jobs:
                     last_submit_time = job['submit_time']

@@ -31,6 +31,7 @@ parser.add_argument('-s', '--schedule', type=str, choices=choices, default=choic
 choices = ['random', 'benchmark', 'peak', 'idle']
 parser.add_argument('-w', '--workload', type=str, choices=choices, default=choices[0], help='Type of synthetic workload')
 choices = ['layout1', 'layout2']
+parser.add_argument('-x', '--partitions', nargs='+', default=None, help='List of machine configurations to use, e.g., -x setonix-cpu setonix-gpu')
 parser.add_argument('--layout', type=str, choices=choices, default=choices[0], help='Layout of UI')
 args = parser.parse_args()
 args_dict = vars(args)

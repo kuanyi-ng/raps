@@ -58,10 +58,28 @@ else:
 if args.verbose: print(jobs)
 
 # Create generator objects for both partitions
-gen1 = layout_manager1.run_nonblocking(jobs1, timesteps=timesteps)
-gen2 = layout_manager2.run_nonblocking(jobs2, timesteps=timesteps)
+gen1 = layout_manager1.run_stepwise(jobs1, timesteps=timesteps)
+gen2 = layout_manager2.run_stepwise(jobs2, timesteps=timesteps)
 
 # Step through both generators in lockstep
-for _ in range(timesteps):
-    next(gen1)  # Advance first scheduler
-    next(gen2)  # Advance second scheduler
+#for _ in range(timesteps):
+#    next(gen1)  # Advance first scheduler
+#    next(gen2)  # Advance second scheduler
+
+for timestep in range(timesteps):
+    # Advance generators
+    next(gen1)
+    next(gen2)
+
+    # Timestep
+    print(f"[DEBUG] Timestep: {timestep}")
+
+    # Queue lengths
+    print(f"[DEBUG] setonix-cpu Queue: {len(layout_manager1.scheduler.queue)}")
+    print(f"[DEBUG] setonix-gpu Queue: {len(layout_manager2.scheduler.queue)}")
+
+    # System utilization
+    sys_util1 = layout_manager1.scheduler.sys_util_history[-1][1] if layout_manager1.scheduler.sys_util_history else 0.0
+    sys_util2 = layout_manager2.scheduler.sys_util_history[-1][1] if layout_manager2.scheduler.sys_util_history else 0.0
+    print(f"[DEBUG] setonix-cpu Util: {sys_util1:.2f}%")
+    print(f"[DEBUG] setonix-gpu Util: {sys_util2:.2f}%")

@@ -405,6 +405,6 @@ class LayoutManager:
                 self.update(data)
                 self.render()
 
-    def run_nonblocking(self, jobs, timesteps):
+    def run_stepwise(self, jobs, timesteps):
         """ Prepares the UI and returns a generator for the simulation """
         return self.scheduler.run_simulation(jobs, timesteps)
