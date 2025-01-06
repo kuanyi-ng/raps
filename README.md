@@ -52,6 +52,22 @@ given instead of the parquet files for more quickly running subsequent simulatio
 
     python main.py -f jobs_2024-02-20_12-20-39.npz
 
+## Support for multiple system partitions
+
+Multi-partition systems are supported by running the `multi-part-sim.py` script, where a list of configurations can be specified using the `-x` flag as follows:
+
+    python multi-part-sim.py -x setonix-cpu setonix-gpu
+
+This will simulate synthetic workloads on two partitions as defined in `config/setonix-cpu` and `config/setonix-gpu`. To replay telemetry workloads from another system, e.g., Marconi100's PM100 dataset, first create a .npz snapshot of the telemetry data, e.g., 
+
+    python main.py --system marconi100 -f /path/to/marconi100/job_table.parquet
+
+This will dump a .npz file with a randomized name, e.g. ac23db.npz. Let's rename this file to pm100.npz for clarity. Note: can control-C when the simulation starts. Now, this pm100.npz file can be used with `multi-part-sim.py` as follows:
+
+    python multi-part-sim.py -x setonix-cpu setonix-gpu -f pm100.npz --reschedule --scale 192
+
+The `--reschedule` flag will use the internal scheduler to determine what nodes to schedule for each job, and the `--scale` flag will specify the maximum number of nodes for each job (generally set this to the max number of nodes of the smallest partition). 
+
 ## Job-level power output example for replay of single job
 
     python main.py -f $DPATH/slurm/joblive/$DATEDIR $DPATH/jobprofile/$DATEDIR --jid 1234567 -o
