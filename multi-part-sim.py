@@ -13,7 +13,7 @@ from raps.flops import FLOPSManager
 from raps.power import PowerManager, compute_node_power
 from raps.telemetry import Telemetry
 from raps.workload import Workload
-from raps.utils import convert_to_seconds
+from raps.utils import convert_to_seconds, next_arrival
 from tqdm import tqdm
 
 # Load configurations for each partition
@@ -29,10 +29,12 @@ if args.replay:
     td = Telemetry(**args_dicts[0])
     print(f"Loading {args.replay[0]}...")
     jobs = td.load_snapshot(args.replay[0])
+    available_nodes = [config['AVAILABLE_NODES'] for config in configs]
+    print("available nodes:", available_nodes)
 
     # Randomly assign partition
     for job in jobs: 
-        job['partition'] = random.choice(partition_names)
+        job['partition'] = random.choices(partition_names, weights=available_nodes, k=1)[0]
 
     if args.scale:
         for job in tqdm(jobs, desc=f"Scaling jobs to {args.scale} nodes"):
@@ -40,10 +42,11 @@ if args.replay:
             job['requested_nodes'] = None # Setting to None triggers scheduler to assign nodes
 
     if args.reschedule:
-        print("available nodes:", config['AVAILABLE_NODES'])
         for job in tqdm(jobs, desc="Rescheduling jobs"):
+            partition = job['partition']
+            partition_config = configs[partition_names.index(partition)]
             job['requested_nodes'] = None
-            job['submit_time'] = next_arrival(1 / configs[0]['JOB_ARRIVAL_TIME'])
+            job['submit_time'] = next_arrival(1 / partition_config['JOB_ARRIVAL_TIME'])
 
 else: # Synthetic workload
     wl = Workload(*configs)
@@ -83,7 +86,7 @@ for timestep in range(timesteps):
     if timestep % configs[0]['UI_UPDATE_FREQ'] == 0:  # Assuming same frequency for all partitions
         for name, lm in layout_managers.items():
             sys_util = lm.scheduler.sys_util_history[-1] if lm.scheduler.sys_util_history else 0.0
-            print(f"[DEBUG] {name} - Timestep {timestep} - Jobs in queue: {len(lm.scheduler.queue)} - Utilization: {sys_util[1]:.2f}%")
+            print(f"[DEBUG] {name} - Timestep {timestep} - Jobs running: {len(lm.scheduler.running)} - Utilization: {sys_util[1]:.2f}%")
 
 print("Simulation complete.")
 
