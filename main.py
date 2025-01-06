@@ -90,7 +90,7 @@ if args.replay:
         if args.scale:
             for job in tqdm(jobs, desc=f"Scaling jobs to {args.scale} nodes"):
                 job['nodes_required'] = random.randint(1, args.scale)
-                args.reschedule = True
+                job['requested_nodes'] = None # Setting to None triggers scheduler to assign nodes
 
         if args.reschedule:
             print("available nodes:", config['AVAILABLE_NODES'])
