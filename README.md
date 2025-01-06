@@ -40,9 +40,9 @@ For Marconi supercomputer, download `job_table.parquet` from https://zenodo.org/
     python main.py --system marconi100 -f ~/data/marconi100/job_table.parquet 
 
 For Adastra MI250 supercomputer, download 'AdastaJobsMI250_15days.parquet' from https://zenodo.org/records/14007065
+
     # Adastra MI250
     python main.py --system adastraMI250 -f AdastaJobsMI250_15days.parquet 
-
 
 ## Snapshot of extracted workload data
 
