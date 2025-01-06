@@ -1,11 +1,13 @@
 from raps.helpers import check_python_version
 check_python_version()
 
+import glob
+import os
 import random
 import sys
 
 from args import args
-from raps.config import ConfigManager
+from raps.config import ConfigManager, CONFIG_PATH
 from raps.policy import PolicyType
 from raps.ui import LayoutManager
 from raps.scheduler import Scheduler
@@ -18,6 +20,12 @@ from tqdm import tqdm
 
 # Load configurations for each partition
 partition_names = args.partitions
+
+print(args.partitions)
+if '*' in args.partitions[0]:
+    paths = glob.glob(os.path.join(CONFIG_PATH, args.partitions[0]))
+    partition_names = [os.path.join(*p.split(os.sep)[-2:]) for p in paths]
+
 configs = [ConfigManager(system_name=partition).get_config() for partition in partition_names]
 args_dicts = [{**vars(args), 'config': config} for config in configs]
 
