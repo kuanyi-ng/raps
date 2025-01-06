@@ -40,7 +40,10 @@ class Telemetry:
         self.kwargs = kwargs
         self.system = kwargs.get('system')
         self.config = kwargs.get('config')
-        self.dataloader = importlib.import_module(f".dataloaders.{self.system}", package = __package__)
+        try:
+            self.dataloader = importlib.import_module(f".dataloaders.{self.system}", package = __package__)
+        except:
+            print("WARNIGNG: Failed to load dataloader")
 
 
     def save_snapshot(self, jobs: list, filename: str):

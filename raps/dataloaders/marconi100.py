@@ -22,6 +22,7 @@
 
 """
 import uuid
+import random
 import pandas as pd
 from tqdm import tqdm
 
@@ -62,6 +63,7 @@ def load_data_from_df(jobs_df: pd.DataFrame, **kwargs):
     fastforward = kwargs.get('fastforward')
     validate = kwargs.get('validate')
     jid = kwargs.get('jid', '*')
+    scale = kwargs.get('scale')
 
     if fastforward: print(f"fast-forwarding {fastforward} seconds")
 
@@ -148,6 +150,8 @@ def load_data_from_df(jobs_df: pd.DataFrame, **kwargs):
         else: # Prescribed replay
             scheduled_nodes = (jobs_df.loc[jidx, 'nodes']).tolist()
             
+        if scale > 0: nodes_required = random.randint(1, scale)
+
         if gpu_trace.size > 0 and time_offset >= 0:
             job_info = job_dict(nodes_required, name, cpu_trace, gpu_trace, [], [], wall_time,
                                 end_state, scheduled_nodes, time_offset, job_id, priority)

@@ -87,9 +87,10 @@ if args.replay:
         print(f"Loading {args.replay[0]}...")
         jobs = td.load_snapshot(args.replay[0])
         if args.reschedule:
+            print("available nodes:", config['AVAILABLE_NODES'])
             for job in tqdm(jobs, desc="Updating requested_nodes"):
                 job['requested_nodes'] = None
-                job['submit_time'] = next_arrival()
+                job['submit_time'] = next_arrival(1 / config['JOB_ARRIVAL_TIME'])
     else:
         print(*args.replay)
         jobs = td.load_data(args.replay)
