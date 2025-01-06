@@ -20,7 +20,12 @@ configs = [ConfigManager(system_name=partition).get_config() for partition in pa
 args_dicts = [{**vars(args), 'config': config} for config in configs]
 
 # Initialize Workload with all configurations
-wl = Workload(*configs)
+if args.replay:
+
+    td = Telemetry(**args_dict)
+
+else:
+    wl = Workload(*configs)
 
 # Generate jobs based on workload type
 jobs = getattr(wl, args.workload)(num_jobs=args.numjobs)

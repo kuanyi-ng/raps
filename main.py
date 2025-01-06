@@ -86,11 +86,18 @@ if args.replay:
     if args.replay[0].endswith(".npz"):
         print(f"Loading {args.replay[0]}...")
         jobs = td.load_snapshot(args.replay[0])
+
+        if args.scale:
+            for job in tqdm(jobs, desc=f"Scaling jobs to {args.scale} nodes"):
+                job['nodes_required'] = random.randint(1, args.scale)
+                args.reschedule = True
+
         if args.reschedule:
             print("available nodes:", config['AVAILABLE_NODES'])
-            for job in tqdm(jobs, desc="Updating requested_nodes"):
+            for job in tqdm(jobs, desc="Rescheduling jobs"):
                 job['requested_nodes'] = None
                 job['submit_time'] = next_arrival(1 / config['JOB_ARRIVAL_TIME'])
+
     else:
         print(*args.replay)
         jobs = td.load_data(args.replay)

@@ -25,7 +25,7 @@ parser.add_argument('-p', '--plot', nargs='+', choices=['power', 'loss', 'pue', 
                     help='Specify one or more types of plots to generate: power, loss, pue, util, temp')
 choices = ['png', 'svg', 'jpg', 'pdf', 'eps']
 parser.add_argument('--imtype', type=str, choices=choices, default=choices[0], help='Plot image type')
-parser.add_argument('--scale', type=int, default=0, help='Scale telemetry to fit on target system/partition (currently only suupported for marconi100 data)')
+parser.add_argument('--scale', type=int, default=0, help='Scale telemetry to max nodes specified in order to run telemetry on a smaller smaller target system/partition, e.g., --scale 192')
 parser.add_argument('--system', type=str, default='frontier', help='System config to use')
 choices = [policy.value for policy in PolicyType]
 parser.add_argument('-s', '--schedule', type=str, choices=choices, default=choices[0], help='Schedule policy to use')
