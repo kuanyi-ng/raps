@@ -72,8 +72,8 @@ layout_managers = {}
 for i, config in enumerate(configs):
     pm = PowerManager(compute_node_power, **configs[i])
     fm = FLOPSManager(**args_dicts[i])
-    scheduler = Scheduler(power_manager=pm, flops_manager=fm, cooling_model=None, **args_dicts[i])
-    layout_managers[config['system_name']] = LayoutManager(args.layout, scheduler=scheduler, debug=args.debug, **config)
+    sc = Scheduler(power_manager=pm, flops_manager=fm, cooling_model=None, **args_dicts[i])
+    layout_managers[config['system_name']] = LayoutManager(args.layout, scheduler=sc, debug=args.debug, **config)
 
 # Set simulation timesteps
 if args.time:
