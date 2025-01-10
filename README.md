@@ -40,9 +40,9 @@ For Marconi supercomputer, download `job_table.parquet` from https://zenodo.org/
     python main.py --system marconi100 -f ~/data/marconi100/job_table.parquet 
 
 For Adastra MI250 supercomputer, download 'AdastaJobsMI250_15days.parquet' from https://zenodo.org/records/14007065
+
     # Adastra MI250
     python main.py --system adastraMI250 -f AdastaJobsMI250_15days.parquet 
-
 
 ## Snapshot of extracted workload data
 
@@ -51,6 +51,26 @@ RAPS saves a snapshot of the extracted data in NPZ format. The NPZ file can be
 given instead of the parquet files for more quickly running subsequent simulations, e.g.:
 
     python main.py -f jobs_2024-02-20_12-20-39.npz
+
+## Support for multiple system partitions
+
+Multi-partition systems are supported by running the `multi-part-sim.py` script, where a list of configurations can be specified using the `-x` flag as follows:
+
+    python multi-part-sim.py -x setonix/part-cpu setonix/part-gpu
+
+or simply:
+
+    python multi-part-sim.py -x setonix/*
+
+This will simulate synthetic workloads on two partitions as defined in `config/setonix-cpu` and `config/setonix-gpu`. To replay telemetry workloads from another system, e.g., Marconi100's PM100 dataset, first create a .npz snapshot of the telemetry data, e.g., 
+
+    python main.py --system marconi100 -f /path/to/marconi100/job_table.parquet
+
+This will dump a .npz file with a randomized name, e.g. ac23db.npz. Let's rename this file to pm100.npz for clarity. Note: can control-C when the simulation starts. Now, this pm100.npz file can be used with `multi-part-sim.py` as follows:
+
+    python multi-part-sim.py -x setonix/* -f pm100.npz --reschedule --scale 192
+
+The `--reschedule` flag will use the internal scheduler to determine what nodes to schedule for each job, and the `--scale` flag will specify the maximum number of nodes for each job (generally set this to the max number of nodes of the smallest partition). 
 
 ## Job-level power output example for replay of single job
 

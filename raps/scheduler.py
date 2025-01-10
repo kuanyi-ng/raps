@@ -91,6 +91,7 @@ class Scheduler:
         self.jobs_completed = 0
         self.current_time = 0
         self.cooling_model = cooling_model
+        self.sys_power = 0
         self.power_manager = power_manager
         self.flops_manager = flops_manager
         self.debug = kwargs.get('debug')
@@ -283,6 +284,7 @@ class Scheduler:
             total_power_kw = sum(row[-1] for row in rack_power) + self.config['NUM_CDUS'] * self.config['POWER_CDU'] / 1000.0
             total_loss_kw = sum(row[-1] for row in rack_loss)
             self.power_manager.history.append((self.current_time, total_power_kw))
+            self.sys_power = total_power_kw
             self.power_manager.loss_history.append((self.current_time, total_loss_kw))
             output_df = self.power_manager.get_power_df(rack_power, rack_loss)
             pflops = self.flops_manager.get_system_performance() / 1E15
@@ -349,9 +351,12 @@ class Scheduler:
         self.timesteps = timesteps
         if self.debug: 
             limits = self.get_gauge_limits()
-            print(limits)
         
         for timestep in range(timesteps):
+            # Print the current timestep for this partition
+            if timestep % self.config['UI_UPDATE_FREQ'] == 0:
+                sys_util = self.sys_util_history[-1][1] if self.sys_util_history else 0
+
             while self.current_time >= last_submit_time and jobs:
                 job = jobs.pop(0)
                 self.schedule([job])
@@ -363,7 +368,7 @@ class Scheduler:
 
             # Stop the simulation if no more jobs running or are in the queue
             if not self.queue and not self.running and not self.replay:
-                print("stopping simulation at time", self.current_time)
+                print(f"[DEBUG] {self.config['system_name']} - Stopping simulation at time {self.current_time}")
                 break
             if self.debug and timestep % self.config['UI_UPDATE_FREQ'] == 0:
                     print(".", end="", flush=True)

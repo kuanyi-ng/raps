@@ -404,3 +404,7 @@ class LayoutManager:
             if data.current_time % self.config['UI_UPDATE_FREQ'] == 0:
                 self.update(data)
                 self.render()
+
+    def run_stepwise(self, jobs, timesteps):
+        """ Prepares the UI and returns a generator for the simulation """
+        return self.scheduler.run_simulation(jobs, timesteps)
