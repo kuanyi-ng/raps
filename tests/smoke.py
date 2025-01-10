@@ -42,6 +42,7 @@ def synthetic_workload_tests():
     run_command(f"python main.py -w benchmark -t {DEFAULT_TIME}")
     run_command(f"python main.py -w peak -t {DEFAULT_TIME}")
     run_command(f"python main.py -w idle -t {DEFAULT_TIME}")
+    run_command(f"python multi-part-sim.py -x setonix/part-cpu setonix/part-gpu -t {DEFAULT_TIME}")
 
 def main():
     """Main function to run all tests."""
