@@ -23,6 +23,15 @@ class Policy:
         else:
             raise ValueError(f"Unknown policy type: {self.policy_type}")
 
+    def aging_boost(self, nnodes):
+        """Frontier aging policy"""
+        if nnodes > 5645:
+            return 8
+        elif nnodes > 1882:
+            return 4
+        else:
+            return 0 
+
     def find_backfill_job(self, queue, num_free_nodes, current_time):
         """ This implementation is based on pseudocode from Leonenkov and Zhumatiy.
             "Introducing new backfill-based scheduler for slurm resource manager."

@@ -82,8 +82,8 @@ if args.replay:
         extracted_date = "Date not found"
         DIR_NAME = create_casename()
 
-    # Read either npz file or telemetry parquet files
-    if args.replay[0].endswith(".npz"):
+    # Read telemetry data
+    if args.replay[0].endswith(".npz"): # read .npz file
         print(f"Loading {args.replay[0]}...")
         jobs = td.load_snapshot(args.replay[0])
 
@@ -98,9 +98,10 @@ if args.replay:
                 job['requested_nodes'] = None
                 job['submit_time'] = next_arrival(1 / config['JOB_ARRIVAL_TIME'])
 
-    else:
+    else: # custom data loader 
         print(*args.replay)
         jobs = td.load_data(args.replay)
+        for job in jobs: job['priority'] = sc.policy.aging_boost(job['nodes_required'])
         td.save_snapshot(jobs, filename=DIR_NAME)
 
     # Set number of timesteps based on the last job running which we assume
@@ -113,7 +114,7 @@ if args.replay:
     print(f'Simulating {len(jobs)} jobs for {timesteps} seconds')
     time.sleep(1)
 
-else:
+else: # synthetic jobs
     wl = Workload(config)
     jobs = getattr(wl, args.workload)(num_jobs=args.numjobs)
 
