@@ -84,8 +84,8 @@ if args.replay:
         extracted_date = "Date not found"
         DIR_NAME = create_casename()
 
-    # Read telemetry data (either npz file or via custom data loader)
-    if args.replay[0].endswith(".npz"): # replay .npz file
+    # Read telemetry data
+    if args.replay[0].endswith(".npz"): # read .npz file
         print(f"Loading {args.replay[0]}...")
         jobs = td.load_snapshot(args.replay[0])
 
