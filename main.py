@@ -155,6 +155,12 @@ try:
 except:
     print(output_stats)
 
+# Schedule history
+pd.set_option('display.max_columns', None)
+pd.set_option('display.max_rows', None)  
+schedule_history = pd.DataFrame(sc.get_history())
+print(schedule_history)
+
 if args.plot:
     if 'power' in args.plot:
         pl = Plotter('Time (s)', 'Power (kW)', 'Power History', \
