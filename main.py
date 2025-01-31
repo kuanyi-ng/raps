@@ -98,7 +98,7 @@ if args.replay:
                 job['requested_nodes'] = None
                 job['submit_time'] = next_arrival(1 / config['JOB_ARRIVAL_TIME'])
 
-    else: # custom data loader 
+    else: # custom data loader
         print(*args.replay)
         jobs = td.load_data(args.replay)
         for job in jobs: job['priority'] = sc.policy.aging_boost(job['nodes_required'])
@@ -208,7 +208,7 @@ if args.output:
 
     if args.uncertainties:
         # Parquet cannot handle annotated ufloat format AFAIK
-        print('Data dump not implemented using uncertainties!')  
+        print('Data dump not implemented using uncertainties!')
     else:
         if cooling_model:
             df = pd.DataFrame(cooling_model.fmu_history)
@@ -228,3 +228,9 @@ if args.output:
                 json.dump(output_stats, f, indent=4)
         except:
             write_dict_to_file(output_stats, OPATH / 'stats.out')
+
+        try:
+            with open(OPATH / 'account-stats.txt') as f:
+                json.dump(sc.accounts, f, indent=4)
+        except:
+            write_dict_to_file(vars(sc.accounts), OPATH / 'account-stats.out')

@@ -86,7 +86,7 @@ class LayoutManager:
             Flag indicating whether to display node information (default is False).
         """
         # Define columns with header styles
-        columns = ["JOBID", "WALL TIME", "NAME", "ST", "NODES", "NODE SEGMENTS"]
+        columns = ["JOBID", "WALL TIME", "NAME", "ACCOUNT", "ST", "NODES", "NODE SEGMENTS"]
         if show_nodes:
             columns.append("NODELIST")
         columns.append("TIME")
@@ -111,6 +111,7 @@ class LayoutManager:
                 str(job.id).zfill(5),
                 convert_seconds(job.wall_time),
                 str(job.name),
+                str(job.account),
                 job.state.value,
                 str(job.nodes_required),
                 nodes_display,
@@ -198,18 +199,18 @@ class LayoutManager:
         # Initialize data dictionary with keys from FMU_COLUMN_MAPPING
         fmu_cols = self.config['FMU_COLUMN_MAPPING']
         data = {key: [] for key in fmu_cols.keys()}
-        
+
         # Loop over each compute block in the datacenter_outputs dictionary
         for i in range(1, self.config['NUM_CDUS'] + 1):
             compute_block_key = f"simulator[1].datacenter[1].computeBlock[{i}].cdu[1].summary."
-            
+
             # Append data to the corresponding lists dynamically using FMU_COLUMN_MAPPING keys
             for key in fmu_cols.keys():
                 data[key].append(cooling_outputs.get(compute_block_key + key))
-        
+
         # Convert to DataFrame
         df = pd.DataFrame(data)
-        
+
         return df
 
 
@@ -228,7 +229,7 @@ class LayoutManager:
         #power_columns = POWER_DF_HEADER[0:RACKS_PER_CDU + 2] + [POWER_DF_HEADER[-1]]  # "CDU", "Rack 1", "Rack 2", "Rack 3", "Sum", "Loss"
         power_columns = self.power_df_header[0:self.racks_per_cdu + 2] + [self.power_df_header[-1]]  # "CDU", "Rack 1", "Rack 2", "Rack 3", "Sum", "Loss"
         fmu_cols = self.config['FMU_COLUMN_MAPPING']
-        
+
         # Updated cooling keys to include temperature instead of pressure
         cooling_keys = ["T_prim_s_C", "T_prim_r_C", "T_sec_s_C", "T_sec_r_C"]
 
@@ -335,7 +336,7 @@ class LayoutManager:
                 for i, value in enumerate(row[display_columns])
             ]
             table.add_row(*row_values)
-    
+
         total_power_mw, total_loss_mw, percent_loss_str, total_power_kw, total_loss_kw = self.calculate_totals(power_df)
 
         # Convert to string with MW units

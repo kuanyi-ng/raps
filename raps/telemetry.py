@@ -12,10 +12,10 @@ import argparse
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Telemetry data validator')
     parser.add_argument('--jid', type=str, default='*', help='Replay job id')
-    parser.add_argument('-f', '--replay', nargs='+', type=str, 
+    parser.add_argument('-f', '--replay', nargs='+', type=str,
                         help='Either: path/to/joblive path/to/jobprofile' + \
                              ' -or- filename.npz (overrides --workload option)')
-    parser.add_argument('-p', '--plot', action='store_true', help='Output plots') 
+    parser.add_argument('-p', '--plot', action='store_true', help='Output plots')
     parser.add_argument('--system', type=str, default='frontier', help='System config to use')
     parser.add_argument('--reschedule', action='store_true', help='Reschedule the telemetry workload')
     parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose output')
@@ -76,7 +76,7 @@ class Telemetry:
         """ Convert cdu index into a name"""
         return self.dataloader.cdu_index_to_name(index, config = self.config)
 
-    
+
     def cdu_pos(self, index: int) -> tuple[int, int]:
         """ Return (row, col) tuple for a cdu index """
         return self.dataloader.cdu_pos(index, config = self.config)
@@ -88,7 +88,7 @@ if __name__ == "__main__":
     config = ConfigManager(system_name=args.system).get_config()
     args_dict['config'] = config
     td = Telemetry(**args_dict)
-    
+
 
     if args.replay[0].endswith(".npz"):
         print(f"Loading {args.replay[0]}...")

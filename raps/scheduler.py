@@ -46,9 +46,10 @@ from scipy.stats import weibull_min
 import pandas as pd
 
 from .job import Job, JobState
+from .account import Accounts
 from .network import network_utilization
 from .policy import Policy, PolicyType
-from .utils import summarize_ranges, expand_ranges
+from .utils import summarize_ranges, expand_ranges, write_dict_to_file
 
 
 @dataclasses.dataclass
@@ -88,6 +89,7 @@ class Scheduler:
         self.num_active_nodes = self.config['TOTAL_NODES'] - self.num_free_nodes - len(self.config['DOWN_NODES'])
         self.running = []
         self.queue = []
+        self.accounts = Accounts()
         self.jobs_completed = 0
         self.current_time = 0
         self.cooling_model = cooling_model
@@ -172,12 +174,11 @@ class Scheduler:
                     self.queue.append(job) # Note, this should be fixed. It shouldn't go to the end of the queue.
                 break
 
-
     def tick(self):
         """Simulate a timestep."""
         completed_jobs = [job for job in self.running if job.end_time
                           is not None and job.end_time <= self.current_time]
-
+        completed_job_stats = []
         # Simulate node failure
         newly_downed_nodes = self.node_failure(self.config['MTBF'])
 
@@ -258,11 +259,16 @@ class Scheduler:
             if self.debug:
                 print(f"Released {scheduled_nodes}")
             self.jobs_completed += 1
-
+            job_stats = job.statistics()
+            if self.debug:
+                print(job_stats)
+            completed_job_stats.append(job_stats)
+            self.accounts.update_account_statistics(job_stats)
             if self.output:
+                # output power trace
                 with open(self.opath / f'job-power-{job.id}.txt', 'w') as file:
                     print(*job.power_history, sep=', ', file=file)
-
+                write_dict_to_file(vars(job_stats),self.opath / f'job-stats-{job.account}.json')
         # Ask scheduler to schedule any jobs waiting in queue
         self.schedule([])
 
@@ -289,7 +295,7 @@ class Scheduler:
             output_df = self.power_manager.get_power_df(rack_power, rack_loss)
             pflops = self.flops_manager.get_system_performance() / 1E15
             gflop_per_watt = pflops * 1E6 / (total_power_kw * 1000)
-        else:    
+        else:
             pflops, gflop_per_watt = None, None
 
         if self.current_time % self.config['POWER_UPDATE_FREQ'] == 0:
@@ -297,14 +303,14 @@ class Scheduler:
                 # Power for NUM_CDUS (25 for Frontier)
                 cdu_power = rack_power.T[-1] * 1000
                 runtime_values = self.cooling_model.generate_runtime_values(cdu_power, self)
-                
+
                 # FMU inputs are N powers and the wetbulb temp
                 fmu_inputs = self.cooling_model.generate_fmu_inputs(runtime_values,
                                 uncertainties=self.power_manager.uncertainties)
                 cooling_inputs, cooling_outputs = (
                     self.cooling_model.step(self.current_time, fmu_inputs, self.config['POWER_UPDATE_FREQ'])
                 )
-                
+
                 # Get a dataframe of the power data
                 power_df = self.power_manager.get_power_df(rack_power, rack_loss)
             else:
@@ -349,9 +355,9 @@ class Scheduler:
         """ Generator that yields after each simulation tick """
         last_submit_time = 0
         self.timesteps = timesteps
-        if self.debug: 
+        if self.debug:
             limits = self.get_gauge_limits()
-        
+
         for timestep in range(timesteps):
             # Print the current timestep for this partition
             if timestep % self.config['UI_UPDATE_FREQ'] == 0:
@@ -406,9 +412,9 @@ class Scheduler:
             'jobs still running': [job.id for job in self.running],
             'jobs still in queue': [job.id for job in self.queue],
             'average power': f'{average_power_mw:.2f} MW',
-            'min loss': f'{min_loss_mw:.2f} MW ({min_loss_pct*100:.2f}%)', 
+            'min loss': f'{min_loss_mw:.2f} MW ({min_loss_pct*100:.2f}%)',
             'average loss': f'{average_loss_mw:.2f} MW ({loss_fraction*100:.2f}%)',
-            'max loss': f'{max_loss_mw:.2f} MW ({max_loss_pct*100:.2f}%)', 
+            'max loss': f'{max_loss_mw:.2f} MW ({max_loss_pct*100:.2f}%)',
             'system power efficiency': f'{efficiency*100:.2f}',
             'total energy consumed': f'{total_energy_consumed:.2f} MW-hr',
             'carbon emissions': f'{emissions:.2f} metric tons CO2',
@@ -424,12 +430,12 @@ class Scheduler:
 
         # Create a NumPy array of node indices, excluding down nodes
         down_nodes = expand_ranges(self.down_nodes)
-        all_nodes = np.setdiff1d(np.arange(self.config['TOTAL_NODES']), 
+        all_nodes = np.setdiff1d(np.arange(self.config['TOTAL_NODES']),
                                  np.array(down_nodes, dtype=int))
 
         # Sample the Weibull distribution for all nodes at once
-        random_values = weibull_min.rvs(shape_parameter, 
-                                        scale=scale_parameter, 
+        random_values = weibull_min.rvs(shape_parameter,
+                                        scale=scale_parameter,
                                         size=all_nodes.size)
 
         # Identify nodes that have failed
