@@ -101,6 +101,7 @@ class Scheduler:
         self.replay = kwargs.get('replay')
         self.policy = Policy(strategy=kwargs.get('schedule'))
         self.sys_util_history = []
+        self.history = []
 
 
     def add_job(self, job):
@@ -152,6 +153,7 @@ class Scheduler:
 
                 # Schedule job
                 self.assign_nodes_to_job(job)
+                self.history.append(dict(id=job.id, time=self.current_time, nodes=job.nodes_required, wall_time=job.wall_time))
 
                 if self.debug:
                     scheduled_nodes = summarize_ranges(job.scheduled_nodes)
@@ -378,6 +380,9 @@ class Scheduler:
                 break
             if self.debug and timestep % self.config['UI_UPDATE_FREQ'] == 0:
                     print(".", end="", flush=True)
+
+    def get_history(self):
+        return self.history
 
     def get_stats(self):
         """ Return output statistics """

@@ -84,8 +84,8 @@ if args.replay:
         extracted_date = "Date not found"
         DIR_NAME = create_casename()
 
-    # Read telemetry data
-    if args.replay[0].endswith(".npz"): # read .npz file
+    # Read telemetry data (either npz file or via custom data loader)
+    if args.replay[0].endswith(".npz"): # replay .npz file
         print(f"Loading {args.replay[0]}...")
         jobs = td.load_snapshot(args.replay[0])
 
@@ -155,6 +155,12 @@ try:
     print(json.dumps(output_stats, indent=4))
 except:
     print(output_stats)
+
+# Schedule history
+pd.set_option('display.max_columns', None)
+pd.set_option('display.max_rows', None)
+schedule_history = pd.DataFrame(sc.get_history())
+print(schedule_history)
 
 if args.plot:
     if 'power' in args.plot:
