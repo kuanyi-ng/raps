@@ -61,15 +61,17 @@ args_dict['config'] = config
 flops_manager = FLOPSManager(**args_dict)
 
 sc = Scheduler(
-    power_manager = power_manager, flops_manager = flops_manager,
-    cooling_model = cooling_model,
+    power_manager=power_manager, 
+    flops_manager=flops_manager,
+    cooling_model=cooling_model,
     **args_dict,
 )
-layout_manager = LayoutManager(args.layout, scheduler = sc, debug = args.debug, **config)
+layout_manager = LayoutManager(args.layout, scheduler=sc, debug=args.debug, **config)
 
 if args.replay:
 
-    if args.fastforward: args.fastforward = convert_to_seconds(args.fastforward)
+    if args.fastforward: 
+        args.fastforward = convert_to_seconds(args.fastforward)
 
     td = Telemetry(**args_dict)
 
@@ -82,8 +84,8 @@ if args.replay:
         extracted_date = "Date not found"
         DIR_NAME = create_casename()
 
-    # Read either npz file or telemetry parquet files
-    if args.replay[0].endswith(".npz"):
+    # Read telemetry data (either npz file or via custom data loader)
+    if args.replay[0].endswith(".npz"): # replay .npz file
         print(f"Loading {args.replay[0]}...")
         jobs = td.load_snapshot(args.replay[0])
 
@@ -98,7 +100,7 @@ if args.replay:
                 job['requested_nodes'] = None
                 job['submit_time'] = next_arrival(1 / config['JOB_ARRIVAL_TIME'])
 
-    else:
+    else: # custom data loader
         print(*args.replay)
         jobs = td.load_data(args.replay)
         td.save_snapshot(jobs, filename=DIR_NAME)
@@ -113,7 +115,7 @@ if args.replay:
     print(f'Simulating {len(jobs)} jobs for {timesteps} seconds')
     time.sleep(1)
 
-else:
+else: # synthetic jobs
     wl = Workload(config)
     jobs = getattr(wl, args.workload)(num_jobs=args.numjobs)
 
