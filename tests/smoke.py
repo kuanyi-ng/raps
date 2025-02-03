@@ -32,14 +32,11 @@ def build_command(system, file_paths, additional_args=""):
     full_paths = " ".join([os.path.join(DATAPATH, path) for path in file_paths.split()])
     return f"python main.py --system {system} -f {full_paths} -t {DEFAULT_TIME} {additional_args}".strip()
 
-def execute_system_tests(system=None):
-    """Execute tests for all systems or a specific system."""
-    if system:
-        command = build_command(system, SYSTEMS[system])
-        run_command(command)
-    else:
-        for sys_name, file_paths in SYSTEMS.items():
-            command = build_command(sys_name, file_paths)
+def execute_system_tests(systems):
+    """Execute tests for selected systems."""
+    for system in systems:
+        if system in SYSTEMS:
+            command = build_command(system, SYSTEMS[system])
             run_command(command)
 
 def synthetic_workload_tests():
@@ -59,25 +56,27 @@ def main():
     """Main function to parse arguments and run tests."""
     parser = argparse.ArgumentParser(description="Run smoke tests for HPC systems.")
     parser.add_argument(
-        "system",
-        nargs="?",  # Optional argument
+        "tests",
+        nargs="*",  # Allow multiple test selections
         choices=VALID_CHOICES,  # Allow specific systems, 'synthetic', and 'hetero'
-        help="Run tests for a specific system (e.g., 'frontier'), 'synthetic' workloads, or 'hetero' for heterogeneous workloads. If omitted, all tests run.",
+        help="Run tests for one or more specific systems (e.g., 'frontier lassen'), 'synthetic' workloads, or 'hetero'. If omitted, all tests run.",
     )
 
     args = parser.parse_args()
-
-    if args.system == "synthetic":
+    
+    # If no arguments, run all tests
+    if not args.tests:
         synthetic_workload_tests()
-    elif args.system == "hetero":
         hetero_tests()
-    elif args.system:
-        execute_system_tests(args.system)
+        execute_system_tests(SYSTEMS.keys())
     else:
-        # If no argument, run all tests
-        synthetic_workload_tests()
-        hetero_tests()
-        execute_system_tests()
+        if "synthetic" in args.tests:
+            synthetic_workload_tests()
+        if "hetero" in args.tests:
+            hetero_tests()
+        system_tests = [test for test in args.tests if test in SYSTEMS]
+        if system_tests:
+            execute_system_tests(system_tests)
 
 if __name__ == "__main__":
     main()
