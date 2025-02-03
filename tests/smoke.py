@@ -17,7 +17,7 @@ SYSTEMS = {
     "adastraMI250": "adastra/AdastaJobsMI250_15days.parquet"
 }
 
-VALID_CHOICES = list(SYSTEMS.keys()) + ["synthetic"]
+VALID_CHOICES = list(SYSTEMS.keys()) + ["synthetic", "hetero"]
 
 def run_command(command):
     """Helper function to run a shell command."""
@@ -49,6 +49,10 @@ def synthetic_workload_tests():
     run_command(f"python main.py -w benchmark -t {DEFAULT_TIME}")
     run_command(f"python main.py -w peak -t {DEFAULT_TIME}")
     run_command(f"python main.py -w idle -t {DEFAULT_TIME}")
+
+def hetero_tests():
+    """Run heterogeneous workload tests."""
+    print("Starting heterogeneous workload tests...")
     run_command(f"python multi-part-sim.py -x setonix/part-cpu setonix/part-gpu -t {DEFAULT_TIME}")
 
 def main():
@@ -57,21 +61,23 @@ def main():
     parser.add_argument(
         "system",
         nargs="?",  # Optional argument
-        choices=VALID_CHOICES,  # Allow specific systems and 'synthetic'
-        help="Run tests for a specific system (e.g., 'frontier') or 'synthetic' workloads. If omitted, all tests run.",
+        choices=VALID_CHOICES,  # Allow specific systems, 'synthetic', and 'hetero'
+        help="Run tests for a specific system (e.g., 'frontier'), 'synthetic' workloads, or 'hetero' for heterogeneous workloads. If omitted, all tests run.",
     )
 
     args = parser.parse_args()
 
     if args.system == "synthetic":
         synthetic_workload_tests()
+    elif args.system == "hetero":
+        hetero_tests()
     elif args.system:
         execute_system_tests(args.system)
     else:
         # If no argument, run all tests
         synthetic_workload_tests()
+        hetero_tests()
         execute_system_tests()
 
 if __name__ == "__main__":
     main()
-
