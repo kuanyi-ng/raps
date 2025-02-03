@@ -112,6 +112,7 @@ class Workload:
             job_info = job_dict(
                 config['AVAILABLE_NODES'],       # Nodes required
                 f"Max Test {partition}",         # Name with partition label
+                ACCT_NAMES[0],                   # User account 
                 cpu_trace,                       # CPU trace
                 gpu_trace,                       # GPU trace
                 net_tx,                          # Network transmit trace
@@ -149,6 +150,7 @@ class Workload:
             job_info = job_dict(
                 config['AVAILABLE_NODES'],       # Nodes required
                 f"Idle Test {partition}",        # Name with partition label
+                ACCT_NAMES[0],                   # User account
                 cpu_trace,                       # CPU trace
                 gpu_trace,                       # GPU trace
                 net_tx,                          # Network transmit trace
@@ -170,6 +172,7 @@ class Workload:
 
         # List to hold jobs for all partitions
         jobs = []
+        account = ACCT_NAMES[0]
 
         # Iterate through each partition and its config
         for partition in self.partitions:
@@ -182,7 +185,7 @@ class Workload:
             cpu_trace, gpu_trace = self.compute_traces(cpu_util, gpu_util, 10800, config['TRACE_QUANTA'])
             job_info = job_dict(
                 config['AVAILABLE_NODES'],
-                f"Max Test {partition}",
+                f"Max Test {partition}", account,
                 cpu_trace, gpu_trace, net_tx, net_rx,
                 len(gpu_trace) * config['TRACE_QUANTA'], 'COMPLETED', None, 100, None, 0, partition
             )
@@ -193,7 +196,7 @@ class Workload:
             cpu_trace, gpu_trace = self.compute_traces(cpu_util, gpu_util, 3600, config['TRACE_QUANTA'])
             job_info = job_dict(
                 config['AVAILABLE_NODES'],
-                f"OpenMxP {partition}",
+                f"OpenMxP {partition}", account,
                 cpu_trace, gpu_trace, net_tx, net_rx,
                 len(gpu_trace) * config['TRACE_QUANTA'], 'COMPLETED', None, 300, None, 0, partition
             )
@@ -204,7 +207,7 @@ class Workload:
             cpu_trace, gpu_trace = self.compute_traces(cpu_util, gpu_util, 3600, config['TRACE_QUANTA'])
             job_info = job_dict(
                 config['AVAILABLE_NODES'],
-                f"HPL {partition}",
+                f"HPL {partition}", account,
                 cpu_trace, gpu_trace, net_tx, net_rx,
                 len(gpu_trace) * config['TRACE_QUANTA'], 'COMPLETED', None, 200, None, 0, partition
             )
@@ -215,7 +218,7 @@ class Workload:
             cpu_trace, gpu_trace = self.compute_traces(cpu_util, gpu_util, 3600, config['TRACE_QUANTA'])
             job_info = job_dict(
                 config['AVAILABLE_NODES'],
-                f"Idle Test {partition}",
+                f"Idle Test {partition}", account,
                 cpu_trace, gpu_trace, net_tx, net_rx,
                 len(gpu_trace) * config['TRACE_QUANTA'], 'COMPLETED', None, 0, None, 0, partition
             )

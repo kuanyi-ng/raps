@@ -32,7 +32,10 @@ class Account:
         self.total_jobs += 1
         self.time_allocated += jobstats.run_time
         self.energy_allocated += jobstats.energy
-        self.avg_power = self.energy_allocated / self.time_allocated
+        if self.time_allocated == 0:
+            self.avg_power = 0
+        else:
+            self.avg_power = self.energy_allocated / self.time_allocated
         if average_user.avg_power == 0:  # If this is the first job use own power
             average_user.avg_power = self.avg_power
         if average_user.avg_power != 0:  # If no energy was computed no points can be computed.

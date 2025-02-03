@@ -104,7 +104,6 @@ if args.replay:
     else: # custom data loader
         print(*args.replay)
         jobs = td.load_data(args.replay)
-        for job in jobs: job['priority'] = sc.policy.aging_boost(job['nodes_required'])
         td.save_snapshot(jobs, filename=DIR_NAME)
 
     # Set number of timesteps based on the last job running which we assume

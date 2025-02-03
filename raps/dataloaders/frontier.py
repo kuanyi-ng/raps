@@ -95,6 +95,8 @@ def load_data_from_df(jobs_df: pd.DataFrame, jobprofile_df: pd.DataFrame, **kwar
     # Map dataframe to job state. Add results to jobs list
     for jidx in tqdm(range(num_jobs - 1), total=num_jobs, desc="Processing Jobs"):
 
+        user = jobs_df.loc[jidx, 'user']
+        account = jobs_df.loc[jidx, 'account']
         job_id = jobs_df.loc[jidx, 'job_id']
         allocation_id = jobs_df.loc[jidx, 'allocation_id']
         nodes_required = jobs_df.loc[jidx, 'node_count']
@@ -154,7 +156,7 @@ def load_data_from_df(jobs_df: pd.DataFrame, jobprofile_df: pd.DataFrame, **kwar
                 scheduled_nodes.append(indices)
 
         if gpu_trace.size > 0 and (jid == job_id or jid == '*') and time_offset > 0:
-            job_info = job_dict(nodes_required, name, cpu_trace, gpu_trace, [], [], wall_time, 
+            job_info = job_dict(nodes_required, name, account, cpu_trace, gpu_trace, [], [], wall_time, 
                                 end_state, scheduled_nodes, time_offset, job_id, priority)
             jobs.append(job_info)
 
