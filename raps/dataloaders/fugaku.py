@@ -1,16 +1,16 @@
 """
     Download parquet files from https://zenodo.org/records/11467483
 
-    Note that F-Data doesn't give a list of nodes used, so we set 'scheduled_nodes' to None 
+    Note that F-Data doesn't give a list of nodes used, so we set 'scheduled_nodes' to None
     which triggers the scheduler to schedule the nodes itself.
 
-    Also, power in F-Data is only given at node-level. We can use node-level power by 
+    Also, power in F-Data is only given at node-level. We can use node-level power by
     adding the --validate option.
 
-    The --reschedule will compute submit times from Poisson distribution, instead of using
+    The '--reschedule poisson' will compute submit times from Poisson distribution, instead of using
     the submit times given in F-Data.
 
-    python main.py --system fugaku -f /path/to/21_04.parquet --reschedule --validate
+    python main.py --system fugaku -f /path/to/21_04.parquet --reschedule poisson --validate
 
 """
 import pandas as pd
@@ -25,7 +25,7 @@ def load_data(path, **kwargs):
 
     Parameters:
     path (str): Path to the Parquet file.
-    
+
     Returns:
     list: List of job dictionaries.
     """
@@ -44,7 +44,7 @@ def load_data_from_df(df, **kwargs):
 
     Parameters:
     df (pd.DataFrame): DataFrame containing job information.
-    
+
     Returns:
     list: List of job dictionaries.
     """
@@ -59,7 +59,7 @@ def load_data_from_df(df, **kwargs):
     if fastforward: print(f"fast-forwarding {fastforward} seconds")
 
     job_list = []
-    
+
     # Convert 'adt' (submit time) to datetime and find the earliest submission time
     df['adt'] = pd.to_datetime(df['adt'], errors='coerce')
     if not min_time:
@@ -84,14 +84,16 @@ def load_data_from_df(df, **kwargs):
         #scheduled_nodes = row['nnuma'] if 'nnuma' in df.columns else 0
         scheduled_nodes = None
         submit_time = row['adt'] if 'adt' in df.columns else min_time
-        if reschedule: # Let the scheduler reschedule the jobs
+        if reschedule == 'poisson':  # Let the scheduler reschedule the jobs
             time_offset = next_arrival(1/config['JOB_ARRIVAL_TIME'])
+        elif reschedule == 'submit-time':
+            raise NotImplementedError
         else:
             time_offset = (submit_time - min_time).total_seconds()  # Compute time offset in seconds
 
         job_id = row['jid'] if 'jid' in df.columns else 'unknown'
         priority = row['pri'] if 'pri' in df.columns else 0
-        
+
         # Create job dictionary
         job_info = job_dict(
             nodes_required=nodes_required,
@@ -99,8 +101,8 @@ def load_data_from_df(df, **kwargs):
             account=account,
             cpu_trace=cpu_trace,
             gpu_trace=gpu_trace,
-            ntx_trace=[], 
-            nrx_trace=[], 
+            ntx_trace=[],
+            nrx_trace=[],
             wall_time=wall_time,
             end_state=end_state,
             scheduled_nodes=scheduled_nodes,
@@ -108,9 +110,9 @@ def load_data_from_df(df, **kwargs):
             job_id=job_id,
             priority=priority
         )
-        
+
         job_list.append(job_info)
-    
+
     return job_list
 
 

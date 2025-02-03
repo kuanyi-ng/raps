@@ -142,13 +142,18 @@ def load_data_from_df(jobs_df: pd.DataFrame, jobprofile_df: pd.DataFrame, **kwar
 
         xnames = jobs_df.loc[jidx, 'xnames']
         # Don't replay any job with an empty set of xnames
-        if '' in xnames: continue
+        if '' in xnames:
+            continue
 
-        if reschedule: # Let the scheduler reschedule the jobs
+        if reschedule == 'poisson':  # Let the scheduler reschedule the jobs
             scheduled_nodes = None
             time_offset = next_arrival(1/config['JOB_ARRIVAL_TIME'])
             priority = aging_boost(nodes_required)
-        else: # Prescribed replay
+
+        elif reschedule == 'submit-time':
+            raise NotImplementedError
+
+        else:  # Prescribed replay
             scheduled_nodes = []
             priority = 0 # not used for replay
             for xname in xnames:
@@ -156,7 +161,7 @@ def load_data_from_df(jobs_df: pd.DataFrame, jobprofile_df: pd.DataFrame, **kwar
                 scheduled_nodes.append(indices)
 
         if gpu_trace.size > 0 and (jid == job_id or jid == '*') and time_offset > 0:
-            job_info = job_dict(nodes_required, name, account, cpu_trace, gpu_trace, [], [], wall_time, 
+            job_info = job_dict(nodes_required, name, account, cpu_trace, gpu_trace, [], [], wall_time,
                                 end_state, scheduled_nodes, time_offset, job_id, priority)
             jobs.append(job_info)
 
