@@ -60,6 +60,19 @@ class Account:
             "fugaku_points":self.fugaku_points
         }
 
+    @classmethod
+    def init_from_dict(acct, account_dict):  # id ,name, priority, total_jobs, time_allocated, energy_allocated, avg_power, fugaku_points):
+        acct = Account(account_dict["id"],account_dict["name"],account_dict["priority"])
+        acct.id = account_dict["id"]
+        acct.name = account_dict["name"]
+        acct.priority = account_dict["priority"]
+        acct.total_jobs = account_dict["total_jobs"]
+        acct.time_allocated = account_dict["time_allocated"]
+        acct.energy_allocated = account_dict["energy_allocated"]
+        acct.avg_power = account_dict["avg_power"]
+        acct.fugaku_points = account_dict["fugaku_points"]
+        return acct
+
 
 class Accounts:
 
@@ -70,6 +83,7 @@ class Accounts:
         self.average_user.energy_allocated = self.all_users.energy_allocated / total_accounts
         self.average_user.avg_power = self.all_users.avg_power / total_accounts
         self.fugaku_points = self.all_users.fugaku_points / total_accounts  # this should be 0
+        return self
 
     def __init__(self):
         self._account_id = 0
@@ -84,11 +98,16 @@ class Accounts:
             if '_account_id' in json_object:
                 self._account_id = json_object['_account_id']
             if 'account_dict' in json_object:
-                self.account_dict = json_object['account_dict']
+                json_dict = json_object['account_dict']
+                self.account_dict = {}
+                for account_name,account_dict in json_dict.items():
+                    self.account_dict[account_name] = Account.init_from_dict(account_dict)
+                #self.account_dict = json_object['account_dict']
+
             if 'all_users' in json_object:
-                self.all_users = json_object['all_users']
+                self.all_users = Account.init_from_dict(json_object['all_users'])
             if 'average_user' in json_object:
-                self.average_user = json_object['average_user']
+                self.average_user = Account.init_from_dict(json_object['average_user'])
         except ValueError:
             raise ValueError(f"{file} could not be read using json.load()")
 
@@ -97,6 +116,7 @@ class Accounts:
         if isinstance(jobstats, JobStatistics):
             if jobstats.account not in self.account_dict:
                 self.account_dict[jobstats.account] = Account(self._account_id,jobstats.account,0)
+                self._account_id += 1
             account = self.account_dict[jobstats.account]
             account.update_statistics(jobstats,self.average_user)
             self.account_dict[jobstats.account] = account
