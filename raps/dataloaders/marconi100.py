@@ -85,6 +85,7 @@ def load_data_from_df(jobs_df: pd.DataFrame, **kwargs):
     # Map dataframe to job state. Add results to jobs list
     for jidx in tqdm(range(num_jobs - 1), total=num_jobs, desc="Processing Jobs"):
 
+        account = jobs_df.loc[jidx, 'user_id'] # or 'group_id'
         job_id = jobs_df.loc[jidx, 'job_id']
 
         if not jid == '*': 
@@ -150,7 +151,7 @@ def load_data_from_df(jobs_df: pd.DataFrame, **kwargs):
             scheduled_nodes = (jobs_df.loc[jidx, 'nodes']).tolist()
             
         if gpu_trace.size > 0 and time_offset >= 0:
-            job_info = job_dict(nodes_required, name, cpu_trace, gpu_trace, [], [], wall_time,
+            job_info = job_dict(nodes_required, name, account, cpu_trace, gpu_trace, [], [], wall_time,
                                 end_state, scheduled_nodes, time_offset, job_id, priority)
             jobs.append(job_info)
 

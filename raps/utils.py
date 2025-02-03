@@ -15,6 +15,7 @@ import pandas as pd
 import random
 import sys
 import uuid
+import json
 
 
 def convert_seconds(seconds):
@@ -243,7 +244,7 @@ def create_binary_array_numpy(max_time, trace_quanta, util):
 
 def extract_data_csv(fileName, skiprows, header):
     """ Read passed csv file path
-        @ In, filename, dataframe, facility telemetry data 
+        @ In, filename, dataframe, facility telemetry data
         @ In, skiprows, int, number of rows to be skipped
         @ In, header, list, header of output dataframe
         @ Out, df, dataframe, read file returned as a dataframe
@@ -254,7 +255,7 @@ def extract_data_csv(fileName, skiprows, header):
     return df
 
 def resampledf(df, time_resampled):
-    """ Match key and return idx 
+    """ Match key and return idx
         @ In, None
         @ Out, CDU_names, list, list of CDU names
     """
@@ -301,7 +302,7 @@ def create_casename(prefix=''):
 def next_arrival(lambda_rate):
     if not hasattr(next_arrival, 'next_time'):
         # Initialize the first time it's called
-        next_arrival.next_time = 0  
+        next_arrival.next_time = 0
     else:
         next_arrival.next_time += \
             -math.log(1.0 - random.random()) / lambda_rate
@@ -316,15 +317,15 @@ def convert_to_seconds(time_str):
         'm': 60,     # 1 minute = 60 seconds
         's': 1       # 1 second = 1 second
     }
-    
+
     # Check if the input string ends with a unit or is purely numeric
     if time_str[-1].isdigit():
         return int(time_str)  # Directly return the number if it's purely numeric
-    
+
     # Extract the numeric part and the time unit
     num = int(time_str[:-1])
     unit = time_str[-1]
-    
+
     # Convert to seconds using the conversion factors
     if unit in time_factors:
         return num * time_factors[unit]
@@ -350,3 +351,12 @@ def write_dict_to_file(dictionary, file_path):
                 file.write("}\n")
             else:
                 file.write(f"{key}: {value}\n")
+
+
+def toJSON(obj):
+    """Function to dump a json string from object"""
+    return json.dumps(
+        obj,
+        default=lambda o:o.__dict__,
+        sort_keys=True,
+        indent=4)

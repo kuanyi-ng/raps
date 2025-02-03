@@ -34,6 +34,8 @@ parser.add_argument('-w', '--workload', type=str, choices=choices, default=choic
 choices = ['layout1', 'layout2']
 parser.add_argument('-x', '--partitions', nargs='+', default=None, help='List of machine configurations to use, e.g., -x setonix-cpu setonix-gpu')
 parser.add_argument('--layout', type=str, choices=choices, default=choices[0], help='Layout of UI')
+parser.add_argument('--accounts-json', type=str, help='Json of account stats generated in previous run. see raps/accounts.py')
+
 args = parser.parse_args()
 args_dict = vars(args)
 print(args_dict)

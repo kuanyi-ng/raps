@@ -140,6 +140,7 @@ def load_data_from_df(allocation_df, node_df, step_df, **kwargs):
 
             job_info = job_dict(nodes_required,
                                 row['hashed_user_id'],
+                                row['hashed_user_group_id'],
                                 cpu_trace, gpu_trace, net_tx, net_rx, wall_time,
                                 row['exit_status'],
                                 scheduled_nodes,

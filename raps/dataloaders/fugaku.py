@@ -68,6 +68,7 @@ def load_data_from_df(df, **kwargs):
     # Loop through the DataFrame rows to extract job information
     for _, row in tqdm(df.iterrows(), total=len(df), desc="Processing Jobs"):
         nodes_required = row['nnumr'] if 'nnumr' in df.columns else 0
+        account = row['usr']
         name = row['jnam'] if 'jnam' in df.columns else 'unknown'
 
         if validate:
@@ -95,6 +96,7 @@ def load_data_from_df(df, **kwargs):
         job_info = job_dict(
             nodes_required=nodes_required,
             name=name,
+            account=account,
             cpu_trace=cpu_trace,
             gpu_trace=gpu_trace,
             ntx_trace=[], 

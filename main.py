@@ -30,6 +30,7 @@ from raps.telemetry import Telemetry
 from raps.workload import Workload
 from raps.weather import Weather
 from raps.utils import create_casename, convert_to_seconds, write_dict_to_file, next_arrival
+from raps.utils import toJSON
 
 config = ConfigManager(system_name=args.system).get_config()
 
@@ -61,7 +62,7 @@ args_dict['config'] = config
 flops_manager = FLOPSManager(**args_dict)
 
 sc = Scheduler(
-    power_manager=power_manager, 
+    power_manager=power_manager,
     flops_manager=flops_manager,
     cooling_model=cooling_model,
     **args_dict,
@@ -70,7 +71,7 @@ layout_manager = LayoutManager(args.layout, scheduler=sc, debug=args.debug, **co
 
 if args.replay:
 
-    if args.fastforward: 
+    if args.fastforward:
         args.fastforward = convert_to_seconds(args.fastforward)
 
     td = Telemetry(**args_dict)
@@ -155,6 +156,12 @@ try:
 except:
     print(output_stats)
 
+# Schedule history
+pd.set_option('display.max_columns', None)
+pd.set_option('display.max_rows', None)
+schedule_history = pd.DataFrame(sc.get_history())
+print(schedule_history)
+
 if args.plot:
     if 'power' in args.plot:
         pl = Plotter('Time (s)', 'Power (kW)', 'Power History', \
@@ -209,7 +216,7 @@ if args.output:
 
     if args.uncertainties:
         # Parquet cannot handle annotated ufloat format AFAIK
-        print('Data dump not implemented using uncertainties!')  
+        print('Data dump not implemented using uncertainties!')
     else:
         if cooling_model:
             df = pd.DataFrame(cooling_model.fmu_history)
@@ -229,3 +236,10 @@ if args.output:
                 json.dump(output_stats, f, indent=4)
         except:
             write_dict_to_file(output_stats, OPATH / 'stats.out')
+
+        try:
+            with open(OPATH / 'accounts.json', 'w') as f:
+                json_string = json.dumps(sc.accounts.to_dict())
+                f.write(json_string)
+        except TypeError:
+            raise TypeError(f"{sc.accounts} could not be parsed by json.dump")
