@@ -30,6 +30,7 @@ from raps.telemetry import Telemetry
 from raps.workload import Workload
 from raps.weather import Weather
 from raps.utils import create_casename, convert_to_seconds, write_dict_to_file, next_arrival
+from raps.utils import toJSON
 
 config = ConfigManager(system_name=args.system).get_config()
 
@@ -238,7 +239,8 @@ if args.output:
             write_dict_to_file(output_stats, OPATH / 'stats.out')
 
         try:
-            with open(OPATH / 'account-stats.txt') as f:
-                json.dump(sc.accounts, f, indent=4)
-        except:
-            write_dict_to_file(vars(sc.accounts), OPATH / 'account-stats.out')
+            with open(OPATH / 'accounts.json', 'w') as f:
+                json_string = json.dumps(sc.accounts.to_dict())
+                f.write(json_string)
+        except TypeError:
+            raise TypeError(f"{sc.accounts} could not be parsed by json.dump")
