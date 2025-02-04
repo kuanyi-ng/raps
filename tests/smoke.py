@@ -17,7 +17,7 @@ SYSTEMS = {
     "adastraMI250": "adastra/AdastaJobsMI250_15days.parquet"
 }
 
-VALID_CHOICES = list(SYSTEMS.keys()) + ["synthetic", "hetero"]
+VALID_CHOICES = set(SYSTEMS.keys()).union({"synthetic", "hetero"})
 
 def run_command(command):
     """Helper function to run a shell command."""
@@ -35,9 +35,8 @@ def build_command(system, file_paths, additional_args=""):
 def execute_system_tests(systems):
     """Execute tests for selected systems."""
     for system in systems:
-        if system in SYSTEMS:
-            command = build_command(system, SYSTEMS[system])
-            run_command(command)
+        command = build_command(system, SYSTEMS[system])
+        run_command(command)
 
 def synthetic_workload_tests():
     """Run synthetic workload tests."""
@@ -57,19 +56,26 @@ def main():
     parser = argparse.ArgumentParser(description="Run smoke tests for HPC systems.")
     parser.add_argument(
         "tests",
-        nargs="*",  # Allow multiple test selections
-        choices=VALID_CHOICES,  # Allow specific systems, 'synthetic', and 'hetero'
+        nargs="*",  # Allow multiple test selections, including none
         help="Run tests for one or more specific systems (e.g., 'frontier lassen'), 'synthetic' workloads, or 'hetero'. If omitted, all tests run.",
     )
 
     args = parser.parse_args()
-    
-    # If no arguments, run all tests
+
+    # If no arguments are given, run all tests
     if not args.tests:
         synthetic_workload_tests()
         hetero_tests()
         execute_system_tests(SYSTEMS.keys())
     else:
+        # Validate each test name
+        invalid_tests = [test for test in args.tests if test not in VALID_CHOICES]
+        if invalid_tests:
+            print(f"Error: Invalid test(s): {', '.join(invalid_tests)}")
+            print(f"Valid options: {', '.join(VALID_CHOICES)}")
+            exit(1)
+
+        # Run the requested tests
         if "synthetic" in args.tests:
             synthetic_workload_tests()
         if "hetero" in args.tests:
