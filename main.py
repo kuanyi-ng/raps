@@ -156,11 +156,6 @@ try:
 except:
     print(output_stats)
 
-# Schedule history
-pd.set_option('display.max_columns', None)
-pd.set_option('display.max_rows', None)
-schedule_history = pd.DataFrame(sc.get_history())
-print(schedule_history)
 
 if args.plot:
     if 'power' in args.plot:
@@ -230,6 +225,10 @@ if args.output:
 
         df = pd.DataFrame(sc.sys_util_history)
         df.to_parquet(OPATH / 'util.parquet', engine='pyarrow')
+
+        # Schedule history
+        schedule_history = pd.DataFrame(sc.get_history())
+        schedule_history.to_csv(OPATH / "schedule_history.csv", index=False)
 
         try:
             with open(OPATH / 'stats.out', 'w') as f:
