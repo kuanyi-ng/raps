@@ -3,9 +3,9 @@ from enum import Enum
 class PolicyType(Enum):
     FCFS = 'fcfs'
     BACKFILL = 'backfill'
-    DEADLINE = 'deadline'
     PRIORITY = 'priority'
     SJF = 'sjf'
+    #DEADLINE = 'deadline' # not yet supported
     
 
 class Policy:
