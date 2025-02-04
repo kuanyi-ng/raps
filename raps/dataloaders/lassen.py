@@ -20,7 +20,7 @@ Usage Instructions:
     python main.py -f /path/to/LAST/Lassen-Supercomputer-Job-Dataset --system lassen
 
     # to reschedule
-    python main.py -f /path/to/LAST/Lassen-Supercomputer-Job-Dataset --system lassen --reschedule
+    python main.py -f /path/to/LAST/Lassen-Supercomputer-Job-Dataset --system lassen --reschedule poisson
 
     # to fast-forward 37 days and replay for 1 day
     python main.py -f /path/to/LAST/Lassen-Supercomputer-Job-Dataset --system lassen -ff 37d -t 1d
@@ -121,9 +121,11 @@ def load_data_from_df(allocation_df, node_df, step_df, **kwargs):
 
         net_tx, net_rx = generate_network_sequences(ib_tx, ib_rx, samples, lambda_poisson=0.3)
 
-        if reschedule:  # Let the scheduler reschedule the jobs
+        if reschedule == 'poisson':  # Let the scheduler reschedule the jobs
             scheduled_nodes = None
             time_offset = next_arrival(1/config['JOB_ARRIVAL_TIME'])
+        elif reschedule == 'submit-time':
+            raise NotImplementedError
         else:
             scheduled_nodes = get_scheduled_nodes(row['allocation_id'], node_df)
             time_offset = compute_time_offset(row['begin_time'], min_time)
@@ -196,8 +198,8 @@ def adjust_bursts(burst_intervals, total, intervals):
 
 
 def generate_network_sequences(total_tx, total_rx, intervals, lambda_poisson):
-    
-    if not total_tx or not total_rx: 
+
+    if not total_tx or not total_rx:
         return [], []
 
     # Generate sporadic bursts using a Poisson distribution (shared for both tx and rx)

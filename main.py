@@ -95,13 +95,16 @@ if args.replay:
                 job['nodes_required'] = random.randint(1, args.scale)
                 job['requested_nodes'] = None # Setting to None triggers scheduler to assign nodes
 
-        if args.reschedule:
+        if args.reschedule == 'poisson':
             print("available nodes:", config['AVAILABLE_NODES'])
             for job in tqdm(jobs, desc="Rescheduling jobs"):
                 job['requested_nodes'] = None
                 job['submit_time'] = next_arrival(1 / config['JOB_ARRIVAL_TIME'])
+        elif args.reschedule == 'submit-time':
+            raise NotImplementedError
 
-    else: # custom data loader
+
+    else:  # custom data loader
         print(*args.replay)
         jobs = td.load_data(args.replay)
         td.save_snapshot(jobs, filename=DIR_NAME)

@@ -22,7 +22,7 @@ def aging_boost(nnodes):
        https://docs.olcf.ornl.gov/systems/frontier_user_guide.html#job-priority-by-node-count
     """
     if nnodes >= 5645:
-        return 8*24*3600 # seconds
+        return 8*24*3600  # seconds
     elif nnodes >= 1882:
         return 4*24*3600
     else:
@@ -38,7 +38,7 @@ def load_data(files, **kwargs):
     list
         The list of parsed jobs.
     """
-    assert(len(files) == 2), "Frontier dataloader requires two files: joblive and jobprofile"
+    assert (len(files) == 2), "Frontier dataloader requires two files: joblive and jobprofile"
 
     jobs_path = files[0]
     jobs_df = pd.read_parquet(jobs_path, engine='pyarrow')
@@ -65,7 +65,8 @@ def load_data_from_df(jobs_df: pd.DataFrame, jobprofile_df: pd.DataFrame, **kwar
     validate = kwargs.get('validate')
     jid = kwargs.get('jid', '*')
 
-    if fastforward: print(f"fast-forwarding {fastforward} seconds")
+    if fastforward:
+        print(f"fast-forwarding {fastforward} seconds")
 
     min_time = kwargs.get('min_time', None)
 
@@ -102,7 +103,8 @@ def load_data_from_df(jobs_df: pd.DataFrame, jobprofile_df: pd.DataFrame, **kwar
         nodes_required = jobs_df.loc[jidx, 'node_count']
         end_state = jobs_df.loc[jidx, 'state_current']
         name = jobs_df.loc[jidx, 'name']
-        if encrypt_bool: name = encrypt(name)
+        if encrypt_bool:
+            name = encrypt(name)
 
         if validate:
             cpu_power = jobprofile_df[jobprofile_df['allocation_id']
@@ -132,31 +134,42 @@ def load_data_from_df(jobs_df: pd.DataFrame, jobprofile_df: pd.DataFrame, **kwar
         cpu_trace[np.isnan(cpu_trace)] = 0
         gpu_trace[np.isnan(gpu_trace)] = 0
 
-        wall_time = gpu_trace.size * config['TRACE_QUANTA'] # seconds
+        wall_time = gpu_trace.size * config['TRACE_QUANTA']  # seconds
 
         time_start = jobs_df.loc[jidx+1, 'time_start']
         diff = time_start - time_zero
         time_offset = max(diff.total_seconds(), 0)
 
-        if fastforward: time_offset -= fastforward
+        if fastforward:
+            time_offset -= fastforward
 
         xnames = jobs_df.loc[jidx, 'xnames']
         # Don't replay any job with an empty set of xnames
-        if '' in xnames: continue
+        if '' in xnames:
+            continue
 
-        if reschedule: # Let the scheduler reschedule the jobs
+        if reschedule == 'poisson':  # Let the scheduler reschedule the jobs
             scheduled_nodes = None
             time_offset = next_arrival(1/config['JOB_ARRIVAL_TIME'])
             priority = aging_boost(nodes_required)
-        else: # Prescribed replay
+
+        elif reschedule == 'submit-time':
+            scheduled_nodes = None
+            time_submit = jobs_df.loc[jidx, 'time_submission']
+            diff = time_submit - time_zero
+            time_offset = max(diff.total_seconds(), 0)
+            priority = 0  # SIC
+            #raise NotImplementedError
+
+        else:  # Prescribed replay
             scheduled_nodes = []
-            priority = 0 # not used for replay
+            priority = 0  # not used for replay
             for xname in xnames:
                 indices = xname_to_index(xname, config)
                 scheduled_nodes.append(indices)
 
         if gpu_trace.size > 0 and (jid == job_id or jid == '*') and time_offset > 0:
-            job_info = job_dict(nodes_required, name, account, cpu_trace, gpu_trace, [], [], wall_time, 
+            job_info = job_dict(nodes_required, name, account, cpu_trace, gpu_trace, [], [], wall_time,
                                 end_state, scheduled_nodes, time_offset, job_id, priority)
             jobs.append(job_info)
 
@@ -222,6 +235,7 @@ CDU_NAMES = [
     'x2402c1', 'x2403c1', 'x2406c1', 'x2409c1', 'x2502c1', 'x2503c1', 'x2506c1', 'x2509c1',
     'x2609c1',
 ]
+
 
 def cdu_index_to_name(index: int, config: dict):
     return CDU_NAMES[index - 1]

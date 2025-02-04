@@ -32,7 +32,7 @@ args_dicts = [{**vars(args), 'config': config} for config in configs]
 # Initialize Workload
 if args.replay:
 
-    # Currently this assumes that an .npz file has already been created 
+    # Currently this assumes that an .npz file has already been created
     # e.g., python main.py --system marconi100 -f ~/data/marconi100/job_table.parquet
     td = Telemetry(**args_dicts[0])
     print(f"Loading {args.replay[0]}...")
@@ -41,7 +41,7 @@ if args.replay:
     print("available nodes:", available_nodes)
 
     # Randomly assign partition
-    for job in jobs: 
+    for job in jobs:
         job['partition'] = random.choices(partition_names, weights=available_nodes, k=1)[0]
 
     if args.scale:
@@ -49,14 +49,16 @@ if args.replay:
             job['nodes_required'] = random.randint(1, args.scale)
             job['requested_nodes'] = None # Setting to None triggers scheduler to assign nodes
 
-    if args.reschedule:
+    if args.reschedule == 'poisson':
         for job in tqdm(jobs, desc="Rescheduling jobs"):
             partition = job['partition']
             partition_config = configs[partition_names.index(partition)]
             job['requested_nodes'] = None
             job['submit_time'] = next_arrival(1 / partition_config['JOB_ARRIVAL_TIME'])
+    elif args.reschedule == 'submit-time':
+        raise NotImplementedError
 
-else: # Synthetic workload
+else:  # Synthetic workload
     wl = Workload(*configs)
 
     # Generate jobs based on workload type

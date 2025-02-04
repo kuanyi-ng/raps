@@ -8,7 +8,7 @@
     python main.py -f /path/to/AdastaJobsMI250_15days.parquet --system adastra
 
     # to reschedule
-    python main.py -f /path/to/AdastaJobsMI250_15days.parquet --system adastra --reschedule
+    python main.py -f /path/to/AdastaJobsMI250_15days.parquet --system adastra --reschedule poisson
 
     # to fast-forward 60 days and replay for 1 day
     python main.py -f /path/to/AdastaJobsMI250_15days.parquet --system adastra -ff 60d -t 1d
@@ -85,8 +85,8 @@ def load_data_from_df(jobs_df: pd.DataFrame, **kwargs):
         account = jobs_df.loc[jidx, 'user_id'] # or 'group_id'
         job_id = jobs_df.loc[jidx, 'job_id']
 
-        if not jid == '*': 
-            if int(jid) == int(job_id): 
+        if not jid == '*':
+            if int(jid) == int(job_id):
                 print(f'Extracting {job_id} profile')
             else:
                 continue
@@ -101,7 +101,7 @@ def load_data_from_df(jobs_df: pd.DataFrame, **kwargs):
             print("error nodes_required",nodes_required)
             continue
         #wall_time = gpu_trace.size * TRACE_QUANTA # seconds
-            
+
         if validate:
 
             node_power = jobs_df.loc[jidx, 'node_power_consumption']
@@ -109,8 +109,8 @@ def load_data_from_df(jobs_df: pd.DataFrame, **kwargs):
             node_watts = sum(node_power_array) / (wall_time*nodes_required)
             cpu_trace = node_watts
             gpu_trace = 0.0  # should contain  stddev_node_power when --validate flag is used
-            
-        else:                
+
+        else:
             cpu_power = jobs_df.loc[jidx, 'cpu_power_consumption']
             cpu_power_array = cpu_power.tolist()
             cpu_watts = sum(cpu_power_array) / (wall_time*nodes_required)
@@ -120,8 +120,8 @@ def load_data_from_df(jobs_df: pd.DataFrame, **kwargs):
 
             cpu_util = (cpu_watts/float(config['POWER_CPU_IDLE']) - config['CPUS_PER_NODE']) /  ((float(config['POWER_CPU_MAX']) / float(config['POWER_CPU_IDLE'])) -1.0)    #power_to_utilization(cpu_power_array, cpu_min_power, cpu_max_power)
  #           print("cpu_watts",cpu_watts,"cpu_util",cpu_util)
-            cpu_trace = np.maximum(0, cpu_util) 
-                
+            cpu_trace = np.maximum(0, cpu_util)
+
             node_power = (jobs_df.loc[jidx, 'node_power_consumption']).tolist()
             mem_power = (jobs_df.loc[jidx, 'mem_power_consumption']).tolist()
             # Find the minimum length among the three lists
@@ -130,7 +130,7 @@ def load_data_from_df(jobs_df: pd.DataFrame, **kwargs):
             node_power = node_power[:min_length]
             cpu_power = cpu_power[:min_length]
             mem_power = mem_power[:min_length]
-                
+
             gpu_power = (node_power - cpu_power - mem_power
                 - ([config['NICS_PER_NODE'] * config['POWER_NIC']]))
             gpu_power_array = gpu_power.tolist()
@@ -140,29 +140,32 @@ def load_data_from_df(jobs_df: pd.DataFrame, **kwargs):
             gpu_util = (gpu_watts/float(config['POWER_GPU_IDLE']) - config['GPUS_PER_NODE']) /  ((float(config['POWER_GPU_MAX']) / float(config['POWER_GPU_IDLE'])) -1.0)    #power_to_utilization(cpu_power_array, cpu_min_power, cpu_max_power)
  #           print("gpu_watts",gpu_watts,"gpu_util",gpu_util)
             gpu_trace = np.maximum(0, gpu_util) #gpu_util * GPUS_PER_NODE
-            
+
         priority = int(jobs_df.loc[jidx, 'priority'])
-            
+
         end_state = jobs_df.loc[jidx, 'job_state']
         time_start = jobs_df.loc[jidx, 'start_time']
         time_end = jobs_df.loc[jidx, 'end_time']
         diff = time_start - time_zero
 
-        if jid == '*': 
+        if jid == '*':
             time_offset = max(diff.total_seconds(), 0)
         else:
             # When extracting out a single job, run one iteration past the end of the job
             time_offset = config['UI_UPDATE_FREQ']
 
-        if fastforward: time_offset -= fastforward
+        if fastforward:
+            time_offset -= fastforward
 
-        if reschedule: # Let the scheduler reschedule the jobs
+        if reschedule == 'poisson':  # Let the scheduler reschedule the jobs
             scheduled_nodes = None
             time_offset = next_arrival(1/config['JOB_ARRIVAL_TIME'])
-        else: # Prescribed replay
+        elif reschedule == 'submit-time':
+            raise NotImplementedError
+        else:  # Prescribed replay
             scheduled_nodes = (jobs_df.loc[jidx, 'nodes']).tolist()
 
-        if time_offset >= 0  and wall_time >  0:
+        if time_offset >= 0 and wall_time > 0:
             #print("start_time",time_start,"\tend_time",time_end,"\twall_time",wall_time,"\tquanta wall time",gpu_trace.size * TRACE_QUANTA )
             job_info = job_dict(nodes_required, name, account, cpu_trace, gpu_trace, [],[],wall_time,
                                 end_state, scheduled_nodes, time_offset, job_id, priority)
