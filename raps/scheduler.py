@@ -149,7 +149,7 @@ class Scheduler:
             # Try scheduling the first job in the queue
             job = self.queue.pop(0)
             synthetic_bool = len(self.available_nodes) >= job.nodes_required
-            telemetry_bool = set(job.requested_nodes).issubset(set(self.available_nodes))
+            telemetry_bool = job.requested_nodes and set(job.requested_nodes).issubset(set(self.available_nodes))
 
             if synthetic_bool or telemetry_bool:
 
