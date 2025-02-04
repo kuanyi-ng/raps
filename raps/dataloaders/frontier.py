@@ -158,7 +158,7 @@ def load_data_from_df(jobs_df: pd.DataFrame, jobprofile_df: pd.DataFrame, **kwar
             time_submit = jobs_df.loc[jidx, 'time_submission']
             diff = time_submit - time_zero
             time_offset = max(diff.total_seconds(), 0)
-            priority = 0  # SIC
+            priority = aging_boost(nodes_required)
             #raise NotImplementedError
 
         else:  # Prescribed replay
