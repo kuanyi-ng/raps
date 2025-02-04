@@ -60,7 +60,9 @@ Multi-partition systems are supported by running the `multi-part-sim.py` script,
 
 or simply:
 
-    python multi-part-sim.py -x setonix/*
+    python multi-part-sim.py -x setonix/* # bash
+
+    python multi-part-sim.py -x 'setonix/*' # zsh
 
 This will simulate synthetic workloads on two partitions as defined in `config/setonix-cpu` and `config/setonix-gpu`. To replay telemetry workloads from another system, e.g., Marconi100's PM100 dataset, first create a .npz snapshot of the telemetry data, e.g., 
 
