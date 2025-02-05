@@ -7,6 +7,7 @@ from .job import Job, JobState
 from .account import Accounts
 from .network import network_utilization
 from .utils import summarize_ranges, expand_ranges, write_dict_to_file
+from .resmgr import ResourceManager
 from .schedulers import load_scheduler
 
 
@@ -33,9 +34,12 @@ class Engine:
     def __init__(self, *, power_manager, flops_manager, cooling_model=None, config, **kwargs):
         self.config = config
         self.down_nodes = summarize_ranges(self.config['DOWN_NODES'])
-        self.available_nodes = list(set(range(self.config['TOTAL_NODES'])) - set(self.config['DOWN_NODES']))
-        self.num_free_nodes = len(self.available_nodes)
-        self.num_active_nodes = self.config['TOTAL_NODES'] - self.num_free_nodes - len(self.config['DOWN_NODES'])
+        self.resource_manager = ResourceManager(
+            total_nodes=self.config['TOTAL_NODES'],
+            down_nodes=self.config['DOWN_NODES']
+        ) 
+
+        # Initialize running and queue, etc.
         self.running = []
         self.queue = []
         self.accounts = Accounts()
@@ -54,7 +58,11 @@ class Engine:
         
         # Get scheduler type from command-line args or default
         scheduler_type = kwargs.get('scheduler', 'default')
-        self.scheduler = load_scheduler(scheduler_type)(config=self.config, policy=kwargs.get('policy'))
+        self.scheduler = load_scheduler(scheduler_type)(
+            config=self.config,
+            policy=kwargs.get('policy'),
+            resource_manager=self.resource_manager
+        )
         print(f"Using scheduler: {scheduler_type}")
 
 
@@ -72,8 +80,10 @@ class Engine:
         newly_downed_nodes = self.node_failure(self.config['MTBF'])
 
         # Update active/free nodes
-        self.num_free_nodes = len(self.available_nodes)
-        self.num_active_nodes = self.config['TOTAL_NODES'] - self.num_free_nodes - len(expand_ranges(self.down_nodes))
+        self.num_free_nodes = len(self.resource_manager.available_nodes)
+        self.num_active_nodes = self.config['TOTAL_NODES'] 
+                              - len(self.resource_manager.available_nodes) 
+                              - len(self.resource_manager.down_nodes)
 
         # Update running time for all running jobs
         for job in self.running:
@@ -103,12 +113,11 @@ class Engine:
             self.jobs_completed += 1
             job_stats = job.statistics()
             self.accounts.update_account_statistics(job_stats)
-            # Free nodes and ensure there are no duplicates
-            self.available_nodes.extend(job.scheduled_nodes)
-            self.available_nodes = sorted(set(self.available_nodes))
+            # Free the nodes via the resource manager.
+            self.resource_manager.free_nodes_from_job(job)
 
         # Ask scheduler to schedule any jobs waiting in queue
-        self.scheduler.schedule(self.queue, self.running, self.available_nodes, self.current_time)
+        self.scheduler.schedule(self.queue, self.running, self.current_time)
 
         # Update the power array UI component
         rack_power, rect_losses = self.power_manager.compute_rack_power()
@@ -120,7 +129,7 @@ class Engine:
         self.sys_util_history.append((self.current_time, system_util))
 
         # Render the updated layout
-        power_df = None #self.power_manager.get_power_df() if self.power_manager else pd.DataFrame()
+        power_df = None
         cooling_inputs, cooling_outputs = None, None
 
         # Update power history every 15s
@@ -196,7 +205,7 @@ class Engine:
 
         for timestep in range(timesteps):
 
-            self.scheduler.schedule(self.queue, self.running, self.available_nodes, self.current_time)
+            self.scheduler.schedule(self.queue, self.running, self.current_time)
 
             # Stop the simulation if no more jobs are running or in the queue
             if not self.queue and not self.running and not self.replay:

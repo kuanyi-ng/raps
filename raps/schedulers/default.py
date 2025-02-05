@@ -15,9 +15,13 @@ class Scheduler:
     """ Default job scheduler with various scheduling policies. """
     
 
-    def __init__(self, config, policy):
+    def __init__(self, config, policy, resource_manager=None):
         self.config = config
         self.policy = PolicyType(policy)
+        if resource_manager is None:
+            raise ValueError("Scheduler requires a ResourceManager instance")
+        self.resource_manager = resource_manager
+        self.debug = False
 
 
     def sort_jobs(self, queue):
@@ -32,42 +36,22 @@ class Scheduler:
             raise ValueError(f"Unknown policy type: {self.policy}")
 
 
-    def assign_nodes_to_job(self, job, available_nodes, current_time):
-        """Assigns nodes to a job and updates available nodes."""
-        if len(available_nodes) < job.nodes_required:
-            raise ValueError(f"Not enough available nodes to schedule job {job.id}")
-
-        if job.requested_nodes:  # Telemetry replay case
-            job.scheduled_nodes = job.requested_nodes
-            available_nodes[:] = [n for n in available_nodes if n not in job.scheduled_nodes]
-        else:  # Synthetic or reschedule case
-            job.scheduled_nodes = available_nodes[:job.nodes_required]
-            available_nodes[:] = available_nodes[job.nodes_required:]
-
-        # Set job start and end times
-        job.start_time = current_time
-        job.end_time = current_time + job.wall_time
-        job.state = JobState.RUNNING  # Job is now running
-
-
-    def schedule(self, queue, running, available_nodes, current_time, debug=False):
+    def schedule(self, queue, running, current_time, debug=False):
         # Sort the queue in place.
         queue[:] = self.sort_jobs(queue)
 
         # Iterate over a copy of the queue since we might remove items
         for job in queue[:]:
-            synthetic_bool = len(available_nodes) >= job.nodes_required
-            telemetry_bool = job.requested_nodes and set(job.requested_nodes).issubset(set(available_nodes))
-
-            if synthetic_bool or telemetry_bool:
-                self.assign_nodes_to_job(job, available_nodes, current_time)
+            # Check if the resource manager has enough nodes.
+            if len(self.resource_manager.available_nodes) >= job.nodes_required:
+                # Use ResourceManager to assign nodes.
+                self.resource_manager.assign_nodes_to_job(job, current_time)
                 running.append(job)
-                queue.remove(job)  # Remove the job from the queue
+                queue.remove(job)
                 if debug:
                     scheduled_nodes = summarize_ranges(job.scheduled_nodes)
                     print(f"t={current_time}: Scheduled job {job.id} with wall time {job.wall_time} on nodes {scheduled_nodes}")
             else:
-                # Optionally, if you have a BACKFILL policy, attempt backfilling here.
                 if self.policy == PolicyType.BACKFILL:
                     # Try to find a backfill candidate from the entire queue.
                     backfill_job = self.find_backfill_job(queue, len(available_nodes), current_time)
