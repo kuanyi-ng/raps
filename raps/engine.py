@@ -195,18 +195,8 @@ class Engine:
             self.add_job(job)
 
         for timestep in range(timesteps):
-            #while self.current_time >= last_submit_time and jobs:
 
-                #job = self.queue.pop(0)
-                #self.scheduler.schedule([job], self.running, self.available_nodes, self.current_time)
             self.scheduler.schedule(self.queue, self.running, self.available_nodes, self.current_time)
-
-                #if jobs:
-                #    last_submit_time = job.submit_time
-                #else:
-                #    last_submit_time = float('inf')  # Avoid infinite loop
-
-            yield self.tick()
 
             # Stop the simulation if no more jobs are running or in the queue
             if not self.queue and not self.running and not self.replay:
@@ -215,6 +205,7 @@ class Engine:
             if self.debug and timestep % self.config['UI_UPDATE_FREQ'] == 0:
                     print(".", end="", flush=True)
 
+            yield self.tick()
 
     def get_stats(self):
         """ Return output statistics """
