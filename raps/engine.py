@@ -269,8 +269,8 @@ class Engine:
         newly_downed_nodes = all_nodes[failed_nodes_mask]
 
         for node_index in newly_downed_nodes:
-            if node_index in self.available_nodes:
-                self.available_nodes.remove(node_index)
+            if node_index in self.resource_manager.available_nodes:
+                self.resource_manager.available_nodes.remove(node_index)
             self.down_nodes.append(str(node_index))
             self.power_manager.set_idle(node_index)
 
