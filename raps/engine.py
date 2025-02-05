@@ -194,12 +194,15 @@ class Engine:
 
         for timestep in range(timesteps):
             while self.current_time >= last_submit_time and jobs:
-                self.scheduler.schedule(self.queue, self.running, self.available_nodes, self.current_time)
+
+                job = jobs.pop(0)
+                job = Job(job_info, self.current_time)
+                self.scheduler.schedule([job], self.running, self.available_nodes, self.current_time)
 
                 if jobs:
                     last_submit_time = job.submit_time
-                else:  # No more jobs, set submit_time to infinity to avoid triggering again
-                    last_submit_time = float('inf')
+                else:
+                    last_submit_time = float('inf')  # Avoid infinite loop
 
             yield self.tick()
 

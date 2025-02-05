@@ -50,10 +50,12 @@ class Scheduler:
         job.state = JobState.RUNNING  # Job is now running
 
 
-    def schedule(self, queue, running, available_nodes, current_time):
-        """Schedules jobs from the queue to available nodes."""
-        while queue:
-            job = queue.pop(0)
+    def schedule(self, job_list, running, available_nodes, current_time):
+        """Schedules jobs from the given job_list directly, modifying available_nodes."""
+        
+        while job_list:
+            job = job_list.pop(0)
+
             if len(available_nodes) >= job.nodes_required:
                 job.scheduled_nodes = available_nodes[:job.nodes_required]
                 available_nodes[:] = available_nodes[job.nodes_required:]
@@ -61,10 +63,9 @@ class Scheduler:
                 job.end_time = current_time + job.wall_time
                 job.state = JobState.RUNNING
                 running.append(job)
-                #print(f"t={current_time}: Scheduled job {job.id} on nodes {summarize_ranges(job.scheduled_nodes)}")
             else:
-                queue.insert(0, job)  # Keep the job at the front if it can't be scheduled
-                break
+                job_list.insert(0, job)  # Put job back at the front if it can't be scheduled
+                break  # Stop scheduling if no nodes are available
 
 
     def schedule2(self, queue, running, available_nodes, current_time, debug=False):
