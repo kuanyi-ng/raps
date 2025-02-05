@@ -8,9 +8,9 @@ import sys
 
 from args import args
 from raps.config import ConfigManager, CONFIG_PATH
-from raps.policy import PolicyType
+from raps.schedulers.default import PolicyType
 from raps.ui import LayoutManager
-from raps.scheduler import Scheduler
+from raps.engine import Engine
 from raps.flops import FLOPSManager
 from raps.power import PowerManager, compute_node_power
 from raps.telemetry import Telemetry
@@ -74,8 +74,8 @@ layout_managers = {}
 for i, config in enumerate(configs):
     pm = PowerManager(compute_node_power, **configs[i])
     fm = FLOPSManager(**args_dicts[i])
-    sc = Scheduler(power_manager=pm, flops_manager=fm, cooling_model=None, **args_dicts[i])
-    layout_managers[config['system_name']] = LayoutManager(args.layout, scheduler=sc, debug=args.debug, **config)
+    sc = Engine(power_manager=pm, flops_manager=fm, cooling_model=None, **args_dicts[i])
+    layout_managers[config['system_name']] = LayoutManager(args.layout, engine=sc, debug=args.debug, **config)
 
 # Set simulation timesteps
 if args.time:
@@ -96,9 +96,9 @@ for timestep in range(timesteps):
     if timestep % configs[0]['UI_UPDATE_FREQ'] == 0:  # Assuming same frequency for all partitions
         sys_power = 0
         for name, lm in layout_managers.items():
-            sys_util = lm.scheduler.sys_util_history[-1] if lm.scheduler.sys_util_history else 0.0
-            print(f"[DEBUG] {name} - Timestep {timestep} - Jobs running: {len(lm.scheduler.running)} - Utilization: {sys_util[1]:.2f}% - Power: {lm.scheduler.sys_power:.1f}kW")
-            sys_power += lm.scheduler.sys_power
+            sys_util = lm.engine.sys_util_history[-1] if lm.engine.sys_util_history else 0.0
+            print(f"[DEBUG] {name} - Timestep {timestep} - Jobs running: {len(lm.engine.running)} - Utilization: {sys_util[1]:.2f}% - Power: {lm.engine.sys_power:.1f}kW")
+            sys_power += lm.engine.sys_power
         print(f"system power: {sys_power:.1f}kW")
 
 print("Simulation complete.")

@@ -28,7 +28,7 @@ from datetime import datetime
 from tqdm import tqdm
 
 from .config import ConfigManager
-from .scheduler import Job
+from .job import Job
 from .plotting import plot_submit_times, plot_nodes_histogram
 from .utils import next_arrival
 

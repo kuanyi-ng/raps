@@ -1,5 +1,5 @@
 import argparse
-from raps.policy import PolicyType
+from raps.schedulers.default import PolicyType
 
 parser = argparse.ArgumentParser(description='Resource Allocator & Power Simulator (RAPS)')
 parser.add_argument('-c', '--cooling', action='store_true', help='Include FMU cooling model')
@@ -28,8 +28,10 @@ choices = ['png', 'svg', 'jpg', 'pdf', 'eps']
 parser.add_argument('--imtype', type=str, choices=choices, default=choices[0], help='Plot image type')
 parser.add_argument('--scale', type=int, default=0, help='Scale telemetry to max nodes specified in order to run telemetry on a smaller smaller target system/partition, e.g., --scale 192')
 parser.add_argument('--system', type=str, default='frontier', help='System config to use')
+choices = ['default', 'nrel', 'anl', 'flux']
+parser.add_argument('--scheduler', type=str, choices=choices, default=choices[0], help='Name of scheduler')
 choices = [policy.value for policy in PolicyType]
-parser.add_argument('-s', '--schedule', type=str, choices=choices, default=choices[0], help='Schedule policy to use')
+parser.add_argument('--policy', type=str, choices=choices, default=choices[0], help='Schedule policy to use')
 choices = ['random', 'benchmark', 'peak', 'idle']
 parser.add_argument('-w', '--workload', type=str, choices=choices, default=choices[0], help='Type of synthetic workload')
 choices = ['layout1', 'layout2']
