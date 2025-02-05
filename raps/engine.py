@@ -81,8 +81,8 @@ class Engine:
 
         # Update active/free nodes
         self.num_free_nodes = len(self.resource_manager.available_nodes)
-        self.num_active_nodes = self.config['TOTAL_NODES'] 
-                              - len(self.resource_manager.available_nodes) 
+        self.num_active_nodes = self.config['TOTAL_NODES'] \
+                              - len(self.resource_manager.available_nodes) \
                               - len(self.resource_manager.down_nodes)
 
         # Update running time for all running jobs
