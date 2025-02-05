@@ -103,6 +103,9 @@ class Engine:
             self.jobs_completed += 1
             job_stats = job.statistics()
             self.accounts.update_account_statistics(job_stats)
+            # Free nodes and ensure there are no duplicates
+            self.available_nodes.extend(job.scheduled_nodes)
+            self.available_nodes = sorted(set(self.available_nodes))
 
         # Ask scheduler to schedule any jobs waiting in queue
         self.scheduler.schedule(self.queue, self.running, self.available_nodes, self.current_time)
@@ -172,7 +175,6 @@ class Engine:
         return tick_data
 
 
-
     def get_utilization(self, trace, time_quanta_index):
         """Retrieve utilization value for a given trace at a specific time quanta index."""
         if isinstance(trace, (list, np.ndarray)):
@@ -193,16 +195,16 @@ class Engine:
             self.add_job(job)
 
         for timestep in range(timesteps):
-            while self.current_time >= last_submit_time and jobs:
+            #while self.current_time >= last_submit_time and jobs:
 
-                job = jobs.pop(0)
-                job = Job(job_info, self.current_time)
-                self.scheduler.schedule([job], self.running, self.available_nodes, self.current_time)
+                #job = self.queue.pop(0)
+                #self.scheduler.schedule([job], self.running, self.available_nodes, self.current_time)
+            self.scheduler.schedule(self.queue, self.running, self.available_nodes, self.current_time)
 
-                if jobs:
-                    last_submit_time = job.submit_time
-                else:
-                    last_submit_time = float('inf')  # Avoid infinite loop
+                #if jobs:
+                #    last_submit_time = job.submit_time
+                #else:
+                #    last_submit_time = float('inf')  # Avoid infinite loop
 
             yield self.tick()
 

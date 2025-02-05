@@ -50,27 +50,32 @@ class Scheduler:
         job.state = JobState.RUNNING  # Job is now running
 
 
-    def schedule(self, job_list, running, available_nodes, current_time):
-        """Schedules jobs from the given job_list directly, modifying available_nodes."""
+    def schedule(self, queue, running, available_nodes, current_time, debug=False):
+        # Sort the queue in place.
+        queue[:] = self.sort_jobs(queue)
         
-        while job_list:
-            job = job_list.pop(0)
+        # Iterate over a copy of the queue since we might remove items
+        for job in queue[:]:
+            synthetic_bool = len(available_nodes) >= job.nodes_required
+            telemetry_bool = job.requested_nodes and set(job.requested_nodes).issubset(set(available_nodes))
 
-            if len(available_nodes) >= job.nodes_required:
-                job.scheduled_nodes = available_nodes[:job.nodes_required]
-                available_nodes[:] = available_nodes[job.nodes_required:]
-                job.start_time = current_time
-                job.end_time = current_time + job.wall_time
-                job.state = JobState.RUNNING
+            if synthetic_bool or telemetry_bool:
+                self.assign_nodes_to_job(job, available_nodes, current_time)
                 running.append(job)
+                queue.remove(job)  # Remove the job from the queue
+                if debug:
+                    scheduled_nodes = summarize_ranges(job.scheduled_nodes)
+                    print(f"t={current_time}: Scheduled job with wall time {job.wall_time} on nodes {scheduled_nodes}")
             else:
-                job_list.insert(0, job)  # Put job back at the front if it can't be scheduled
-                break  # Stop scheduling if no nodes are available
+                # Optionally, if you have a BACKFILL policy, you can attempt that here.
+                # Otherwise, just leave the job in the queue.
+                continue
+
 
 
     def schedule2(self, queue, running, available_nodes, current_time, debug=False):
         """Schedules jobs from the queue to available nodes."""
-        queue = self.sort_jobs(queue)  # Ensure queue is sorted before scheduling
+        queue[:] = self.sort_jobs(queue)  # Ensure queue is sorted before scheduling
 
         while queue:
 
@@ -97,7 +102,7 @@ class Scheduler:
                     queue.insert(0, job)
                     backfill_job = self.find_backfill_job(queue, len(available_nodes), current_time)
                     if backfill_job:
-                        self.assign_nodes_to_job(backfill_job)
+                        self.assign_nodes_to_job(backfill_job, available_nodes, current_time)
                         self.queue.remove(backfill_job)
                         if self.debug:
                             scheduled_nodes = summarize_ranges(backfill_job.scheduled_nodes)
