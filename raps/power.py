@@ -278,7 +278,7 @@ class PowerManager:
         power_value, sivoc_loss = self.power_func(cpu_util_flat, gpu_util_flat, net_util_flat, self.config)
         self.power_state[node_indices] = power_value
         self.sivoc_loss[node_indices] = sivoc_loss
-        return power_value
+        return power_value[np.cumsum(job_lengths) - 1]
     
 
     def calculate_rectifiers_needed(self, power_state_summed):
