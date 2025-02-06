@@ -1,4 +1,8 @@
+import numpy as np
 from .job import JobState
+from .utils import expand_ranges
+from scipy.stats import weibull_min
+
 
 class ResourceManager:
     def __init__(self, total_nodes, down_nodes):
@@ -48,3 +52,33 @@ class ResourceManager:
         utilization = (num_active_nodes / total_operational) * 100 if total_operational else 0
         self.sys_util_history.append((current_time, utilization))
         return utilization
+
+    def node_failure(self, mtbf):
+        """Simulate node failure using Weibull distribution."""
+        shape_parameter = 1.5
+        scale_parameter = mtbf * 3600  # Convert to seconds
+
+        # Create a NumPy array of node indices, excluding down nodes
+        #print(self.down_nodes)
+        #down_nodes = expand_ranges(self.down_nodes)
+        #all_nodes = np.setdiff1d(np.arange(self.config['TOTAL_NODES']), np.array(self.down_nodes, dtype=int))
+        all_nodes = np.array(sorted(set(range(self.total_nodes)) - set(self.down_nodes)))
+
+        # Sample the Weibull distribution for all nodes at once
+        random_values = weibull_min.rvs(shape_parameter, scale=scale_parameter, size=all_nodes.size)
+        failure_threshold = 0.1
+        failed_nodes = [node for node, r in zip(all_nodes, random_values) if r < failure_threshold]
+
+        # Identify nodes that have failed
+        failure_threshold = 0.1
+        failed_nodes_mask = random_values < failure_threshold
+        newly_downed_nodes = all_nodes[failed_nodes_mask]
+
+        # Update available and down nodes
+        for node_index in newly_downed_nodes:
+            if node_index in self.available_nodes:
+                self.available_nodes.remove(node_index)
+            self.down_nodes.append(str(node_index))
+            self.power_manager.set_idle(node_index)
+
+        return newly_downed_nodes.tolist()
