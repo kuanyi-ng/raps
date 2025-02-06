@@ -194,27 +194,33 @@ class Engine:
             raise TypeError(f"Invalid type for utilization: {type(trace)}.")
 
 
-    def run_simulation(self, jobs, timesteps):
-        """ Generator that yields after each simulation tick """
-        last_submit_time = 0
+    def run_simulation(self, jobs, timesteps, autoshutdown=False):
+        """Generator that yields after each simulation tick."""
         self.timesteps = timesteps
 
-        for job_info in jobs:
-            job = Job(job_info, self.current_time)
-            self.add_job(job)
+        # Sort pending jobs by submit_time.
+        jobs_to_submit = sorted(jobs, key=lambda j: j['submit_time'])
 
         for timestep in range(timesteps):
+            # Submit jobs whose submit_time is <= current_time
+            while jobs_to_submit and jobs_to_submit[0]['submit_time'] <= self.current_time:
+                job_info = jobs_to_submit.pop(0)
+                job = Job(job_info, self.current_time)
+                self.add_job(job)
 
+            # Schedule jobs that are now in the queue.
             self.scheduler.schedule(self.queue, self.running, self.current_time)
 
-            # Stop the simulation if no more jobs are running or in the queue
-            if not self.queue and not self.running and not self.replay:
+            # Stop the simulation if no more jobs are running or in the queue.
+            if autoshutdown and not self.queue and not self.running and not self.replay:
                 print(f"[DEBUG] {self.config['system_name']} - Stopping simulation at time {self.current_time}")
                 break
+
             if self.debug and timestep % self.config['UI_UPDATE_FREQ'] == 0:
-                    print(".", end="", flush=True)
+                print(".", end="", flush=True)
 
             yield self.tick()
+
 
     def get_stats(self):
         """ Return output statistics """

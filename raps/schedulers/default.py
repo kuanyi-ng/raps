@@ -42,9 +42,18 @@ class Scheduler:
 
         # Iterate over a copy of the queue since we might remove items
         for job in queue[:]:
-            # Check if the resource manager has enough nodes.
-            if len(self.resource_manager.available_nodes) >= job.nodes_required:
-                # Use ResourceManager to assign nodes.
+
+            # For synthetic jobs the number of requested nodes is given.
+            # Make sure the available nodes count meets job.nodes_required.
+            synthetic_bool = len(self.resource_manager.available_nodes) >= job.nodes_required
+
+            # For telemetry replay jobs a list of requested nodes is provided.
+            # Make sure the requested nodes are available.
+            telemetry_bool = False
+            if job.requested_nodes:
+                telemetry_bool = set(job.requested_nodes).issubset(set(self.resource_manager.available_nodes))
+
+            if synthetic_bool or telemetry_bool:
                 self.resource_manager.assign_nodes_to_job(job, current_time)
                 running.append(job)
                 queue.remove(job)
