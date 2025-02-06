@@ -116,10 +116,10 @@ class Engine:
         if len(scheduled_nodes) > 0:
             self.flops_manager.update_flop_state(scheduled_nodes, cpu_utils, gpu_utils)
             jobs_power = self.power_manager.update_power_state(scheduled_nodes, cpu_utils, gpu_utils, net_utils)
-            
+
             _running_jobs = [job for job in self.running if job.state == JobState.RUNNING]
             if len(jobs_power) != len(_running_jobs):
-                raise ValueError(f"Jobs power list of length ({len(jobs_power)}) should have ({len(running_jobs)}) items.")
+                raise ValueError(f"Jobs power list of length ({len(jobs_power)}) should have ({len(_running_jobs)}) items.")
             for i, job in enumerate(_running_jobs):
                 if job.running_time % self.config['TRACE_QUANTA'] == 0:
                     job.power_history.append(jobs_power[i] * len(job.scheduled_nodes))
