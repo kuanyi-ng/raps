@@ -360,3 +360,13 @@ def toJSON(obj):
         default=lambda o:o.__dict__,
         sort_keys=True,
         indent=4)
+
+
+def get_utilization(trace, time_quanta_index):
+    """Retrieve utilization value for a given trace at a specific time quanta index."""
+    if isinstance(trace, (list, np.ndarray)):
+        return trace[time_quanta_index]
+    elif isinstance(trace, (int, float)):
+        return float(trace)
+    else:
+        raise TypeError(f"Invalid type for utilization: {type(trace)}.")

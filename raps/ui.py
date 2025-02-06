@@ -1,4 +1,3 @@
-import numpy as np
 import pandas as pd
 from rich.align import Align
 from rich.console import Console

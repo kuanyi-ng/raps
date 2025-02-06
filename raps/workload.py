@@ -25,7 +25,6 @@ JOB_END_PROBS : list
 
 """
 
-import math
 import random
 import numpy as np
 
