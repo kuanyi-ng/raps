@@ -334,7 +334,9 @@ class PowerManager:
                         num_rectifiers = num_rectifiers_array[i, j, k]
                         power_per_rectifier = chassis_power[i, j, k] / num_rectifiers
                         rectifier_power[i, j, k, :num_rectifiers] = power_per_rectifier
-                        power_with_losses[i, j, k, :num_rectifiers] = rectifier_loss(power_per_rectifier)
+                        power_with_losses[i, j, k, :num_rectifiers] = compute_loss(power_per_rectifier, \
+                                                                      self.config['RECTIFIER_LOSS_CONSTANT'], \
+                                                                      self.config['RECTIFIER_EFFICIENCY'])
 
             rectifier_power = np.nan_to_num(rectifier_power)
             power_with_losses = np.nan_to_num(power_with_losses)

@@ -1,12 +1,11 @@
 from typing import Optional
 import dataclasses
-import numpy as np
 import pandas as pd
 
 from .job import Job, JobState
 from .account import Accounts
 from .network import network_utilization
-from .utils import summarize_ranges, expand_ranges, write_dict_to_file
+from .utils import summarize_ranges, expand_ranges, get_utilization
 from .resmgr import ResourceManager
 from .schedulers import load_scheduler
 
@@ -74,10 +73,11 @@ class Engine:
     def tick(self):
         """Simulate a timestep."""
         completed_jobs = [job for job in self.running if job.end_time is not None and job.end_time <= self.current_time]
-        completed_job_stats = []
         
         # Simulate node failure
         newly_downed_nodes = self.resource_manager.node_failure(self.config['MTBF'])
+        for node in newly_downed_nodes:
+            self.power_manager.set_idle(node)
 
         # Update active/free nodes
         self.num_free_nodes = len(self.resource_manager.available_nodes)
@@ -97,13 +97,13 @@ class Engine:
             if job.state == JobState.RUNNING:
                 job.running_time = self.current_time - job.start_time
                 time_quanta_index = (self.current_time - job.start_time) // self.config['TRACE_QUANTA']
-                cpu_util = self.get_utilization(job.cpu_trace, time_quanta_index)
-                gpu_util = self.get_utilization(job.gpu_trace, time_quanta_index)
+                cpu_util = get_utilization(job.cpu_trace, time_quanta_index)
+                gpu_util = get_utilization(job.gpu_trace, time_quanta_index)
                 net_util = 0
 
                 if len(job.ntx_trace) and len(job.nrx_trace):
-                    net_tx = self.get_utilization(job.ntx_trace, time_quanta_index)
-                    net_rx = self.get_utilization(job.nrx_trace, time_quanta_index)
+                    net_tx = get_utilization(job.ntx_trace, time_quanta_index)
+                    net_rx = get_utilization(job.nrx_trace, time_quanta_index)
                     net_util = network_utilization(net_tx, net_rx)
                     net_utils.append(net_util)
                 else:
@@ -156,7 +156,6 @@ class Engine:
             self.power_manager.history.append((self.current_time, total_power_kw))
             self.sys_power = total_power_kw
             self.power_manager.loss_history.append((self.current_time, total_loss_kw))
-            output_df = self.power_manager.get_power_df(rack_power, rack_loss)
             pflops = self.flops_manager.get_system_performance() / 1E15
             gflop_per_watt = pflops * 1E6 / (total_power_kw * 1000)
         else:
@@ -199,16 +198,6 @@ class Engine:
 
         self.current_time += 1
         return tick_data
-
-
-    def get_utilization(self, trace, time_quanta_index):
-        """Retrieve utilization value for a given trace at a specific time quanta index."""
-        if isinstance(trace, (list, np.ndarray)):
-            return trace[time_quanta_index]
-        elif isinstance(trace, (int, float)):
-            return float(trace)
-        else:
-            raise TypeError(f"Invalid type for utilization: {type(trace)}.")
 
 
     def run_simulation(self, jobs, timesteps, autoshutdown=False):

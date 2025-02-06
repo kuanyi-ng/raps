@@ -1,7 +1,6 @@
 import requests
 import urllib3
-import json
-from datetime import datetime, timedelta
+from datetime import datetime
 
 # Disable SSL warnings when verify=False is used (temporary debugging purpose)
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
