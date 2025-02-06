@@ -86,6 +86,10 @@ class Engine:
                               - len(self.resource_manager.down_nodes)
 
         # Update running time for all running jobs
+        scheduled_nodes = []
+        cpu_utils = []
+        gpu_utils = []
+        net_utils = []
         for job in self.running:
             if job.end_time == self.current_time:
                 job.state = JobState.COMPLETED
@@ -101,12 +105,23 @@ class Engine:
                     net_tx = self.get_utilization(job.ntx_trace, time_quanta_index)
                     net_rx = self.get_utilization(job.nrx_trace, time_quanta_index)
                     net_util = network_utilization(net_tx, net_rx)
+                    net_utils.append(net_util)
+                else:
+                    net_utils.append(0)
 
-                self.flops_manager.update_flop_state(job.scheduled_nodes, cpu_util, gpu_util)
-                job.power = self.power_manager.update_power_state(job.scheduled_nodes, cpu_util, gpu_util, net_util)
-
-                if job.running_time % self.config['TRACE_QUANTA'] == 0:
-                    job.power_history.append(job.power)
+                scheduled_nodes.append(job.scheduled_nodes)
+                cpu_utils.append(cpu_util)
+                gpu_utils.append(gpu_util)
+        
+        if len(scheduled_nodes) > 0:
+            self.flops_manager.update_flop_state(scheduled_nodes, cpu_utils, gpu_utils)
+            jobs_power = self.power_manager.update_power_state(scheduled_nodes, cpu_utils, gpu_utils, net_utils)
+            job_index = 0
+            for job in self.running:
+                if job.state == JobState.RUNNING:
+                    if job.running_time % self.config['TRACE_QUANTA'] == 0:
+                        job.power_history.append(jobs_power[job_index] * len(job.scheduled_nodes))
+                    job_index += len(job.scheduled_nodes)
 
         for job in completed_jobs:
             self.running.remove(job)

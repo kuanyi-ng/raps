@@ -58,7 +58,10 @@ def compute_node_power(cpu_util, gpu_util, net_util, config):
         power_nic = config['POWER_NIC_IDLE'] + \
                     (config['POWER_NIC_MAX'] - config['POWER_NIC_IDLE']) * net_util
     except:
-        power_nic = config['POWER_NIC']
+        if isinstance(net_util, np.ndarray):
+            power_nic = config['POWER_NIC'] * np.ones(net_util.shape)
+        else:
+            power_nic = config['POWER_NIC']
 
     power_total = power_cpu + power_gpu + config['POWER_MEM'] + \
                   config['NICS_PER_NODE'] * power_nic + config['POWER_NVME']
@@ -260,11 +263,23 @@ class PowerManager:
         float
             Total power consumption of the scheduled nodes.
         """
-        node_indices = linear_to_3d_index(scheduled_nodes, self.sc_shape)
-        power_value, sivoc_loss = self.power_func(cpu_util, gpu_util, net_util, self.config)
+        cpu_util = np.asarray(cpu_util)
+        gpu_util = np.asarray(gpu_util)
+        net_util = np.asarray(net_util)
+        job_lengths = np.array([len(job) for job in scheduled_nodes])
+        flattened_nodes = np.concatenate(scheduled_nodes, axis=0)
+
+        cpu_util_flat = np.repeat(cpu_util, job_lengths)
+        gpu_util_flat = np.repeat(gpu_util, job_lengths)
+        net_util_flat = np.repeat(net_util, job_lengths)
+
+        node_indices = linear_to_3d_index(flattened_nodes, self.config['SC_SHAPE'])
+
+        power_value, sivoc_loss = self.power_func(cpu_util_flat, gpu_util_flat, net_util_flat, self.config)
         self.power_state[node_indices] = power_value
         self.sivoc_loss[node_indices] = sivoc_loss
-        return power_value * len(scheduled_nodes)
+        return power_value
+    
 
     def calculate_rectifiers_needed(self, power_state_summed):
         """
