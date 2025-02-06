@@ -186,7 +186,7 @@ class Engine:
             completed=completed_jobs,
             running=self.running,
             queue=self.queue,
-            down_nodes=expand_ranges(self.down_nodes),
+            down_nodes=expand_ranges(self.down_nodes[1:]),
             power_df=power_df,
             p_flops=pflops,
             g_flops_w=gflop_per_watt,
