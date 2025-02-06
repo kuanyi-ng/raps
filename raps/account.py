@@ -118,7 +118,7 @@ class Accounts:
         #update specific account associated with job
         if isinstance(jobstats, JobStatistics):
             if jobstats.account not in self.account_dict:
-                self.account_dict[jobstats.account] = Account(self._account_id,jobstats.account,0)
+                self.account_dict[jobstats.account] = Account(self._account_id,jobstats.account,0)  # new account from job's.account_id with priority 0
                 self._account_id += 1
             account = self.account_dict[jobstats.account]
             account.update_statistics(jobstats,self.average_user)

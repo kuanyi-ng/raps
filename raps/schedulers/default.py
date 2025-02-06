@@ -1,7 +1,8 @@
 from enum import Enum
-from ..job import Job, JobState
+#from ..job import Job, JobState  # Unused
 from ..utils import summarize_ranges
 
+from ..workload import MAX_PRIORITY
 
 class PolicyType(Enum):
     """Supported scheduling policies."""
@@ -13,7 +14,6 @@ class PolicyType(Enum):
 
 class Scheduler:
     """ Default job scheduler with various scheduling policies. """
-    
 
     def __init__(self, config, policy, resource_manager=None):
         self.config = config
@@ -23,18 +23,29 @@ class Scheduler:
         self.resource_manager = resource_manager
         self.debug = False
 
-
-    def sort_jobs(self, queue):
+    def sort_jobs(self, queue, accounts=None):
         """Sort jobs based on the selected scheduling policy."""
         if self.policy == PolicyType.FCFS or self.policy == PolicyType.BACKFILL:
             return sorted(queue, key=lambda job: job.submit_time)
         elif self.policy == PolicyType.SJF:
             return sorted(queue, key=lambda job: job.wall_time)
         elif self.policy == PolicyType.PRIORITY:
-            return sorted(queue, key=lambda job: job.priority, reverse=True)
+            return self.sort_by_job_and_account_priority(queue, accounts)
         else:
             raise ValueError(f"Unknown policy type: {self.policy}")
 
+    def sort_by_job_and_account_priority(self, queue, accounts=None):
+        priority_tuple_list = []
+        for job in queue:
+            # create a tuple of the job and the priority
+            priority = job.priority
+            if job.account in accounts:
+                priority += accounts[job.account].priority
+                priority = max(priority, MAX_PRIORITY)
+            priority_tuple_list.append((priority,job))
+        priority_tuple_list = sorted(priority_tuple_list, key=lambda x:x[1], reverse=True)
+        _, queue = zip(*priority_tuple_list)
+        return queue
 
     def schedule(self, queue, running, current_time, debug=False):
         # Sort the queue in place.
@@ -63,20 +74,19 @@ class Scheduler:
             else:
                 if self.policy == PolicyType.BACKFILL:
                     # Try to find a backfill candidate from the entire queue.
-                    backfill_job = self.find_backfill_job(queue, len(available_nodes), current_time)
+                    backfill_job = self.find_backfill_job(queue, len(self.resource_manager.available_nodes), current_time)
                     if backfill_job:
-                        self.assign_nodes_to_job(backfill_job, available_nodes, current_time)
+                        self.assign_nodes_to_job(backfill_job, self.resource_manager.available_nodes, current_time)
                         running.append(backfill_job)
                         queue.remove(backfill_job)
                         if debug:
                             scheduled_nodes = summarize_ranges(backfill_job.scheduled_nodes)
                             print(f"t={current_time}: Backfilling job {backfill_job.id} with wall time {backfill_job.wall_time} on nodes {scheduled_nodes}")
 
-
     def find_backfill_job(self, queue, num_free_nodes, current_time):
         """Finds a backfill job based on available nodes and estimated completion times.
-        
-        Based on pseudocode from Leonenkov and Zhumatiy, 'Introducing new backfill-based 
+
+        Based on pseudocode from Leonenkov and Zhumatiy, 'Introducing new backfill-based
         scheduler for slurm resource manager.' Procedia computer science 66 (2015): 661-669.
         """
 

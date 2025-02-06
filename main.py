@@ -31,7 +31,6 @@ from raps.telemetry import Telemetry
 from raps.workload import Workload
 from raps.weather import Weather
 from raps.utils import create_casename, convert_to_seconds, write_dict_to_file, next_arrival
-from raps.utils import toJSON
 
 config = ConfigManager(system_name=args.system).get_config()
 
@@ -45,7 +44,7 @@ if args.cooling:
     args.layout = "layout2"
 
     if args_dict['start']:
-        cooling_model.weather = Weather(args_dict['start'], config = config)
+        cooling_model.weather = Weather(args_dict['start'], config=config)
 else:
     cooling_model = None
 

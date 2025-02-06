@@ -37,7 +37,7 @@ class Engine:
         self.resource_manager = ResourceManager(
             total_nodes=self.config['TOTAL_NODES'],
             down_nodes=self.config['DOWN_NODES']
-        ) 
+        )
 
         # Initialize running and queue, etc.
         self.running = []
@@ -55,7 +55,7 @@ class Engine:
         self.output = kwargs.get('output')
         self.replay = kwargs.get('replay')
         self.sys_util_history = []
-        
+
         # Get scheduler type from command-line args or default
         scheduler_type = kwargs.get('scheduler', 'default')
         self.scheduler = load_scheduler(scheduler_type)(
@@ -65,17 +65,25 @@ class Engine:
         )
         print(f"Using scheduler: {scheduler_type}")
 
-
+    # Unused!
     def add_job(self, job):
         self.queue.append(job)
-        self.queue = self.scheduler.sort_jobs(self.queue)
+        self.queue = self.scheduler.sort_jobs(self.queue)  # No need to sort here!
+
+    def eligible_jobs(self,jobs_to_submit):
+        eligible_jobs_list = []
+        while jobs_to_submit and jobs_to_submit[0]['submit_time'] <= self.current_time:
+            job_info = jobs_to_submit.pop(0)
+            job = Job(job_info, self.current_time)
+            eligible_jobs_list.append(job)
+        return eligible_jobs_list
 
 
     def tick(self):
         """Simulate a timestep."""
         completed_jobs = [job for job in self.running if job.end_time is not None and job.end_time <= self.current_time]
         completed_job_stats = []
-        
+
         # Simulate node failure
         newly_downed_nodes = self.node_failure(self.config['MTBF'])
 
@@ -112,7 +120,7 @@ class Engine:
                 scheduled_nodes.append(job.scheduled_nodes)
                 cpu_utils.append(cpu_util)
                 gpu_utils.append(gpu_util)
-        
+
         if len(scheduled_nodes) > 0:
             self.flops_manager.update_flop_state(scheduled_nodes, cpu_utils, gpu_utils)
             jobs_power = self.power_manager.update_power_state(scheduled_nodes, cpu_utils, gpu_utils, net_utils)
@@ -219,12 +227,11 @@ class Engine:
         jobs_to_submit = sorted(jobs, key=lambda j: j['submit_time'])
 
         for timestep in range(timesteps):
-            # Submit jobs whose submit_time is <= current_time
-            while jobs_to_submit and jobs_to_submit[0]['submit_time'] <= self.current_time:
-                job_info = jobs_to_submit.pop(0)
-                job = Job(job_info, self.current_time)
-                self.add_job(job)
 
+            # identify eligible jobs and add them to the queue.
+            self.queue += self.eligible_jobs(jobs_to_submit)
+            #sort the queue according to the policy
+            self.queue = self.scheduler.sort_jobs(self.queue, self.accounts)
             # Schedule jobs that are now in the queue.
             self.scheduler.schedule(self.queue, self.running, self.current_time)
 
