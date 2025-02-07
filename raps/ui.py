@@ -1,4 +1,3 @@
-import numpy as np
 import pandas as pd
 from rich.align import Align
 from rich.console import Console
@@ -7,12 +6,12 @@ from rich.panel import Panel
 from rich.table import Table
 from .utils import summarize_ranges, convert_seconds
 from .constants import ELLIPSES
-from .scheduler import TickData, Scheduler
+from .engine import TickData, Engine
 
 
 class LayoutManager:
-    def __init__(self, layout_type, scheduler: Scheduler, debug, **config):
-        self.scheduler = scheduler
+    def __init__(self, layout_type, engine: Engine, debug, **config):
+        self.engine = engine
         self.config = config
         self.console = Console()
         self.layout = Layout()
@@ -375,9 +374,9 @@ class LayoutManager:
             self.layout["lower"].update(Panel(Align(total_table, align="center"), title="Power and Performance"))
 
     def update(self, data: TickData):
-        uncertainties = self.scheduler.power_manager.uncertainties
+        uncertainties = self.engine.power_manager.uncertainties
 
-        if self.scheduler.cooling_model:
+        if self.engine.cooling_model:
             self.update_powertemp_array(
                 data.power_df, data.fmu_outputs, data.p_flops, data.g_flops_w, data.system_util,
                 uncertainties = uncertainties,
@@ -401,11 +400,11 @@ class LayoutManager:
 
     def run(self, jobs, timesteps):
         """ Runs the UI, blocking until the simulation is complete """
-        for data in self.scheduler.run_simulation(jobs, timesteps):
+        for data in self.engine.run_simulation(jobs, timesteps):
             if data.current_time % self.config['UI_UPDATE_FREQ'] == 0:
                 self.update(data)
                 self.render()
 
     def run_stepwise(self, jobs, timesteps):
         """ Prepares the UI and returns a generator for the simulation """
-        return self.scheduler.run_simulation(jobs, timesteps)
+        return self.engine.run_simulation(jobs, timesteps)

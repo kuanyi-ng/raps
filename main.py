@@ -25,7 +25,8 @@ from raps.flops import FLOPSManager
 from raps.plotting import Plotter
 from raps.power import PowerManager, compute_node_power, compute_node_power_validate
 from raps.power import compute_node_power_uncertainties, compute_node_power_validate_uncertainties
-from raps.scheduler import Scheduler, Job
+from raps.engine import Engine
+from raps.job import Job
 from raps.telemetry import Telemetry
 from raps.workload import Workload
 from raps.weather import Weather
@@ -61,13 +62,13 @@ else:
 args_dict['config'] = config
 flops_manager = FLOPSManager(**args_dict)
 
-sc = Scheduler(
+sc = Engine(
     power_manager=power_manager,
     flops_manager=flops_manager,
     cooling_model=cooling_model,
     **args_dict,
 )
-layout_manager = LayoutManager(args.layout, scheduler=sc, debug=args.debug, **config)
+layout_manager = LayoutManager(args.layout, engine=sc, debug=args.debug, **config)
 
 if args.replay:
 
