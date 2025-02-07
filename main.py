@@ -29,6 +29,7 @@ from raps.engine import Engine
 from raps.job import Job
 from raps.telemetry import Telemetry
 from raps.workload import Workload
+from raps.account import Accounts
 from raps.weather import Weather
 from raps.utils import create_casename, convert_to_seconds, write_dict_to_file, next_arrival
 
@@ -86,14 +87,14 @@ if args.replay:
         DIR_NAME = create_casename()
 
     # Read telemetry data (either npz file or via custom data loader)
-    if args.replay[0].endswith(".npz"): # replay .npz file
+    if args.replay[0].endswith(".npz"):  # Replay .npz file
         print(f"Loading {args.replay[0]}...")
-        jobs = td.load_snapshot(args.replay[0])
+        jobs, accounts = td.load_snapshot(args.replay[0])
 
         if args.scale:
             for job in tqdm(jobs, desc=f"Scaling jobs to {args.scale} nodes"):
                 job['nodes_required'] = random.randint(1, args.scale)
-                job['requested_nodes'] = None # Setting to None triggers scheduler to assign nodes
+                job['requested_nodes'] = None  # Setting to None triggers scheduler to assign nodes
 
         if args.reschedule == 'poisson':
             print("available nodes:", config['AVAILABLE_NODES'])
@@ -103,11 +104,13 @@ if args.replay:
         elif args.reschedule == 'submit-time':
             raise NotImplementedError
 
-
     else:  # custom data loader
         print(*args.replay)
         jobs = td.load_data(args.replay)
-        td.save_snapshot(jobs, filename=DIR_NAME)
+        accounts = Accounts(jobs)
+        sc.accounts = accounts
+        accounts_dict = accounts.to_dict()
+        td.save_snapshot(jobs, accounts, filename=DIR_NAME)
 
     # Set number of timesteps based on the last job running which we assume
     # is the maximum value of submit_time + wall_time of all the jobs
@@ -119,9 +122,11 @@ if args.replay:
     print(f'Simulating {len(jobs)} jobs for {timesteps} seconds')
     time.sleep(1)
 
-else: # synthetic jobs
+else:  # Synthetic jobs
     wl = Workload(config)
     jobs = getattr(wl, args.workload)(num_jobs=args.numjobs)
+    accounts = Accounts(jobs)
+    sc.accounts = accounts
 
     if args.verbose:
         for job_vector in jobs:

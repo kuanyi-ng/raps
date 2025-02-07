@@ -27,6 +27,7 @@ from tqdm import tqdm
 
 from .config import ConfigManager
 from .job import Job
+from .account import Accounts
 from .plotting import plot_submit_times, plot_nodes_histogram
 from .utils import next_arrival
 
@@ -44,15 +45,15 @@ class Telemetry:
             print("WARNING: Failed to load dataloader")
 
 
-    def save_snapshot(self, jobs: list, filename: str):
+    def save_snapshot(self, jobs: list, accounts: dict, filename: str):
         """Saves a snapshot of the jobs to a compressed file. """
-        np.savez_compressed(filename, jobs=jobs)
+        np.savez_compressed(filename, jobs=jobs, accounts=accounts)
 
 
-    def load_snapshot(self, snapshot: str) -> list:
+    def load_snapshot(self, snapshot: str) -> (list, dict):
         """Reads a snapshot from a compressed file and returns the jobs."""
-        jobs = np.load(snapshot, allow_pickle=True, mmap_mode='r')
-        return jobs['jobs'].tolist()
+        jobs, accounts_dict = np.load(snapshot, allow_pickle=True, mmap_mode='r')
+        return jobs['jobs'].tolist(), Accounts.initialize_accounts_from_dict(accounts_dict)
 
 
     def load_data(self, files):

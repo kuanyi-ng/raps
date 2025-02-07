@@ -41,9 +41,7 @@ class Engine:
         # Initialize running and queue, etc.
         self.running = []
         self.queue = []
-        self.accounts = Accounts()
-        if 'accounts_json' in kwargs and kwargs['accounts_json']:
-            self.accounts.initialize_accounts_from_json(kwargs.get('accounts_json'))
+        self.accounts = None
         self.jobs_completed = 0
         self.current_time = 0
         self.cooling_model = cooling_model
