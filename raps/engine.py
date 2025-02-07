@@ -220,7 +220,7 @@ class Engine:
             #sort the queue according to the policy
             self.queue = self.scheduler.sort_jobs(self.queue, self.accounts)
             # Schedule jobs that are now in the queue.
-            self.scheduler.schedule(self.queue, self.running, self.current_time)
+            self.scheduler.schedule(self.queue, self.running, self.current_time, sorted = True)
 
             # Stop the simulation if no more jobs are running or in the queue.
             if autoshutdown and not self.queue and not self.running and not self.replay:

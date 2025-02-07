@@ -39,6 +39,11 @@ class Account:
             self.avg_power = self.time_allocated / self.energy_allocated
         self.fugaku_points = fugaku_points
 
+    def update_fugaku_points(self, average_energy, average_power):
+        if average_power == 0:
+            raise ValueError(f"{average_power} is zero")
+        self.fugaku_points = (average_energy - self.energy_allocated) / average_power
+
     def update_statistics(self, jobstats, average_user):
         self.total_jobs_completed += 1
         self.time_allocated += jobstats.run_time
@@ -50,7 +55,7 @@ class Account:
         if average_user.avg_power == 0:  # If this is the first job use own power
             average_user.avg_power = self.avg_power
         if average_user.avg_power != 0:  # If no energy was computed no points can be computed.
-            self.fugaku_points = (average_user.energy_allocated - self.energy_allocated) / average_user.avg_power
+            self.update_fugaku_points(average_user.energy_allocated, average_user.avg_power)
 
     def __repr__(self):
         return (f"Account(id={self.id}, name={self.name}), "
@@ -88,6 +93,30 @@ class Account:
         acct.avg_power = account_dict["avg_power"]
         acct.fugaku_points = account_dict["fugaku_points"]
         return acct
+
+
+def merge_account_of_same_id(account1:Account, account2:Account, new_id) -> Account:
+    merged_account = Account()
+    if account1.name != account2.name:
+        raise KeyError(f"{account1.name} != {account2.name}. Input arguments missmatch.")
+    merged_account.name = account1.name
+    merged_account.id = new_id  # This has to be relative to the Accounts Object and cannot be derived from the individual Account objects
+    if account1.priority is 0:
+        merged_account.priority = account2.priority
+    elif account2.priority is 0:
+        merged_account.priority = account1.priority
+    else:
+        raise ValueError("Priority Cannot be derived!")
+
+    merged_account.total_jobs_enqueued = account1.total_jobs_enqueued + account2.total_jobs_enqueued
+    merged_account.total_jobs_completed = account1.total_jobs_completed + account2.total_jobs_completed
+    merged_account.time_allocated = account1.time_allocated + account2.time_allocated
+    merged_account.energy_allocated = account1.energy_allocated + account2.energy_allocated
+    if merged_account.energy_allocated != 0:
+        merged_account.avg_power = merged_account.time_allocated / merged_account.energy_allocated
+    else:
+        merged_account.avg_power = 0
+    merged_account.fugaku_points = None  # Needs to be invalidated, as averages are not known!
 
 
 class Accounts:
@@ -165,3 +194,19 @@ class Accounts:
         ret_dict['all_users'] = self.all_users.to_dict()
         ret_dict['average_user'] = self.average_user.to_dict()
         return ret_dict
+
+
+def merge_accounts(accounts1: Accounts,accounts2: Accounts) -> Accounts:
+    merged_accounts = Accounts()
+    merged_accounts._account_id = len(accounts1.account_dict) + len(accounts2.account_dict)
+    merged_accounts.account_dict = accounts1.account_dict
+    for ac2_k, ac2_v in accounts2.account_dict.items():
+        if ac2_k in accounts1.account_dict:
+            merged_accounts.account_dict[ac2_k] = merge_account_of_same_id(accounts1.account_dict[ac2_k], accounts2.account_dict[ac2_k])
+    # update all uers -> then update average user -> then fugagku points for all users (order is important!)
+    merged_accounts.all_users = merge_account_of_same_id(accounts1.all_users,accounts2.all_users)
+    merged_accounts.all_users.update_fugaku_points(merged_accounts.average_user.energy_allocated, merged_accounts.average_user.avg_power)
+    merged_accounts.update_average_user()
+    for ac_k, ac_v in merged_accounts.account_dict.items():
+        merged_accounts[ac_k].update_fugaku_points(merged_accounts.average_user.energy_allocated, merged_accounts.average_user.avg_power)
+    return merged_accounts

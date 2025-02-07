@@ -30,26 +30,14 @@ class Scheduler:
         elif self.policy == PolicyType.SJF:
             return sorted(queue, key=lambda job: job.wall_time)
         elif self.policy == PolicyType.PRIORITY:
-            return self.sort_by_job_and_account_priority(queue, accounts)
+            return sorted(queue, key=lambda job: job.priority, reverse=True)
         else:
             raise ValueError(f"Unknown policy type: {self.policy}")
 
-    def sort_by_job_and_account_priority(self, queue, accounts=None):
-        priority_tuple_list = []
-        for job in queue:
-            # create a tuple of the job and the priority
-            priority = job.priority
-            if job.account in accounts:
-                priority += accounts[job.account].priority
-                priority = max(priority, MAX_PRIORITY)
-            priority_tuple_list.append((priority,job))
-        priority_tuple_list = sorted(priority_tuple_list, key=lambda x:x[1], reverse=True)
-        _, queue = zip(*priority_tuple_list)
-        return queue
-
-    def schedule(self, queue, running, current_time, debug=False):
+    def schedule(self, queue, running, current_time, sorted=False, debug=False):
         # Sort the queue in place.
-        queue[:] = self.sort_jobs(queue)
+        if not sorted:
+            queue[:] = self.sort_jobs(queue)
 
         # Iterate over a copy of the queue since we might remove items
         for job in queue[:]:

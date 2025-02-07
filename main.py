@@ -125,8 +125,12 @@ if args.replay:
 else:  # Synthetic jobs
     wl = Workload(config)
     jobs = getattr(wl, args.workload)(num_jobs=args.numjobs)
-    accounts = Accounts(jobs)
-    sc.accounts = accounts
+    job_accounts = Accounts(jobs)
+    if args.accounts_json:
+        loaded_accounts = Accounts.initialize_accounts_from_json(args.accounts_json)
+        accounts = loaded_accounts.merge(loaded_accounts,job_accounts)
+    else:
+        accounts = job_accounts
 
     if args.verbose:
         for job_vector in jobs:
@@ -137,13 +141,14 @@ else:  # Synthetic jobs
     if args.time:
         timesteps = convert_to_seconds(args.time)
     else:
-        timesteps = 88200 # 24 hours
+        timesteps = 88200  # 24 hours
 
     DIR_NAME = create_casename()
 
 OPATH = OUTPUT_PATH / DIR_NAME
 print("Output directory is: ", OPATH)
 sc.opath = OPATH
+sc.accounts = accounts
 
 if args.plot or args.output:
     try:
