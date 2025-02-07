@@ -3,7 +3,6 @@ import dataclasses
 import pandas as pd
 
 from .job import Job, JobState
-from .account import Accounts
 from .network import network_utilization
 from .utils import summarize_ranges, expand_ranges, get_utilization
 from .resmgr import ResourceManager
