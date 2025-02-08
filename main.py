@@ -127,8 +127,8 @@ else:  # Synthetic jobs
     jobs = getattr(wl, args.workload)(num_jobs=args.numjobs)
     job_accounts = Accounts(jobs)
     if args.accounts_json:
-        loaded_accounts = Accounts.initialize_accounts_from_json(args.accounts_json)
-        accounts = loaded_accounts.merge(loaded_accounts,job_accounts)
+        loaded_accounts = Accounts.from_json_filename(args.accounts_json)
+        accounts = Accounts.merge(loaded_accounts,job_accounts)
     else:
         accounts = job_accounts
 
@@ -240,8 +240,8 @@ if args.output:
         df.to_parquet(OPATH / 'util.parquet', engine='pyarrow')
 
         # Schedule history
-        schedule_history = pd.DataFrame(sc.get_history())
-        schedule_history.to_csv(OPATH / "schedule_history.csv", index=False)
+        job_history = pd.DataFrame(sc.get_job_history_dict())
+        job_history.to_csv(OPATH / "job_history.csv", index=False)
 
         try:
             with open(OPATH / 'stats.out', 'w') as f:
@@ -255,3 +255,4 @@ if args.output:
                 f.write(json_string)
         except TypeError:
             raise TypeError(f"{sc.accounts} could not be parsed by json.dump")
+    print("Output directory is: ", OPATH)  # If output is enabled, the user wants this information as last output

@@ -115,6 +115,9 @@ class JobStatistics:
         self.account = job.account
         self.num_nodes = len(job.scheduled_nodes)
         self.run_time = job.running_time
+        self.start_time = job.start_time
+        self.end_time = job.end_time
+        self.state = job._state
         if len(job.power_history) == 0:
             self.avg_node_power = 0
             self.max_node_power = 0

@@ -41,6 +41,7 @@ class Engine:
         self.running = []
         self.queue = []
         self.accounts = None
+        self.job_history_dict = []
         self.jobs_completed = 0
         self.current_time = 0
         self.cooling_model = cooling_model
@@ -135,6 +136,7 @@ class Engine:
             self.jobs_completed += 1
             job_stats = job.statistics()
             self.accounts.update_account_statistics(job_stats)
+            self.job_history_dict.append(job_stats.__dict__)
             # Free the nodes via the resource manager.
             self.resource_manager.free_nodes_from_job(job)
 
@@ -268,3 +270,6 @@ class Engine:
         }
 
         return stats
+
+    def get_job_history_dict(self):
+        return self.job_history_dict
