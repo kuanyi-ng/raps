@@ -9,6 +9,7 @@ class PolicyType(Enum):
     FCFS = 'fcfs'
     BACKFILL = 'backfill'
     PRIORITY = 'priority'
+    FUGAKU_PTS = 'fugaku_pts'
     SJF = 'sjf'
 
 
@@ -31,13 +32,15 @@ class Scheduler:
             return sorted(queue, key=lambda job: job.wall_time)
         elif self.policy == PolicyType.PRIORITY:
             return sorted(queue, key=lambda job: job.priority, reverse=True)
+        elif self.policy == PolicyType.FUGAKU_PTS:
+            return self.sort_fugaku_redeeming(queue, accounts)
         else:
             raise ValueError(f"Unknown policy type: {self.policy}")
 
-    def schedule(self, queue, running, current_time, sorted=False, debug=False):
+    def schedule(self, queue, running, current_time, accounts=None, sorted=False, debug=False):
         # Sort the queue in place.
         if not sorted:
-            queue[:] = self.sort_jobs(queue)
+            queue[:] = self.sort_jobs(queue, accounts)
 
         # Iterate over a copy of the queue since we might remove items
         for job in queue[:]:
@@ -70,6 +73,7 @@ class Scheduler:
                         if debug:
                             scheduled_nodes = summarize_ranges(backfill_job.scheduled_nodes)
                             print(f"t={current_time}: Backfilling job {backfill_job.id} with wall time {backfill_job.wall_time} on nodes {scheduled_nodes}")
+
 
     def find_backfill_job(self, queue, num_free_nodes, current_time):
         """Finds a backfill job based on available nodes and estimated completion times.
@@ -110,3 +114,35 @@ class Scheduler:
                 return job
 
         return None
+
+    def sort_fugaku_redeeming(self, queue, accounts=None):
+        if queue == []:
+            return queue
+        # Priority queues not yet implemented:
+        # Strategy: Sort by Fugaku Points Representing the Priority Queue
+        # Everything with negative Fugaku Points get sorted according to normal priority
+        priority_triple_list = []
+        for job in queue:
+            fugaku_priority = accounts.account_dict[job.account].fugaku_points
+            # create a tuple of the job and the priority
+            priority = job.priority
+            priority_triple_list.append((fugaku_priority,priority,job))
+        # Sort everythin according to fugaku_points
+        priority_triple_list = sorted(priority_triple_list, key=lambda x:x[0], reverse=True)
+        # Find the first element with negative fugaku_points
+        for cutoff, triple in enumerate(priority_triple_list):
+            fugaku_priority, _, _ = triple
+            if fugaku_priority < 0:
+                break
+        first_part = priority_triple_list[:cutoff]
+        # Sort everything afterwards according to job priority
+        second_part = sorted(priority_triple_list[cutoff:], key=lambda x:x[1], reverse=True)
+        queue_a = []
+        queue_b = []
+        if first_part != []:
+            _, _, queue_a = zip(*first_part)
+            queue_a = list(queue_a)
+        if second_part != []:
+            _, _, queue_b = zip(*second_part)
+            queue_b = list(queue_b)
+        return queue_a + queue_b
