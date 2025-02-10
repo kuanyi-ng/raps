@@ -227,7 +227,6 @@ class Engine:
 
             yield self.tick()
 
-
     def get_stats(self):
         """ Return output statistics """
         sum_values = lambda values: sum(x[1] for x in values) if values else 0
