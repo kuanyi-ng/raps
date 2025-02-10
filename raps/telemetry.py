@@ -40,45 +40,38 @@ class Telemetry:
         self.system = kwargs.get('system')
         self.config = kwargs.get('config')
         try:
-            self.dataloader = importlib.import_module(f".dataloaders.{self.system}", package = __package__)
+            self.dataloader = importlib.import_module(f".dataloaders.{self.system}", package=__package__)
         except:
             print("WARNING: Failed to load dataloader")
-
 
     def save_snapshot(self, jobs: list, accounts: dict, filename: str):
         """Saves a snapshot of the jobs to a compressed file. """
         np.savez_compressed(filename, jobs=jobs, accounts=accounts)
-
 
     def load_snapshot(self, snapshot: str) -> (list, dict):
         """Reads a snapshot from a compressed file and returns the jobs."""
         jobs, accounts_dict = np.load(snapshot, allow_pickle=True, mmap_mode='r')
         return jobs['jobs'].tolist(), Accounts.initialize_accounts_from_dict(accounts_dict)
 
-
     def load_data(self, files):
         """Load telemetry data using custom data loaders."""
         return self.dataloader.load_data(files, **self.kwargs)
-
 
     def load_data_from_df(self, *args, **kwargs):
         """Load telemetry data using custom data loaders."""
         return self.dataloader.load_data_from_df(*args, **kwargs)
 
-
     def node_index_to_name(self, index: int):
         """ Convert node index into a name"""
-        return self.dataloader.node_index_to_name(index, config = self.config)
-
+        return self.dataloader.node_index_to_name(index, config=self.config)
 
     def cdu_index_to_name(self, index: int):
         """ Convert cdu index into a name"""
-        return self.dataloader.cdu_index_to_name(index, config = self.config)
-
+        return self.dataloader.cdu_index_to_name(index, config=self.config)
 
     def cdu_pos(self, index: int) -> tuple[int, int]:
         """ Return (row, col) tuple for a cdu index """
-        return self.dataloader.cdu_pos(index, config = self.config)
+        return self.dataloader.cdu_pos(index, config=self.config)
 
 
 if __name__ == "__main__":
@@ -87,7 +80,6 @@ if __name__ == "__main__":
     config = ConfigManager(system_name=args.system).get_config()
     args_dict['config'] = config
     td = Telemetry(**args_dict)
-
 
     if args.replay[0].endswith(".npz"):
         print(f"Loading {args.replay[0]}...")
@@ -115,7 +107,8 @@ if __name__ == "__main__":
             dt = job.submit_time - last
             dt_list.append(dt)
             last = job.submit_time
-        if args.verbose: print(job)
+        if args.verbose:
+            print(job)
 
     print(f'Simulation will run for {timesteps} seconds')
     print(f'Average job arrival time is: {np.mean(dt_list):.2f}s')

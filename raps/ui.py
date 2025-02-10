@@ -66,7 +66,7 @@ class LayoutManager:
             formatted_row = [func(cell) for func, cell in zip(format_funcs, row)]
             table.add_row(*formatted_row)
 
-    def calculate_totals(self, df): # 'Sum' and 'Loss' columns
+    def calculate_totals(self, df):  # 'Sum' and 'Loss' columns
         total_power_kw = df[self.power_column].sum() + (self.config['NUM_CDUS'] * self.config['POWER_CDU'] / 1000.0)
         total_power_mw = total_power_kw / 1000.0
         total_loss_kw = df[self.loss_column].sum()

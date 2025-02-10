@@ -1,8 +1,8 @@
 from enum import Enum
-#from ..job import Job, JobState  # Unused
 from ..utils import summarize_ranges
 
 from ..workload import MAX_PRIORITY
+
 
 class PolicyType(Enum):
     """Supported scheduling policies."""
@@ -124,7 +124,7 @@ class Scheduler:
         priority_triple_list = []
         for job in queue:
             fugaku_priority = accounts.account_dict[job.account].fugaku_points
-            # create a tuple of the job and the priority
+            # Create a tuple of the job and the priority
             priority = job.priority
             priority_triple_list.append((fugaku_priority,priority,job))
         # Sort everythin according to fugaku_points

@@ -42,7 +42,7 @@ class Job:
     _id_counter = 0
 
     def __init__(self, job_dict, current_time, state=JobState.PENDING, account=None):
-        # initializations
+        # Initializations:
         self.start_time = None
         self.end_time = None
         self.running_time = 0
@@ -51,10 +51,10 @@ class Job:
         self.power_history = []
         self._state = state
         self.account = account
-        # if a job dict was given, override the values from the job_dict:
+        # If a job dict was given, override the values from the job_dict:
         for key, value in job_dict.items():
             setattr(self, key, value)
-        # in any case: provide a job_id!
+        # In any case: provide a job_id!
         if not self.id:
             self.id = Job._get_next_id()
 

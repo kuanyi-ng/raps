@@ -80,7 +80,7 @@ class Account:
         }
 
     @classmethod
-    def from_dict(acct, account_dict):  # name, priority, jobs_enqueue, jobs_completed, time_allocated, energy_allocated, avg_power, fugaku_points):
+    def from_dict(acct, account_dict):
         acct = Account(account_dict["name"], priority=account_dict["priority"])
         acct.name = account_dict["name"]
         acct.priority = account_dict["priority"]
@@ -251,10 +251,10 @@ class Accounts:
                 # Already added above
                 pass
 
-        # update all uers -> then update average user -> then fugagku points for all users (order is important!)
+        # Update all users -> then update average user -> then fugagku points for all users (order is important!)
         merged_accounts.all_users = Account.merge(accounts1.all_users,accounts2.all_users)
         merged_accounts.update_average_user()
-        # update to average user is needed before fugaku points can be caluculated.
+        # Update to average user is needed before fugaku points can be caluculated.
         if merged_accounts.all_users.jobs_completed != 0:
             merged_accounts.all_users.update_fugaku_points(merged_accounts.average_user.energy_allocated, merged_accounts.average_user.avg_power)
 
