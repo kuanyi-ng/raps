@@ -29,9 +29,9 @@ from raps.engine import Engine
 from raps.job import Job
 from raps.telemetry import Telemetry
 from raps.workload import Workload
+from raps.account import Accounts
 from raps.weather import Weather
 from raps.utils import create_casename, convert_to_seconds, write_dict_to_file, next_arrival
-from raps.utils import toJSON
 
 config = ConfigManager(system_name=args.system).get_config()
 
@@ -45,7 +45,7 @@ if args.cooling:
     args.layout = "layout2"
 
     if args_dict['start']:
-        cooling_model.weather = Weather(args_dict['start'], config = config)
+        cooling_model.weather = Weather(args_dict['start'], config=config)
 else:
     cooling_model = None
 
@@ -87,14 +87,14 @@ if args.replay:
         DIR_NAME = create_casename()
 
     # Read telemetry data (either npz file or via custom data loader)
-    if args.replay[0].endswith(".npz"): # replay .npz file
+    if args.replay[0].endswith(".npz"):  # Replay .npz file
         print(f"Loading {args.replay[0]}...")
-        jobs = td.load_snapshot(args.replay[0])
+        jobs, accounts = td.load_snapshot(args.replay[0])
 
         if args.scale:
             for job in tqdm(jobs, desc=f"Scaling jobs to {args.scale} nodes"):
                 job['nodes_required'] = random.randint(1, args.scale)
-                job['requested_nodes'] = None # Setting to None triggers scheduler to assign nodes
+                job['requested_nodes'] = None  # Setting to None triggers scheduler to assign nodes
 
         if args.reschedule == 'poisson':
             print("available nodes:", config['AVAILABLE_NODES'])
@@ -104,11 +104,13 @@ if args.replay:
         elif args.reschedule == 'submit-time':
             raise NotImplementedError
 
-
     else:  # custom data loader
         print(*args.replay)
         jobs = td.load_data(args.replay)
-        td.save_snapshot(jobs, filename=DIR_NAME)
+        accounts = Accounts(jobs)
+        sc.accounts = accounts
+        accounts_dict = accounts.to_dict()
+        td.save_snapshot(jobs, accounts, filename=DIR_NAME)
 
     # Set number of timesteps based on the last job running which we assume
     # is the maximum value of submit_time + wall_time of all the jobs
@@ -120,9 +122,15 @@ if args.replay:
     print(f'Simulating {len(jobs)} jobs for {timesteps} seconds')
     time.sleep(1)
 
-else: # synthetic jobs
+else:  # Synthetic jobs
     wl = Workload(config)
     jobs = getattr(wl, args.workload)(num_jobs=args.numjobs)
+    job_accounts = Accounts(jobs)
+    if args.accounts_json:
+        loaded_accounts = Accounts.from_json_filename(args.accounts_json)
+        accounts = Accounts.merge(loaded_accounts,job_accounts)
+    else:
+        accounts = job_accounts
 
     if args.verbose:
         for job_vector in jobs:
@@ -133,13 +141,14 @@ else: # synthetic jobs
     if args.time:
         timesteps = convert_to_seconds(args.time)
     else:
-        timesteps = 88200 # 24 hours
+        timesteps = 88200  # 24 hours
 
     DIR_NAME = create_casename()
 
 OPATH = OUTPUT_PATH / DIR_NAME
 print("Output directory is: ", OPATH)
 sc.opath = OPATH
+sc.accounts = accounts
 
 if args.plot or args.output:
     try:
@@ -231,8 +240,8 @@ if args.output:
         df.to_parquet(OPATH / 'util.parquet', engine='pyarrow')
 
         # Schedule history
-        schedule_history = pd.DataFrame(sc.get_history())
-        schedule_history.to_csv(OPATH / "schedule_history.csv", index=False)
+        job_history = pd.DataFrame(sc.get_job_history_dict())
+        job_history.to_csv(OPATH / "job_history.csv", index=False)
 
         try:
             with open(OPATH / 'stats.out', 'w') as f:
@@ -246,3 +255,4 @@ if args.output:
                 f.write(json_string)
         except TypeError:
             raise TypeError(f"{sc.accounts} could not be parsed by json.dump")
+    print("Output directory is: ", OPATH)  # If output is enabled, the user wants this information as last output

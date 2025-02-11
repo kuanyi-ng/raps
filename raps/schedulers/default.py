@@ -1,6 +1,7 @@
 from enum import Enum
-from ..job import Job, JobState
 from ..utils import summarize_ranges
+
+from ..workload import MAX_PRIORITY
 
 
 class PolicyType(Enum):
@@ -8,12 +9,12 @@ class PolicyType(Enum):
     FCFS = 'fcfs'
     BACKFILL = 'backfill'
     PRIORITY = 'priority'
+    FUGAKU_PTS = 'fugaku_pts'
     SJF = 'sjf'
 
 
 class Scheduler:
     """ Default job scheduler with various scheduling policies. """
-    
 
     def __init__(self, config, policy, resource_manager=None):
         self.config = config
@@ -23,8 +24,7 @@ class Scheduler:
         self.resource_manager = resource_manager
         self.debug = False
 
-
-    def sort_jobs(self, queue):
+    def sort_jobs(self, queue, accounts=None):
         """Sort jobs based on the selected scheduling policy."""
         if self.policy == PolicyType.FCFS or self.policy == PolicyType.BACKFILL:
             return sorted(queue, key=lambda job: job.submit_time)
@@ -32,13 +32,15 @@ class Scheduler:
             return sorted(queue, key=lambda job: job.wall_time)
         elif self.policy == PolicyType.PRIORITY:
             return sorted(queue, key=lambda job: job.priority, reverse=True)
+        elif self.policy == PolicyType.FUGAKU_PTS:
+            return self.sort_fugaku_redeeming(queue, accounts)
         else:
             raise ValueError(f"Unknown policy type: {self.policy}")
 
-
-    def schedule(self, queue, running, current_time, debug=False):
+    def schedule(self, queue, running, current_time, accounts=None, sorted=False, debug=False):
         # Sort the queue in place.
-        queue[:] = self.sort_jobs(queue)
+        if not sorted:
+            queue[:] = self.sort_jobs(queue, accounts)
 
         # Iterate over a copy of the queue since we might remove items
         for job in queue[:]:
@@ -63,9 +65,9 @@ class Scheduler:
             else:
                 if self.policy == PolicyType.BACKFILL:
                     # Try to find a backfill candidate from the entire queue.
-                    backfill_job = self.find_backfill_job(queue, len(available_nodes), current_time)
+                    backfill_job = self.find_backfill_job(queue, len(self.resource_manager.available_nodes), current_time)
                     if backfill_job:
-                        self.assign_nodes_to_job(backfill_job, available_nodes, current_time)
+                        self.assign_nodes_to_job(backfill_job, self.resource_manager.available_nodes, current_time)
                         running.append(backfill_job)
                         queue.remove(backfill_job)
                         if debug:
@@ -75,8 +77,8 @@ class Scheduler:
 
     def find_backfill_job(self, queue, num_free_nodes, current_time):
         """Finds a backfill job based on available nodes and estimated completion times.
-        
-        Based on pseudocode from Leonenkov and Zhumatiy, 'Introducing new backfill-based 
+
+        Based on pseudocode from Leonenkov and Zhumatiy, 'Introducing new backfill-based
         scheduler for slurm resource manager.' Procedia computer science 66 (2015): 661-669.
         """
 
@@ -112,3 +114,35 @@ class Scheduler:
                 return job
 
         return None
+
+    def sort_fugaku_redeeming(self, queue, accounts=None):
+        if queue == []:
+            return queue
+        # Priority queues not yet implemented:
+        # Strategy: Sort by Fugaku Points Representing the Priority Queue
+        # Everything with negative Fugaku Points get sorted according to normal priority
+        priority_triple_list = []
+        for job in queue:
+            fugaku_priority = accounts.account_dict[job.account].fugaku_points
+            # Create a tuple of the job and the priority
+            priority = job.priority
+            priority_triple_list.append((fugaku_priority,priority,job))
+        # Sort everythin according to fugaku_points
+        priority_triple_list = sorted(priority_triple_list, key=lambda x:x[0], reverse=True)
+        # Find the first element with negative fugaku_points
+        for cutoff, triple in enumerate(priority_triple_list):
+            fugaku_priority, _, _ = triple
+            if fugaku_priority < 0:
+                break
+        first_part = priority_triple_list[:cutoff]
+        # Sort everything afterwards according to job priority
+        second_part = sorted(priority_triple_list[cutoff:], key=lambda x:x[1], reverse=True)
+        queue_a = []
+        queue_b = []
+        if first_part != []:
+            _, _, queue_a = zip(*first_part)
+            queue_a = list(queue_a)
+        if second_part != []:
+            _, _, queue_b = zip(*second_part)
+            queue_b = list(queue_b)
+        return queue_a + queue_b

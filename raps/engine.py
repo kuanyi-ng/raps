@@ -3,7 +3,6 @@ import dataclasses
 import pandas as pd
 
 from .job import Job, JobState
-from .account import Accounts
 from .network import network_utilization
 from .utils import summarize_ranges, expand_ranges, get_utilization
 from .resmgr import ResourceManager
@@ -30,20 +29,20 @@ class TickData:
 
 class Engine:
     """Job scheduling simulation engine."""
+
     def __init__(self, *, power_manager, flops_manager, cooling_model=None, config, **kwargs):
         self.config = config
         self.down_nodes = summarize_ranges(self.config['DOWN_NODES'])
         self.resource_manager = ResourceManager(
             total_nodes=self.config['TOTAL_NODES'],
             down_nodes=self.config['DOWN_NODES']
-        ) 
+        )
 
         # Initialize running and queue, etc.
         self.running = []
         self.queue = []
-        self.accounts = Accounts()
-        if 'accounts_json' in kwargs and kwargs['accounts_json']:
-            self.accounts.initialize_accounts_from_json(kwargs.get('accounts_json'))
+        self.accounts = None
+        self.job_history_dict = []
         self.jobs_completed = 0
         self.current_time = 0
         self.cooling_model = cooling_model
@@ -54,7 +53,7 @@ class Engine:
         self.output = kwargs.get('output')
         self.replay = kwargs.get('replay')
         self.sys_util_history = []
-        
+
         # Get scheduler type from command-line args or default
         scheduler_type = kwargs.get('scheduler', 'default')
         self.scheduler = load_scheduler(scheduler_type)(
@@ -64,16 +63,18 @@ class Engine:
         )
         print(f"Using scheduler: {scheduler_type}")
 
-
-    def add_job(self, job):
-        self.queue.append(job)
-        self.queue = self.scheduler.sort_jobs(self.queue)
-
+    def eligible_jobs(self,jobs_to_submit):
+        eligible_jobs_list = []
+        while jobs_to_submit and jobs_to_submit[0]['submit_time'] <= self.current_time:
+            job_info = jobs_to_submit.pop(0)
+            job = Job(job_info, self.current_time)
+            eligible_jobs_list.append(job)
+        return eligible_jobs_list
 
     def tick(self):
         """Simulate a timestep."""
         completed_jobs = [job for job in self.running if job.end_time is not None and job.end_time <= self.current_time]
-        
+
         # Simulate node failure
         newly_downed_nodes = self.resource_manager.node_failure(self.config['MTBF'])
         for node in newly_downed_nodes:
@@ -112,7 +113,7 @@ class Engine:
                 scheduled_nodes.append(job.scheduled_nodes)
                 cpu_utils.append(cpu_util)
                 gpu_utils.append(gpu_util)
-        
+
         if len(scheduled_nodes) > 0:
             self.flops_manager.update_flop_state(scheduled_nodes, cpu_utils, gpu_utils)
             jobs_power = self.power_manager.update_power_state(scheduled_nodes, cpu_utils, gpu_utils, net_utils)
@@ -130,11 +131,12 @@ class Engine:
             self.jobs_completed += 1
             job_stats = job.statistics()
             self.accounts.update_account_statistics(job_stats)
+            self.job_history_dict.append(job_stats.__dict__)
             # Free the nodes via the resource manager.
             self.resource_manager.free_nodes_from_job(job)
 
         # Ask scheduler to schedule any jobs waiting in queue
-        self.scheduler.schedule(self.queue, self.running, self.current_time)
+        self.scheduler.schedule(self.queue, self.running, self.current_time, self.accounts)
 
         # Update the power array UI component
         rack_power, rect_losses = self.power_manager.compute_rack_power()
@@ -169,7 +171,7 @@ class Engine:
 
                 # FMU inputs are N powers and the wetbulb temp
                 fmu_inputs = self.cooling_model.generate_fmu_inputs(runtime_values,
-                                uncertainties=self.power_manager.uncertainties)
+                                                                    uncertainties=self.power_manager.uncertainties)
                 cooling_inputs, cooling_outputs = (
                     self.cooling_model.step(self.current_time, fmu_inputs, self.config['POWER_UPDATE_FREQ'])
                 )
@@ -199,7 +201,6 @@ class Engine:
         self.current_time += 1
         return tick_data
 
-
     def run_simulation(self, jobs, timesteps, autoshutdown=False):
         """Generator that yields after each simulation tick."""
         self.timesteps = timesteps
@@ -208,14 +209,13 @@ class Engine:
         jobs_to_submit = sorted(jobs, key=lambda j: j['submit_time'])
 
         for timestep in range(timesteps):
-            # Submit jobs whose submit_time is <= current_time
-            while jobs_to_submit and jobs_to_submit[0]['submit_time'] <= self.current_time:
-                job_info = jobs_to_submit.pop(0)
-                job = Job(job_info, self.current_time)
-                self.add_job(job)
 
+            # Identify eligible jobs and add them to the queue.
+            self.queue += self.eligible_jobs(jobs_to_submit)
+            # Sort the queue according to the policy
+            self.queue = self.scheduler.sort_jobs(self.queue, self.accounts)
             # Schedule jobs that are now in the queue.
-            self.scheduler.schedule(self.queue, self.running, self.current_time)
+            self.scheduler.schedule(self.queue, self.running, self.current_time, sorted=True)
 
             # Stop the simulation if no more jobs are running or in the queue.
             if autoshutdown and not self.queue and not self.running and not self.replay:
@@ -226,7 +226,6 @@ class Engine:
                 print(".", end="", flush=True)
 
             yield self.tick()
-
 
     def get_stats(self):
         """ Return output statistics """
@@ -264,3 +263,6 @@ class Engine:
         }
 
         return stats
+
+    def get_job_history_dict(self):
+        return self.job_history_dict

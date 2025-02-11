@@ -111,7 +111,7 @@ class Workload:
             job_info = job_dict(
                 config['AVAILABLE_NODES'],       # Nodes required
                 f"Max Test {partition}",         # Name with partition label
-                ACCT_NAMES[0],                   # User account 
+                ACCT_NAMES[0],                   # User account
                 cpu_trace,                       # CPU trace
                 gpu_trace,                       # GPU trace
                 net_tx,                          # Network transmit trace

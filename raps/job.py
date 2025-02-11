@@ -42,9 +42,7 @@ class Job:
     _id_counter = 0
 
     def __init__(self, job_dict, current_time, state=JobState.PENDING, account=None):
-        for key, value in job_dict.items(): setattr(self, key, value)
-        if not self.id: self.id = Job._get_next_id()
-        # initializations
+        # Initializations:
         self.start_time = None
         self.end_time = None
         self.running_time = 0
@@ -53,6 +51,12 @@ class Job:
         self.power_history = []
         self._state = state
         self.account = account
+        # If a job dict was given, override the values from the job_dict:
+        for key, value in job_dict.items():
+            setattr(self, key, value)
+        # In any case: provide a job_id!
+        if not self.id:
+            self.id = Job._get_next_id()
 
     def __repr__(self):
         """Return a string representation of the job."""
@@ -100,7 +104,6 @@ class Job:
         return JobStatistics(self)
 
 
-
 class JobStatistics:
     """
     Reduced class for handling statistics after the job has finished.
@@ -112,8 +115,11 @@ class JobStatistics:
         self.account = job.account
         self.num_nodes = len(job.scheduled_nodes)
         self.run_time = job.running_time
+        self.start_time = job.start_time
+        self.end_time = job.end_time
+        self.state = job._state
         if len(job.power_history) == 0:
-            self.avg_node_power = 0 
+            self.avg_node_power = 0
             self.max_node_power = 0
         else:
             self.avg_node_power = sum(job.power_history) / len(job.power_history) / self.num_nodes
