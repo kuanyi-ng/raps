@@ -1,3 +1,10 @@
+> [!IMPORTANT]
+> Although the upstream wrote that `python3.9` or greater is required,
+> `numpy==1.23.5` specified in the `pyproject.toml` only supports up to `python3.11`
+> [(source)](https://numpy.org/doc/2.1/release/1.23.5-notes.html).
+>
+> So, we will use `python3.11` when making changes to RAPS.
+
 # ExaDigiT/RAPS
 
 ExaDigiT's Resource Allocator and Power Simulator (RAPS) schedules workloads and 
