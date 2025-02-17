@@ -5,6 +5,12 @@
 >
 > So, we will use `python3.11` when making changes to RAPS.
 
+> [!IMPORTANT]
+> The `main` branch will be kept updated with the upstream.
+> So, we don't commit to the `main` branch.
+> Instead, the "main" branch of this fork is "hardware-upgrade-carbon-simulator",
+> which will be regularly updated with changes on the upstream.
+
 # ExaDigiT/RAPS
 
 ExaDigiT's Resource Allocator and Power Simulator (RAPS) schedules workloads and 
