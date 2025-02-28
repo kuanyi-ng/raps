@@ -55,7 +55,7 @@ class Job:
         for key, value in job_dict.items():
             setattr(self, key, value)
         # In any case: provide a job_id!
-        if not hasattr(self, 'id'):
+        if not hasattr(self, 'id') or self.id is None:
             self.id = Job._get_next_id()
 
     def __repr__(self):
